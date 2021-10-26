@@ -22,6 +22,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace lsst { cell { coadds {
+namespace lsst { namespace cell::coadds {
 
-}}} // lsst::cell::coadds
+}} // lsst::cell_coadds
