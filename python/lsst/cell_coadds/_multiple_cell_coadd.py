@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from typing import Any, Iterable, Optional, Tuple
+from typing import AbstractSet, Any, Iterable, Optional, Set, Tuple
 
 import numpy as np
 from lsst.geom import Box2I
@@ -59,6 +59,7 @@ class MultipleCellCoadd:
         self._cells = np.empty((len(self._y_starts), len(self._x_starts)), dtype=object)
         self._cells.flags.writeable = False  # don't allow cells to be reassigned.
         self._n_noise_realizations = None
+        self._mask_fraction_names: Set[str] = set()
         for cell in cells:
             x_index = self._x_starts[cell.outer.bbox.getBeginX()]
             y_index = self._y_starts[cell.outer.bbox.getBeginY()]
@@ -68,6 +69,7 @@ class MultipleCellCoadd:
             else:
                 if self._n_noise_realizations != len(cell.outer.noise_realizations):
                     raise ValueError("Inconsistent number of noise realizations between cells.")
+            self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
         # TODO: check for gaps
         max_inner_bbox = Box2I(self._cells[0, 0].inner.bbox.getMin(), self._cells[-1, -1].inner.bbox.getMax())
         if inner_bbox is None:
@@ -92,6 +94,16 @@ class MultipleCellCoadd:
         if self._n_noise_realizations is None:
             return 0
         return self._n_noise_realizations
+
+    @property
+    def mask_fraction_names(self) -> AbstractSet[str]:
+        """The names of all mask planes whose fractions were propagated in any
+        cell.
+
+        Cells that do not have a mask fraction for a particular name may be
+        assumed to have the fraction for that mask plane uniformly zero.
+        """
+        return self._mask_fraction_names
 
     def __getitem__(self, bbox: Box2I) -> MultipleCellCoadd:
         # TODO: test for off-by-one errors here, especially for ends

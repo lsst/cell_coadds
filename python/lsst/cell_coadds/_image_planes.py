@@ -28,7 +28,7 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Mapping, Sequence
 
 from lsst.afw.image import ImageF, Mask, MaskedImageF
 from lsst.geom import Box2I
@@ -40,7 +40,7 @@ class ImagePlanes(ABC):
     Notes
     -----
     The extends the set of planes in `lsst.afw.image.MaskedImage` by adding
-    noise realizations and an "interpolation fraction" image.
+    noise realizations and "mask fraction" images.
     """
 
     @property
@@ -69,9 +69,9 @@ class ImagePlanes(ABC):
 
     @property
     @abstractmethod
-    def missing_fraction(self) -> ImageF:
-        """An image of the fraction of input pixels that had to be interpolated
-        due to missing or bad data."""
+    def mask_fractions(self) -> Mapping[str, ImageF]:
+        """A mapping from mask plane name to an image of the weighted fraction
+        of input pixels with that mask bit set."""
         raise NotImplementedError()
 
     @property
@@ -100,13 +100,13 @@ class OwnedImagePlanes(ImagePlanes):
         image: ImageF,
         mask: Mask,
         variance: ImageF,
-        missing_fraction: ImageF,
+        mask_fractions: ImageF,
         noise_realizations: Sequence[ImageF] = (),
     ):
         self._image = image
         self._mask = mask
         self._variance = variance
-        self._missing_fraction = missing_fraction
+        self._mask_fractions = mask_fractions
         self._noise_realizations = tuple(noise_realizations)
 
     @property
@@ -130,9 +130,9 @@ class OwnedImagePlanes(ImagePlanes):
         return self._variance
 
     @property
-    def missing_fraction(self) -> ImageF:
+    def mask_fractions(self) -> Mapping[str, ImageF]:
         # Docstring inherited.
-        return self._missing_fraction
+        return self._mask_fractions
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:
@@ -170,9 +170,11 @@ class ViewImagePlanes(ImagePlanes):
         return self._target.variance[self._bbox]
 
     @property
-    def missing_fraction(self) -> ImageF:
+    def mask_fractions(self) -> Mapping[str, ImageF]:
         # Docstring inherited.
-        return self._target.missing_fraction[self._bbox]
+        # We could make this even lazier with a custom Mapping class, but it
+        # doesn't seem worthwhile.
+        return {name: image[self._bbox] for name, image in self._target.mask_fractions.items()}
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:

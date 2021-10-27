@@ -23,7 +23,16 @@ from __future__ import annotations
 
 __all__ = ("StitchedCellCoadd",)
 
-from typing import TYPE_CHECKING, Callable, Optional, Protocol, Sequence, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Mapping,
+    Optional,
+    Protocol,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from lsst.afw.image import ImageF, Mask
 from lsst.geom import Box2I
@@ -46,7 +55,7 @@ class _BoxSubset(Protocol):
     def __getitem__(self: _S, bbox: Box2I) -> _S:
         pass
 
-    def __setitem__(self: _S, bbox: Box2I, other: _S) -> None:
+    def __setitem__(self: _S, bbox: Box2I, other: Union[_S, int]) -> None:
         pass
 
 
@@ -85,7 +94,7 @@ class StitchedCellCoadd(ImagePlanes):
         self._image: Optional[ImageF] = None
         self._mask: Optional[Mask] = None
         self._variance: Optional[ImageF] = None
-        self._missing_fraction: Optional[ImageF] = None
+        self._mask_fractions: Optional[Mapping[str, ImageF]] = None
         self._noise_realizations: Optional[Sequence[ImageF]] = None
 
     @property
@@ -115,13 +124,17 @@ class StitchedCellCoadd(ImagePlanes):
         return self._variance
 
     @property
-    def missing_fraction(self) -> ImageF:
+    def mask_fractions(self) -> ImageF:
         # Docstring inherited.
-        if self._missing_fraction is None:
-            self._missing_fraction = self._make_plane(
-                ImageF(self.bbox), lambda planes: planes.missing_fraction
-            )
-        return self._missing_fraction
+        if self._mask_fractions is None:
+            # Could make this lazier with a custom Mapping class (only stitch a
+            # mask fraction plane if that plane is requested), but not clear
+            # it's worth the effort.
+            self._mask_fractions = {
+                name: self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions.get(name))
+                for name in self._cell_coadd.mask_fraction_names
+            }
+        return self._mask_fractions
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:
@@ -129,14 +142,14 @@ class StitchedCellCoadd(ImagePlanes):
         if self._noise_realizations is None:
             # Could make this lazier with a custom Sequence class (only stitch
             # a noise plane if that plane is requested), but not clear it's
-            # worth the effort.x
+            # worth the effort.
             self._noise_realizations = tuple(
                 self._make_plane(ImageF(self.bbox), lambda planes: planes.noise_realizations[i])
                 for i in range(self._cell_coadd.n_noise_realizations)
             )
         return self._noise_realizations
 
-    def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], _T]) -> _T:
+    def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], Optional[_T]]) -> _T:
         """Stitch together a single image plane.
 
         Parameters
@@ -158,5 +171,9 @@ class StitchedCellCoadd(ImagePlanes):
         for cell in self._cell_coadd.cells.flat:  # type: ignore
             common_bbox = cell.inner.bbox.clippedTo(self.bbox)
             if not common_bbox.isEmpty():
-                result[common_bbox] = getter(cell.inner)[common_bbox]
+                input_plane = getter(cell.inner)
+                if input_plane is None:
+                    result[common_bbox] = 0
+                else:
+                    result[common_bbox] = input_plane[common_bbox]
         return result
