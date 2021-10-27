@@ -22,6 +22,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace lsst { namespace cell::coadds {
+#include "pybind11/pybind11.h"
+#include "lsst/cpputils/python.h"
 
-}} // lsst::cell_coadds
+namespace lsst {
+namespace cell_coadds {
+
+void wrapStitchedPsf(utils::python::WrapperCollection &);
+
+PYBIND11_MODULE(_cell_coadds, mod) {
+    utils::python::WrapperCollection wrappers(mod, "lsst.cell_coadds");
+    wrappers.addInheritanceDependency("lsst.meas.algorithms");
+    wrapStitchedPsf(wrappers);
+    wrappers.finish();
+}
+
+}  // namespace cell_coadds
+}  // namespace lsst
