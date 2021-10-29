@@ -31,6 +31,9 @@ from lsst.geom import Box2I
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched import StitchedCellCoadd
 
+# Need stubs for compiled modules.
+from ._cell_coadds import SimpleGrid  # type: ignore
+
 
 class MultipleCellCoadd:
     """A data structure for coadds built from many overlapping cells.
@@ -48,29 +51,32 @@ class MultipleCellCoadd:
     cells that overlap that region.
     """
 
-    def __init__(self, cells: Iterable[SingleCellCoadd], *, inner_bbox: Optional[Box2I] = None):
-        cells = list(cells)
-        x_starts_set = {cell.outer.bbox.getBeginX() for cell in cells}
-        y_starts_set = {cell.outer.bbox.getBeginY() for cell in cells}
-        if len(x_starts_set) * len(y_starts_set) != len(cells):
-            raise ValueError("Irregular or incomplete cell grid.")
-        self._x_starts = np.array(sorted(x_starts_set), dtype=np.int64)
-        self._y_starts = np.array(sorted(y_starts_set), dtype=np.int64)
-        self._cells = np.empty((len(self._y_starts), len(self._x_starts)), dtype=object)
+    def __init__(
+        self,
+        cells: Iterable[SingleCellCoadd],
+        grid: SimpleGrid,
+        *,
+        inner_bbox: Optional[Box2I] = None,
+    ):
+        self._grid = grid
+        self._cells = np.empty(self._grid.shape, dtype=object)
         self._cells.flags.writeable = False  # don't allow cells to be reassigned.
         self._n_noise_realizations = None
         self._mask_fraction_names: Set[str] = set()
         for cell in cells:
-            x_index = self._x_starts[cell.outer.bbox.getBeginX()]
-            y_index = self._y_starts[cell.outer.bbox.getBeginY()]
-            self._cells[y_index, x_index] = cell
+            index = self._grid.index(cell.inner.bbox.getBegin())
+            self._cells[index] = cell
+            if cell.inner.bbox != self._grid.bbox_of(index):
+                raise ValueError(
+                    f"Cell at index row={index[0]}, col={index[1]} has "
+                    f"inner bbox {cell.inner.bbox}, but grid expects {self._grid.bbox_of(index)}."
+                )
             if self._n_noise_realizations is None:
                 self._n_noise_realizations = len(cell.outer.noise_realizations)
             else:
                 if self._n_noise_realizations != len(cell.outer.noise_realizations):
                     raise ValueError("Inconsistent number of noise realizations between cells.")
             self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
-        # TODO: check for gaps
         max_inner_bbox = Box2I(self._cells[0, 0].inner.bbox.getMin(), self._cells[-1, -1].inner.bbox.getMax())
         if inner_bbox is None:
             inner_bbox = max_inner_bbox
@@ -105,17 +111,20 @@ class MultipleCellCoadd:
         """
         return self._mask_fraction_names
 
+    @property
+    def grid(self) -> SimpleGrid:
+        """Object that defines the inner geometry for all cells."""
+        return self._grid
+
     def __getitem__(self, bbox: Box2I) -> MultipleCellCoadd:
-        # TODO: test for off-by-one errors here, especially for ends
-        x_index_begin = np.searchsorted(self._x_starts, bbox.getBeginX())
-        x_index_end = np.searchsorted(self._x_starts, bbox.getEndX())
-        y_index_begin = np.searchsorted(self._y_starts, bbox.getBeginY())
-        y_index_end = np.searchsorted(self._y_starts, bbox.getEndY())
+        min_index = self._grid.index(bbox.getMin())
+        max_index = self._grid.index(bbox.getMax())
         result = MultipleCellCoadd.__new__()  # type: ignore
-        result._x_starts = self._x_starts[x_index_begin:x_index_end].copy()
-        result._y_starts = self._y_starts[y_index_begin:y_index_end].copy()
-        result.cells = self.cells[y_index_begin:y_index_end, x_index_begin:x_index_end].copy()
+        result.cells = self.cells[min_index[0] : max_index[0] + 1, min_index[1] : max_index[1] + 1].copy()
         result._inner_bbox = bbox
+        result._grid = self._grid.subset(min_index, max_index)
+        result._n_noise_realizations = self._n_noise_realizations
+        result._mask_fraction_names = self._mask_fraction_names
         return result
 
     @property

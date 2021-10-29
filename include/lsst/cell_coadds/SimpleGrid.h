@@ -38,8 +38,8 @@ public:
     /**
      * A 2-d index or shape in a grid.
      *
-     * This class is mapped to a (y, x) in Python rather than being wrapped
-     * directly.
+     * This class is mapped to a (y, x) tuple in Python rather than being
+     * wrapped directly.
      */
     struct Index {
         int x;
@@ -72,9 +72,25 @@ public:
     Index index(geom::Point2I const& position) const;
 
     /**
-     * Flatten a 2-d index into am integer suitable for addressing a 1-d array.
+     * Flatten a 2-d index into an integer suitable for addressing a 1-d array.
+     *
+     * This is guaranteed to be row-major order (all cells in a row, and then
+     * cells in the next row); this method is a convenience, not an attempt
+     * to fully encapsulate the ordering.
      */
     std::size_t flatten(Index const& index) const { return _shape.x * index.y + index.x; }
+
+    /**
+     * Return a new grid with the same spacing containing only the given
+     * index range.
+     *
+     * @param min   Minimum index to include, inclusive.
+     * @param max   Maximum index to include, inclusive.
+     *
+     * This method is mapped to `__getitem__` in Python, with
+     * `(y_slice, x_slice)` arguments.
+     */
+    SimpleGrid subset(Index const& min, Index const& max) const;
 
     /**
      * Return the bounding box of a single cell.

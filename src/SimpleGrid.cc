@@ -72,6 +72,14 @@ SimpleGrid::Index SimpleGrid::index(geom::Point2I const& position) const {
     return result;
 }
 
+SimpleGrid SimpleGrid::subset(Index const& min, Index const& max) const {
+    return SimpleGrid(geom::Box2I(geom::Point2I(min.x * _stride.getX() + _bbox.getBeginX(),
+                                                min.y * _stride.getY() * _bbox.getBeginY()),
+                                  geom::Extent2I((1 + max.x - min.x) * _stride.getX(),
+                                                 (1 + max.y - min.y) * _stride.getY())),
+                      _stride);
+}
+
 geom::Box2I SimpleGrid::bbox_of(Index const& index) const {
     return geom::Box2I(geom::Point2I(index.x * _stride.getX() + _bbox.getBeginX(),
                                      index.y * _stride.getY() + _bbox.getBeginY()),
