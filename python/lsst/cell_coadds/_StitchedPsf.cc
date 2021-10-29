@@ -23,6 +23,7 @@
  */
 
 #include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 #include "lsst/cpputils/python.h"
 #include "lsst/cell_coadds/StitchedPsf.h"
 
