@@ -28,6 +28,7 @@ from typing import AbstractSet, Any, Iterable, Optional, Set, Tuple
 import numpy as np
 from lsst.geom import Box2I
 
+from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched import StitchedCellCoadd
 
@@ -35,7 +36,7 @@ from ._stitched import StitchedCellCoadd
 from ._cell_coadds import SimpleGrid  # type: ignore
 
 
-class MultipleCellCoadd:
+class MultipleCellCoadd(CommonComponentsProperties):
     """A data structure for coadds built from many overlapping cells.
 
     Notes
@@ -56,9 +57,11 @@ class MultipleCellCoadd:
         cells: Iterable[SingleCellCoadd],
         grid: SimpleGrid,
         *,
+        common: CommonComponents,
         inner_bbox: Optional[Box2I] = None,
     ):
         self._grid = grid
+        self._common = common
         self._cells = np.empty(self._grid.shape, dtype=object)
         self._cells.flags.writeable = False  # don't allow cells to be reassigned.
         self._n_noise_realizations = None
@@ -120,9 +123,10 @@ class MultipleCellCoadd:
         min_index = self._grid.index(bbox.getMin())
         max_index = self._grid.index(bbox.getMax())
         result = MultipleCellCoadd.__new__()  # type: ignore
-        result.cells = self.cells[min_index[0] : max_index[0] + 1, min_index[1] : max_index[1] + 1].copy()
+        result._grid = self._grid
+        result._common = self._common
+        result._cells = self._cells[min_index[0] : max_index[0] + 1, min_index[1] : max_index[1] + 1].copy()
         result._inner_bbox = bbox
-        result._grid = self._grid.subset(min_index, max_index)
         result._n_noise_realizations = self._n_noise_realizations
         result._mask_fraction_names = self._mask_fraction_names
         return result
@@ -138,6 +142,11 @@ class MultipleCellCoadd:
         """The rectangular region fully covered by all cell inner bounding
         boxes."""
         return self._inner_bbox
+
+    @property
+    def common(self) -> CommonComponents:
+        # Docstring inherited.
+        return self._common
 
     def stitch(self, bbox: Optional[Box2I] = None) -> StitchedCellCoadd:
         """Return a contiguous (but in general discontinuous) coadd by

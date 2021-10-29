@@ -34,9 +34,12 @@ from typing import (
     Union,
 )
 
-from lsst.afw.image import ImageF, Mask
+from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
 from lsst.geom import Box2I
 
+# Need stubs for compiled modules.
+from ._cell_coadds import SimpleGrid, StitchedPsf  # type: ignore
+from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 
 if TYPE_CHECKING:
@@ -62,7 +65,7 @@ class _BoxSubset(Protocol):
 _T = TypeVar("_T", bound=_BoxSubset)
 
 
-class StitchedCellCoadd(ImagePlanes):
+class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
     """A lazy-evaluation coadd that stitches together images from adjacent
     cells.
 
@@ -96,6 +99,8 @@ class StitchedCellCoadd(ImagePlanes):
         self._variance: Optional[ImageF] = None
         self._mask_fractions: Optional[Mapping[str, ImageF]] = None
         self._noise_realizations: Optional[Sequence[ImageF]] = None
+        self._psf: Optional[StitchedPsf] = None
+        self._common = cell_coadd.common
 
     @property
     def bbox(self) -> Box2I:
@@ -149,6 +154,27 @@ class StitchedCellCoadd(ImagePlanes):
             )
         return self._noise_realizations
 
+    @property
+    def grid(self) -> SimpleGrid:
+        """Object that defines piecewise grid this image stitches together."""
+        return self._cell_coadd.grid
+
+    @property
+    def psf(self) -> StitchedPsf:
+        """The piecewise PSF of this image."""
+        if self._psf is None:
+            self._psf = StitchedPsf(
+                # MyPy doesn't understand numpy
+                [cell.psf_image for cell in self._cell_coadd.cells.flat],  # type: ignore
+                self._cell_coadd.grid,
+            )
+        return self._psf
+
+    @property
+    def common(self) -> CommonComponents:
+        # Docstring inherited.
+        return self._cell_coadd.common
+
     def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], Optional[_T]]) -> _T:
         """Stitch together a single image plane.
 
@@ -176,4 +202,30 @@ class StitchedCellCoadd(ImagePlanes):
                     result[common_bbox] = 0
                 else:
                     result[common_bbox] = input_plane[common_bbox]
+        return result
+
+    def asExposure(self) -> ExposureF:
+        """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
+        result = ExposureF(self.asMaskedImage())
+        # Exposure components derived from "common" components are all simple.
+        result.setWcs(self._cell_coadd.wcs)
+        result.setFilterLabel(FilterLabel(band=self.band))
+        if self.units is CoaddUnits.nJy:
+            result.setPhotoCalib(PhotoCalib(1.0))
+
+        # This ID does not include the band, but it probably should; hopefully
+        # DM-31924 will provide a good way to do that without access to butler
+        # things.
+        result.setId(self._cell_coadd.identifiers.patch.packed)
+
+        # We could add CoaddInputs here, but without WCS, PSF, etc in them;
+        # it's not clear that's good enough or even useful, given that the cell
+        # provide a much more clean view of what the inputs are at any given
+        # point.
+
+        # PSF is the first of many components that need piecewise
+        # implementations.  More to do here for at least aperture corrections
+        # and transmission curves.
+        result.setPsf(self.psf)
+
         return result

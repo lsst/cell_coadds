@@ -23,14 +23,19 @@ from __future__ import annotations
 
 __all__ = ("SingleCellCoadd",)
 
+from typing import FrozenSet, TYPE_CHECKING
 
 from lsst.afw.image import ImageF
 from lsst.geom import Box2I
 
 from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
+from ._common_components import CommonComponents, CommonComponentsProperties
+
+if TYPE_CHECKING:
+    from ._identifiers import CellIdentifiers, ObservationIdentifiers
 
 
-class SingleCellCoadd:
+class SingleCellCoadd(CommonComponentsProperties):
     """A single coadd cell, built only from input images that completely
     overlap that cell.
 
@@ -43,6 +48,12 @@ class SingleCellCoadd:
     inner_bbox: `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
         with but adjacent to all other cell inner regions.
+    inputs : `frozenset` of `ObservationIdentifiers`
+        Identifiers of observations that contributed to this cell.
+    common: `CommonComponents`
+        Image attributes common to all cells in a patch.
+    identifiers: `CellIdentifiers`
+        Struct of identifiers for this cell.
 
     Notes
     -----
@@ -51,13 +62,25 @@ class SingleCellCoadd:
     and the cell sizes we intend to use.
     """
 
-    def __init__(self, outer: OwnedImagePlanes, psf: ImageF, inner_bbox: Box2I):
+    def __init__(
+        self,
+        outer: OwnedImagePlanes,
+        *,
+        psf: ImageF,
+        inner_bbox: Box2I,
+        inputs: FrozenSet[ObservationIdentifiers],
+        common: CommonComponents,
+        identifiers: CellIdentifiers,
+    ):
         assert outer.bbox.contains(
             inner_bbox
         ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox}."
         self._outer = outer
         self._psf = psf
         self._inner = ViewImagePlanes(outer, inner_bbox)
+        self._common = common
+        self._inputs = inputs
+        self._identifiers = identifiers
 
     @property
     def inner(self) -> ImagePlanes:
@@ -75,3 +98,20 @@ class SingleCellCoadd:
     def psf_image(self) -> ImageF:
         """The coadded PSF image."""
         return self._psf
+
+    @property
+    def inputs(self) -> FrozenSet[ObservationIdentifiers]:
+        """Identifiers for the input images that contributed to this cell."""
+        return self._inputs
+
+    @property
+    def identifiers(self) -> CellIdentifiers:
+        """Struct of unique identifiers for this cell."""
+        # This overrides the patch-level property from
+        # CommonComponentsProperties to provide cell-level information.
+        return self._identifiers
+
+    @property
+    def common(self) -> CommonComponents:
+        # Docstring inherited.
+        return self._common
