@@ -29,28 +29,8 @@ namespace lsst {
 namespace cell_coadds {
 
 StitchedPsf::StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images,
-                         geom::Box2I const& bbox, geom::Extent2I const& strides)
-        : _images(std::move(images)),
-          _bbox(bbox),
-          _strides(strides),
-          _n_rows(bbox.getHeight() / strides.getY()),
-          _n_cols(bbox.getWidth() / strides.getX()) {
-    if (_bbox.getWidth() % _strides.getX()) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Box width %s is not evenly divided by stride %d") %
-                           _bbox.getWidth() % _strides.getX())
-                                  .str());
-    }
-    if (_bbox.getHeight() % _strides.getY()) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Box height %s is not evenly divided by stride %d") %
-                           _bbox.getHeight() % _strides.getY())
-                                  .str());
-    }
-    if (_images.size() != _n_rows * _n_cols) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError, "Image array and bbox+strides are inconsistent.");
-    }
-}
+                         SimpleGrid const& grid)
+        : _images(std::move(images)), _grid(grid) {}
 
 std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height) const {
     if (width % 2 != 1) {
@@ -79,35 +59,16 @@ std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height)
             new_images.push_back(std::make_shared<afw::detection::Psf::Image>(bigger_image.subset(bbox)));
         }
     }
-    return std::make_shared<StitchedPsf>(std::move(new_images), _bbox, _strides);
+    return std::make_shared<StitchedPsf>(std::move(new_images), _grid);
 }
 
 std::shared_ptr<afw::detection::Psf::Image> StitchedPsf::doComputeKernelImage(
         geom::Point2D const& position, afw::image::Color const& color) const {
-    return _image_at(geom::Point2I(position));
+    return _images[_grid.flatten(_grid.index(geom::Point2I(position)))];
 }
 
 geom::Box2I StitchedPsf::doComputeBBox(geom::Point2D const& position, afw::image::Color const& color) const {
-    return _image_at(geom::Point2I(position))->getBBox();
-}
-
-std::shared_ptr<afw::detection::Psf::Image> StitchedPsf::_image_at(geom::Point2I const& position) const {
-    geom::Extent2I offset = position - _bbox.getMin();
-    int col = offset.getX() / _strides.getX();
-    int row = offset.getY() / _strides.getY();
-    if (col < 0 || col >= _n_cols) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Invalid x coordinate for this PSF: %d; bounds are [%d, %d]") %
-                           position.getX() % _bbox.getMinX() % _bbox.getMaxX())
-                                  .str());
-    }
-    if (row < 0 || row >= _n_rows) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Invalid y coordinate for this PSF: %d; bounds are [%d, %d]") %
-                           position.getY() % _bbox.getMinX() % _bbox.getMaxY())
-                                  .str());
-    }
-    return _images[row * _n_cols + col];
+    return _images[_grid.flatten(_grid.index(geom::Point2I(position)))]->getBBox();
 }
 
 }  // namespace cell_coadds
