@@ -30,7 +30,8 @@ from lsst.utils import continueClass
 from ._cell_coadds import SimpleGrid
 
 
-@continueClass
+# Different flake8 versions complain about the same problem on different lines.
+@continueClass  # noqa: F811
 class SimpleGrid:  # noqa: F811
     def __getitem__(self, slices):
         try:
