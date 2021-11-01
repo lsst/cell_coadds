@@ -28,10 +28,8 @@ from typing import (
     Callable,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     TypeVar,
-    Union,
 )
 
 from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
@@ -41,28 +39,14 @@ from lsst.geom import Box2I
 from ._cell_coadds import SimpleGrid, StitchedPsf  # type: ignore
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
+from . import typing_helpers
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
     from ._single_cell_coadd import SingleCellCoadd
 
 
-_S = TypeVar("_S")
-
-
-class _BoxSubset(Protocol):
-    """Interface for objects that can be indexed by a `Box2I`, returning a
-    view of the same type.
-    """
-
-    def __getitem__(self: _S, bbox: Box2I) -> _S:
-        pass
-
-    def __setitem__(self: _S, bbox: Box2I, other: Union[_S, int]) -> None:
-        pass
-
-
-_T = TypeVar("_T", bound=_BoxSubset)
+_T = TypeVar("_T", bound=typing_helpers.BoxSubset)
 
 
 class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
