@@ -23,7 +23,7 @@
  */
 #include "pybind11/pybind11.h"
 #include "lsst/cpputils/python.h"
-#include "lsst/cell_coadds/SimpleGrid.h"
+#include "lsst/cell_coadds/UniformGrid.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -33,54 +33,54 @@ namespace cell_coadds {
 
 namespace {
 
-// Instead of wrapping SimpleGrid::Index directly, we map it to a (y, x) tuple,
+// Instead of wrapping UniformGrid::Index directly, we map it to a (y, x) tuple,
 // since that's what's natural for 2-d indexing in Python.  We go through
 // std::pair since pybind11 will conver that to/from Python tuple
 // automatically.
 
-inline SimpleGrid::Index pair_to_index(std::pair<int, int> const& pair) {
-    return SimpleGrid::Index{pair.second, pair.first};
+inline UniformGrid::Index pair_to_index(std::pair<int, int> const& pair) {
+    return UniformGrid::Index{pair.second, pair.first};
 }
 
-inline std::pair<int, int> index_to_pair(SimpleGrid::Index const& index) {
+inline std::pair<int, int> index_to_pair(UniformGrid::Index const& index) {
     return std::make_pair(index.y, index.x);
 }
 
 }  // namespace
 
-void wrapSimpleGrid(utils::python::WrapperCollection& wrappers) {
-    wrappers.wrapType(py::class_<SimpleGrid>(wrappers.module, "SimpleGrid"), [](auto& mod, auto& cls) {
+void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
+    wrappers.wrapType(py::class_<UniformGrid>(wrappers.module, "UniformGrid"), [](auto& mod, auto& cls) {
         cls.def(py::init<geom::Box2I const&, geom::Extent2I const&>(), "bbox"_a, "strides"_a);
         cls.def(py::init([](geom::Box2I const& bbox, std::pair<int, int> const& shape) {
-                    return SimpleGrid(bbox, pair_to_index(shape));
+                    return UniformGrid(bbox, pair_to_index(shape));
                 }),
                 "bbox"_a, "shape"_a);
         cls.def(
                 "index",
-                [](SimpleGrid const& self, geom::Point2I const& position) {
+                [](UniformGrid const& self, geom::Point2I const& position) {
                     return index_to_pair(self.index(position));
                 },
                 "position"_a);
         cls.def(
                 "flatten",
-                [](SimpleGrid const& self, std::pair<int, int> const& index) {
+                [](UniformGrid const& self, std::pair<int, int> const& index) {
                     return self.flatten(pair_to_index(index));
                 },
                 "index"_a);
         cls.def("subset",
-                [](SimpleGrid const& self, std::pair<int, int> const& max, std::pair<int, int> const& max) {
+                [](UniformGrid const& self, std::pair<int, int> const& max, std::pair<int, int> const& max) {
                     return self.subset(pair_to_index(min), pair_to_index(max));
                 });
         cls.def(
                 "bbox_of",
-                [](SimpleGrid const& self, std::pair<int, int> const& index) {
+                [](UniformGrid const& self, std::pair<int, int> const& index) {
                     return self.bbox_of(pair_to_index(index));
                 },
                 "position"_a);
-        cls.def_property_readonly("bbox", &SimpleGrid::get_bbox);
-        cls.def_property_readonly("stride", &SimpleGrid::get_stride);
+        cls.def_property_readonly("bbox", &UniformGrid::get_bbox);
+        cls.def_property_readonly("stride", &UniformGrid::get_stride);
         cls.def_property_readonly("shape",
-                                  [](SimpleGrid const& self) { return index_to_pair(self.get_shape()); });
+                                  [](UniformGrid const& self) { return index_to_pair(self.get_shape()); });
     });
 }
 

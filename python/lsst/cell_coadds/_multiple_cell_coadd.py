@@ -33,7 +33,7 @@ from ._single_cell_coadd import SingleCellCoadd
 from ._stitched import StitchedCellCoadd
 
 # Need stubs for compiled modules.
-from ._cell_coadds import SimpleGrid  # type: ignore
+from ._cell_coadds import UniformGrid  # type: ignore
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
@@ -55,7 +55,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
     def __init__(
         self,
         cells: Iterable[SingleCellCoadd],
-        grid: SimpleGrid,
+        grid: UniformGrid,
         *,
         common: CommonComponents,
         inner_bbox: Optional[Box2I] = None,
@@ -115,7 +115,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         return self._mask_fraction_names
 
     @property
-    def grid(self) -> SimpleGrid:
+    def grid(self) -> UniformGrid:
         """Object that defines the inner geometry for all cells."""
         return self._grid
 

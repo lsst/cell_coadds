@@ -28,13 +28,13 @@
 namespace lsst {
 namespace cell_coadds {
 
-void wrapSimpleGrid(utils::python::WrapperCollection &);
+void wrapUniformGrid(utils::python::WrapperCollection &);
 void wrapStitchedPsf(utils::python::WrapperCollection &);
 
 PYBIND11_MODULE(_cell_coadds, mod) {
     utils::python::WrapperCollection wrappers(mod, "lsst.cell_coadds");
     wrappers.addInheritanceDependency("lsst.meas.algorithms");
-    wrapSimpleGrid(wrappers);
+    wrapUniformGrid(wrappers);
     wrapStitchedPsf(wrappers);
     wrappers.finish();
 }

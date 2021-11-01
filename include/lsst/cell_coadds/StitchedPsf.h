@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "lsst/meas/algorithms/ImagePsf.h"
-#include "lsst/cell_coadds/SimpleGrid.h"
+#include "lsst/cell_coadds/UniformGrid.h"
 
 namespace lsst {
 namespace cell_coadds {
@@ -43,13 +43,13 @@ public:
      * Construct by taking ownership of a strided vector of images.
      *
      * @param images   PSF images, with index in the vector given by
-     *                 SimpleGrid::flatten.  Images need not have the same
+     *                 UniformGrid::flatten.  Images need not have the same
      *                 dimensions, but must have odd dimensions.'
      *
      * @param grid     Object that defines the geometry of the piecewise image
      *                 this PSF corresponds to.
      */
-    StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images, SimpleGrid const& grid);
+    StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images, UniformGrid const& grid);
 
     StitchedPsf(StitchedPsf const&) = default;
     StitchedPsf(StitchedPsf&&) = default;
@@ -74,7 +74,7 @@ private:
     // But it's not worth fighting that here.
     std::vector<std::shared_ptr<afw::detection::Psf::Image>> _images;
 
-    SimpleGrid _grid;
+    UniformGrid _grid;
 };
 
 }  // namespace cell_coadds

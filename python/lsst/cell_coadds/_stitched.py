@@ -36,7 +36,7 @@ from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
 from lsst.geom import Box2I
 
 # Need stubs for compiled modules.
-from ._cell_coadds import SimpleGrid, StitchedPsf  # type: ignore
+from ._cell_coadds import UniformGrid, StitchedPsf  # type: ignore
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 from . import typing_helpers
@@ -139,7 +139,7 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
         return self._noise_realizations
 
     @property
-    def grid(self) -> SimpleGrid:
+    def grid(self) -> UniformGrid:
         """Object that defines piecewise grid this image stitches together."""
         return self._cell_coadd.grid
 

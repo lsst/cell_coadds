@@ -27,12 +27,12 @@ from __future__ import annotations
 __all__ = ()
 
 from lsst.utils import continueClass
-from ._cell_coadds import SimpleGrid
+from ._cell_coadds import UniformGrid
 
 
 # Different flake8 versions complain about the same problem on different lines.
 @continueClass  # noqa: F811
-class SimpleGrid:  # noqa: F811
+class UniformGrid:  # noqa: F811
     def __getitem__(self, slices):
         try:
             y_slice, x_slice = slices

@@ -29,7 +29,7 @@ namespace lsst {
 namespace cell_coadds {
 
 StitchedPsf::StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images,
-                         SimpleGrid const& grid)
+                         UniformGrid const& grid)
         : _images(std::move(images)), _grid(grid) {}
 
 std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height) const {

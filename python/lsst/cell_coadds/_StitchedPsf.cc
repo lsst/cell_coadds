@@ -38,7 +38,7 @@ void wrapStitchedPsf(utils::python::WrapperCollection& wrappers) {
                               wrappers.module, "StitchedPsf"),
                       [](auto& mod, auto& cls) {
                           cls.def(py::init<std::vector<std::shared_ptr<afw::detection::Psf::Image>>,
-                                           SimpleGrid const&>(),
+                                           UniformGrid const&>(),
                                   "images"_a, "grid"_a);
                           // All other methods are implementations of base
                           // class methods, and can use their wrappers.

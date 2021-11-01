@@ -21,8 +21,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef LSST_CELL_COADDS_SimpleGrid_h
-#define LSST_CELL_COADDS_SimpleGrid_h
+#ifndef LSST_CELL_COADDS_UniformGrid_h
+#define LSST_CELL_COADDS_UniformGrid_h
 
 #include <vector>
 #include "lsst/geom/Box.h"
@@ -33,7 +33,7 @@ namespace cell_coadds {
 /**
  * A 2-d integer grid.
  */
-class SimpleGrid {
+class UniformGrid {
 public:
     /**
      * A 2-d index or shape in a grid.
@@ -54,7 +54,7 @@ public:
      * @param stride  Size of each grid cell.  Must divide the bbox width
      *                and height evenly.
      */
-    SimpleGrid(geom::Box2I const& bbox, geom::Extent2I const& stride);
+    UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& stride);
 
     /**
      * Construct from bounding box and stride.
@@ -64,7 +64,7 @@ public:
      * @param shape   Number of cells in the grid in each dimension.  Must
      *                divide the bbox width and height evenly.
      */
-    SimpleGrid(geom::Box2I const& bbox, Index const& shape);
+    UniformGrid(geom::Box2I const& bbox, Index const& shape);
 
     /**
      * Find the index of the cell that contains the given point.
@@ -90,7 +90,7 @@ public:
      * This method is mapped to `__getitem__` in Python, with
      * `(y_slice, x_slice)` arguments.
      */
-    SimpleGrid subset(Index const& min, Index const& max) const;
+    UniformGrid subset(Index const& min, Index const& max) const;
 
     /**
      * Return the bounding box of a single cell.
@@ -121,4 +121,4 @@ private:
 }  // namespace cell_coadds
 }  // namespace lsst
 
-#endif  // !LSST_CELL_COADDS_SimpleGrid_h
+#endif  // !LSST_CELL_COADDS_UniformGrid_h

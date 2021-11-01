@@ -31,6 +31,6 @@ from ._stitched import *
 # Should be using pybind11-stubgen or similar to make .pyi files for mypy
 # from the type annotations pybind11 already adds.
 from ._cell_coadds import *  # type: ignore
-from ._SimpleGrid import *
+from ._UniformGrid import *
 
 from . import typing_helpers

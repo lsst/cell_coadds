@@ -22,12 +22,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "lsst/cell_coadds/SimpleGrid.h"
+#include "lsst/cell_coadds/UniformGrid.h"
 
 namespace lsst {
 namespace cell_coadds {
 
-SimpleGrid::SimpleGrid(geom::Box2I const& bbox, geom::Extent2I const& stride)
+UniformGrid::UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& stride)
         : _bbox(bbox),
           _stride(stride),
           _shape{bbox.getWidth() / stride.getX(), bbox.getHeight() / stride.getY()} {
@@ -45,7 +45,7 @@ SimpleGrid::SimpleGrid(geom::Box2I const& bbox, geom::Extent2I const& stride)
     }
 }
 
-SimpleGrid::SimpleGrid(geom::Box2I const& bbox, Index const& shape)
+UniformGrid::UniformGrid(geom::Box2I const& bbox, Index const& shape)
         : _bbox(bbox), _stride(bbox.getWidth() / shape.x, bbox.getHeight() / shape.y), _shape(shape) {
     if (_bbox.getWidth() % _shape.x != 0) {
         throw LSST_EXCEPT(pex::exceptions::LengthError,
@@ -61,7 +61,7 @@ SimpleGrid::SimpleGrid(geom::Box2I const& bbox, Index const& shape)
     }
 }
 
-SimpleGrid::Index SimpleGrid::index(geom::Point2I const& position) const {
+UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     geom::Extent2I offset = position - _bbox.getBegin();
     Index result = {offset.getX() / _stride.getX(), offset.getY() / _stride.getY()};
     if (result.x < 0 || result.x >= _shape.x) {
@@ -72,15 +72,15 @@ SimpleGrid::Index SimpleGrid::index(geom::Point2I const& position) const {
     return result;
 }
 
-SimpleGrid SimpleGrid::subset(Index const& min, Index const& max) const {
-    return SimpleGrid(geom::Box2I(geom::Point2I(min.x * _stride.getX() + _bbox.getBeginX(),
-                                                min.y * _stride.getY() * _bbox.getBeginY()),
-                                  geom::Extent2I((1 + max.x - min.x) * _stride.getX(),
-                                                 (1 + max.y - min.y) * _stride.getY())),
-                      _stride);
+UniformGrid UniformGrid::subset(Index const& min, Index const& max) const {
+    return UniformGrid(geom::Box2I(geom::Point2I(min.x * _stride.getX() + _bbox.getBeginX(),
+                                                 min.y * _stride.getY() * _bbox.getBeginY()),
+                                   geom::Extent2I((1 + max.x - min.x) * _stride.getX(),
+                                                  (1 + max.y - min.y) * _stride.getY())),
+                       _stride);
 }
 
-geom::Box2I SimpleGrid::bbox_of(Index const& index) const {
+geom::Box2I UniformGrid::bbox_of(Index const& index) const {
     return geom::Box2I(geom::Point2I(index.x * _stride.getX() + _bbox.getBeginX(),
                                      index.y * _stride.getY() + _bbox.getBeginY()),
                        _stride);
