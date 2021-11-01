@@ -30,6 +30,7 @@ __all__ = (
 
 
 from dataclasses import dataclass
+from typing import Tuple
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,11 @@ class GridIdentifiers:
     y: int
     """The row of this element in its grid.
     """
+
+    @property
+    def index(self) -> Tuple[int, int]:
+        """The index as a 2-d (x, y) tuple."""
+        return (self.x, self.y)
 
 
 @dataclass(frozen=True)
