@@ -33,7 +33,7 @@ namespace cell_coadds {
 /**
  * A 2-d integer grid.
  */
-class UniformGrid {
+class UniformGrid final {
 public:
     /**
      * A 2-d index or shape in a grid.
