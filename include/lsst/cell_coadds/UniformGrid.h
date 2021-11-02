@@ -80,17 +80,17 @@ public:
     /**
      * Return the bounding box of the full grid.
      */
-    geom::Box2I get_bbox() const { return _bbox; }
+    geom::Box2I const& get_bbox() const { return _bbox; }
 
     /**
      * Return the dimensions of each cell (also the separation between them).
      */
-    geom::Extent2I get_cell_size() const { return _cell_size; }
+    geom::Extent2I const& get_cell_size() const { return _cell_size; }
 
     /**
      * Return the number of cells in each dimension.
      */
-    Index get_shape() const { return _shape; }
+    Index const& get_shape() const { return _shape; }
 
 private:
     geom::Box2I _bbox;
