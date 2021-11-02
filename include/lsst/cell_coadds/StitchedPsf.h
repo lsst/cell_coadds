@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "lsst/meas/algorithms/ImagePsf.h"
+#include "lsst/cell_coadds/GridContainer.h"
 #include "lsst/cell_coadds/UniformGrid.h"
 
 namespace lsst {
@@ -42,14 +43,14 @@ public:
     /**
      * Construct by taking ownership of a strided vector of images.
      *
-     * @param images   PSF images, with index in the vector given by
-     *                 UniformGrid::flatten.  Images need not have the same
-     *                 dimensions, but must have odd dimensions.'
+     * @param images   PSF images.  Images need not have the same dimensions,
+     *                 but must have odd dimensions.
      *
      * @param grid     Object that defines the geometry of the piecewise image
      *                 this PSF corresponds to.
      */
-    StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images, UniformGrid const& grid);
+    StitchedPsf(GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images,
+                UniformGrid const& grid);
 
     StitchedPsf(StitchedPsf const&) = default;
     StitchedPsf(StitchedPsf&&) = default;
@@ -72,7 +73,7 @@ private:
     // around is already cheap, and adding more indirection is probably a
     // slight pessimization rather than the optimization it was intended to be.
     // But it's not worth fighting that here.
-    std::vector<std::shared_ptr<afw::detection::Psf::Image>> _images;
+    GridContainer<std::shared_ptr<afw::detection::Psf::Image>> _images;
 
     UniformGrid _grid;
 };

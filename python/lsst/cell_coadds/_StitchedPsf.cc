@@ -34,15 +34,22 @@ namespace lsst {
 namespace cell_coadds {
 
 void wrapStitchedPsf(utils::python::WrapperCollection& wrappers) {
-    wrappers.wrapType(py::class_<StitchedPsf, std::shared_ptr<StitchedPsf>, meas::algorithms::ImagePsf>(
-                              wrappers.module, "StitchedPsf"),
-                      [](auto& mod, auto& cls) {
-                          cls.def(py::init<std::vector<std::shared_ptr<afw::detection::Psf::Image>>,
-                                           UniformGrid const&>(),
-                                  "images"_a, "grid"_a);
-                          // All other methods are implementations of base
-                          // class methods, and can use their wrappers.
-                      });
+    wrappers.wrapType(
+        py::class_<StitchedPsf, std::shared_ptr<StitchedPsf>, meas::algorithms::ImagePsf>(
+            wrappers.module, "StitchedPsf"),
+        [](auto& mod, auto& cls) {
+            cls.def(
+                py::init([](GridContainer<py::object> container, UniformGrid const& grid) {
+                    auto builder = std::move(container).rebuild_transformed([](py::object obj) {
+                        return py::cast<std::shared_ptr<afw::detection::Psf::Image>>(obj);
+                    });
+                    return StitchedPsf(std::move(builder).finish(), grid);
+                }),
+                "images"_a,
+                "grid"_a);
+            // All other methods are implementations of base
+            // class methods, and can use their wrappers.
+        });
 }
 
 }  // namespace cell_coadds

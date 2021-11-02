@@ -24,17 +24,20 @@
 
 #include "pybind11/pybind11.h"
 #include "lsst/cpputils/python.h"
+#include "lsst/cell_coadds/python.h"
 
 namespace lsst {
 namespace cell_coadds {
 
 void wrapUniformGrid(utils::python::WrapperCollection &);
 void wrapStitchedPsf(utils::python::WrapperCollection &);
+void wrapGridContainer(utils::python::WrapperCollection &);
 
 PYBIND11_MODULE(_cell_coadds, mod) {
     utils::python::WrapperCollection wrappers(mod, "lsst.cell_coadds");
     wrappers.addInheritanceDependency("lsst.meas.algorithms");
     wrapUniformGrid(wrappers);
+    wrapGridContainer(wrappers);
     wrapStitchedPsf(wrappers);
     wrappers.finish();
 }

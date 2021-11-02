@@ -28,47 +28,46 @@
 namespace lsst {
 namespace cell_coadds {
 
-StitchedPsf::StitchedPsf(std::vector<std::shared_ptr<afw::detection::Psf::Image>> images,
-                         UniformGrid const& grid)
-        : _images(std::move(images)), _grid(grid) {}
+StitchedPsf::StitchedPsf(
+    GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images, UniformGrid const& grid)
+        : _images(images), _grid(grid) {}
 
 std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height) const {
     if (width % 2 != 1) {
         throw LSST_EXCEPT(
-                pex::exceptions::LengthError,
-                (boost::format("resized width must be a positive odd integer; got %d.") % width).str());
+            pex::exceptions::LengthError,
+            (boost::format("resized width must be a positive odd integer; got %d.") % width).str());
     }
     if (height % 2 != 1) {
         throw LSST_EXCEPT(
-                pex::exceptions::LengthError,
-                (boost::format("resized height must be a positive odd integer; got %d.") % height).str());
+            pex::exceptions::LengthError,
+            (boost::format("resized height must be a positive odd integer; got %d.") % height).str());
     }
     geom::Box2I bbox(geom::Point2I(-width / 2, -height / 2), geom::Point2I(width / 2, height / 2));
-    std::vector<std::shared_ptr<afw::detection::Psf::Image>> new_images;
-    new_images.reserve(_images.size());
-    for (auto const& image : _images) {
-        if (image->getBBox().contains(bbox)) {
-            new_images.push_back(std::make_shared<afw::detection::Psf::Image>(image->subset(bbox)));
-        } else {
-            // Make a new image big enough to fit current bbox and new bbox,
-            // copy current image into it, then subset that for the returned
-            // PSF.
-            afw::detection::Psf::Image bigger_image(bbox.expandedTo(image->getBBox()));
-            bigger_image = 0.0f;
-            bigger_image.subset(image->getBBox()).assign(*image);
-            new_images.push_back(std::make_shared<afw::detection::Psf::Image>(bigger_image.subset(bbox)));
-        }
-    }
-    return std::make_shared<StitchedPsf>(std::move(new_images), _grid);
+    auto new_images =
+        GridContainer(_images).rebuild_transformed([bbox](std::shared_ptr<afw::detection::Psf::Image> image) {
+            if (image->getBBox().contains(bbox)) {
+                return std::make_shared<afw::detection::Psf::Image>(image->subset(bbox));
+            } else {
+                // Make a new image big enough to fit current bbox and new bbox,
+                // copy current image into it, then subset that for the returned
+                // PSF.
+                afw::detection::Psf::Image bigger_image(bbox.expandedTo(image->getBBox()));
+                bigger_image = 0.0f;
+                bigger_image.subset(image->getBBox()).assign(*image);
+                return std::make_shared<afw::detection::Psf::Image>(bigger_image.subset(bbox));
+            }
+        });
+    return std::make_shared<StitchedPsf>(std::move(new_images).finish(), _grid);
 }
 
 std::shared_ptr<afw::detection::Psf::Image> StitchedPsf::doComputeKernelImage(
-        geom::Point2D const& position, afw::image::Color const& color) const {
-    return _images[_grid.flatten(_grid.index(geom::Point2I(position)))];
+    geom::Point2D const& position, afw::image::Color const& color) const {
+    return _images[_grid.index(geom::Point2I(position))];
 }
 
 geom::Box2I StitchedPsf::doComputeBBox(geom::Point2D const& position, afw::image::Color const& color) const {
-    return _images[_grid.flatten(_grid.index(geom::Point2I(position)))]->getBBox();
+    return _images[_grid.index(geom::Point2I(position))]->getBBox();
 }
 
 }  // namespace cell_coadds

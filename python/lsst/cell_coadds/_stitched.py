@@ -35,8 +35,7 @@ from typing import (
 from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
 from lsst.geom import Box2I
 
-# Need stubs for compiled modules.
-from ._cell_coadds import UniformGrid, StitchedPsf  # type: ignore
+from ._cell_coadds import UniformGrid, StitchedPsf
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 from . import typing_helpers
@@ -148,8 +147,7 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
         """The piecewise PSF of this image."""
         if self._psf is None:
             self._psf = StitchedPsf(
-                # MyPy doesn't understand numpy
-                [cell.psf_image for cell in self._cell_coadd.cells.flat],  # type: ignore
+                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image).finish(),
                 self._cell_coadd.grid,
             )
         return self._psf
@@ -178,7 +176,7 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
             The same result object passed in.
         """
         cell: SingleCellCoadd
-        for cell in self._cell_coadd.cells.flat:  # type: ignore
+        for cell in self._cell_coadd.cells:
             common_bbox = cell.inner.bbox.clippedTo(self.bbox)
             if not common_bbox.isEmpty():
                 input_plane = getter(cell.inner)

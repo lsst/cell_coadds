@@ -23,17 +23,14 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from typing import AbstractSet, Any, Iterable, Optional, Set, Tuple
+from typing import AbstractSet, Iterable, Optional, Set
 
-import numpy as np
 from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched import StitchedCellCoadd
-
-# Need stubs for compiled modules.
-from ._cell_coadds import UniformGrid  # type: ignore
+from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
@@ -62,25 +59,26 @@ class MultipleCellCoadd(CommonComponentsProperties):
     ):
         self._grid = grid
         self._common = common
-        self._cells = np.empty(self._grid.shape, dtype=object)
-        self._cells.flags.writeable = False  # don't allow cells to be reassigned.
-        self._n_noise_realizations = None
+        cells_builder: GridContainerBuilder[SingleCellCoadd] = GridContainerBuilder(self._grid.shape)
         self._mask_fraction_names: Set[str] = set()
         for cell in cells:
-            index = self._grid.index(cell.inner.bbox.getBegin())
-            self._cells[index] = cell
+            index = cell.identifiers.cell.index
+            cells_builder[index] = cell
             if cell.inner.bbox != self._grid.bbox_of(index):
                 raise ValueError(
                     f"Cell at index row={index[0]}, col={index[1]} has "
                     f"inner bbox {cell.inner.bbox}, but grid expects {self._grid.bbox_of(index)}."
                 )
-            if self._n_noise_realizations is None:
-                self._n_noise_realizations = len(cell.outer.noise_realizations)
-            else:
-                if self._n_noise_realizations != len(cell.outer.noise_realizations):
-                    raise ValueError("Inconsistent number of noise realizations between cells.")
             self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
-        max_inner_bbox = Box2I(self._cells[0, 0].inner.bbox.getMin(), self._cells[-1, -1].inner.bbox.getMax())
+        self._cells = cells_builder.finish()
+        n_noise_realizations = {len(cell.outer.noise_realizations) for cell in self._cells}
+        self._n_noise_realizations = n_noise_realizations.pop()
+        if n_noise_realizations:
+            n_noise_realizations.add(self._n_noise_realizations)
+            raise ValueError(
+                f"Inconsistent number of noise realizations ({n_noise_realizations}) betwen cells."
+            )
+        max_inner_bbox = Box2I(self._cells.first.inner.bbox.getMin(), self._cells.last.inner.bbox.getMax())
         if inner_bbox is None:
             inner_bbox = max_inner_bbox
         elif not max_inner_bbox.contains(inner_bbox):
@@ -93,15 +91,13 @@ class MultipleCellCoadd(CommonComponentsProperties):
     # TODO: remove "type: ignore" below after we adopt np 1.21 and turn on its
     # mypy plugin.
     @property
-    def cells(self) -> np.ndarray[Tuple[Any, Any], SingleCellCoadd]:  # type: ignore
+    def cells(self) -> GridContainer[SingleCellCoadd]:
         """The grid of single-cell coadds, indexed by (y, x)."""
         return self._cells
 
     @property
     def n_noise_realizations(self) -> int:
         """The number of noise realizations cells are guaranteed to have."""
-        if self._n_noise_realizations is None:
-            return 0
         return self._n_noise_realizations
 
     @property
@@ -119,23 +115,11 @@ class MultipleCellCoadd(CommonComponentsProperties):
         """Object that defines the inner geometry for all cells."""
         return self._grid
 
-    def __getitem__(self, bbox: Box2I) -> MultipleCellCoadd:
-        min_index = self._grid.index(bbox.getMin())
-        max_index = self._grid.index(bbox.getMax())
-        result = MultipleCellCoadd.__new__()  # type: ignore
-        result._grid = self._grid
-        result._common = self._common
-        result._cells = self._cells[min_index[0] : max_index[0] + 1, min_index[1] : max_index[1] + 1].copy()
-        result._inner_bbox = bbox
-        result._n_noise_realizations = self._n_noise_realizations
-        result._mask_fraction_names = self._mask_fraction_names
-        return result
-
     @property
     def outer_bbox(self) -> Box2I:
         """The rectangular region fully covered by all cell outer bounding
         boxes."""
-        return Box2I(self.cells[0, 0].outer.bbox.getMin(), self.cells[-1, -1].outer.bbox.getMax())
+        return Box2I(self.cells.first.outer.bbox.getMin(), self.cells.last.outer.bbox.getMax())
 
     @property
     def inner_bbox(self) -> Box2I:
