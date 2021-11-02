@@ -67,10 +67,6 @@ void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
                     return self.flatten(pair_to_index(index));
                 },
                 "index"_a);
-        cls.def("subset",
-                [](UniformGrid const& self, std::pair<int, int> const& max, std::pair<int, int> const& max) {
-                    return self.subset(pair_to_index(min), pair_to_index(max));
-                });
         cls.def(
                 "bbox_of",
                 [](UniformGrid const& self, std::pair<int, int> const& index) {

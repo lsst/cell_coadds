@@ -72,14 +72,6 @@ UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     return result;
 }
 
-UniformGrid UniformGrid::subset(Index const& min, Index const& max) const {
-    return UniformGrid(geom::Box2I(geom::Point2I(min.x * _cell_size.getX() + _bbox.getBeginX(),
-                                                 min.y * _cell_size.getY() * _bbox.getBeginY()),
-                                   geom::Extent2I((1 + max.x - min.x) * _cell_size.getX(),
-                                                  (1 + max.y - min.y) * _cell_size.getY())),
-                       _cell_size);
-}
-
 geom::Box2I UniformGrid::bbox_of(Index const& index) const {
     return geom::Box2I(geom::Point2I(index.x * _cell_size.getX() + _bbox.getBeginX(),
                                      index.y * _cell_size.getY() + _bbox.getBeginY()),

@@ -81,18 +81,6 @@ public:
     std::size_t flatten(Index const& index) const { return _shape.x * index.y + index.x; }
 
     /**
-     * Return a new grid with the same spacing containing only the given
-     * index range.
-     *
-     * @param min   Minimum index to include, inclusive.
-     * @param max   Maximum index to include, inclusive.
-     *
-     * This method is mapped to `__getitem__` in Python, with
-     * `(y_slice, x_slice)` arguments.
-     */
-    UniformGrid subset(Index const& min, Index const& max) const;
-
-    /**
      * Return the bounding box of a single cell.
      */
     geom::Box2I bbox_of(Index const& index) const;
