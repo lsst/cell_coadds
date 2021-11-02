@@ -27,26 +27,26 @@
 namespace lsst {
 namespace cell_coadds {
 
-UniformGrid::UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& stride)
+UniformGrid::UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& cell_size)
         : _bbox(bbox),
-          _stride(stride),
-          _shape{bbox.getWidth() / stride.getX(), bbox.getHeight() / stride.getY()} {
-    if (_bbox.getWidth() % _stride.getX() != 0) {
+          _cell_size(cell_size),
+          _shape{bbox.getWidth() / cell_size.getX(), bbox.getHeight() / cell_size.getY()} {
+    if (_bbox.getWidth() % _cell_size.getX() != 0) {
         throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box width %s is not evenly divided by x stride %s.") %
-                           _bbox.getWidth() % _stride.getX())
+                          (boost::format("Bounding box width %s is not evenly divided by x cell_size %s.") %
+                           _bbox.getWidth() % _cell_size.getX())
                                   .str());
     }
-    if (_bbox.getHeight() % _stride.getY() != 0) {
+    if (_bbox.getHeight() % _cell_size.getY() != 0) {
         throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box height %s is not evenly divided by y stride %s.") %
-                           _bbox.getHeight() % _stride.getY())
+                          (boost::format("Bounding box height %s is not evenly divided by y cell_size %s.") %
+                           _bbox.getHeight() % _cell_size.getY())
                                   .str());
     }
 }
 
 UniformGrid::UniformGrid(geom::Box2I const& bbox, Index const& shape)
-        : _bbox(bbox), _stride(bbox.getWidth() / shape.x, bbox.getHeight() / shape.y), _shape(shape) {
+        : _bbox(bbox), _cell_size(bbox.getWidth() / shape.x, bbox.getHeight() / shape.y), _shape(shape) {
     if (_bbox.getWidth() % _shape.x != 0) {
         throw LSST_EXCEPT(pex::exceptions::LengthError,
                           (boost::format("Bounding box width %s is not evenly divided by x shape %s.") %
@@ -63,7 +63,7 @@ UniformGrid::UniformGrid(geom::Box2I const& bbox, Index const& shape)
 
 UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     geom::Extent2I offset = position - _bbox.getBegin();
-    Index result = {offset.getX() / _stride.getX(), offset.getY() / _stride.getY()};
+    Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
     if (result.x < 0 || result.x >= _shape.x) {
         throw LSST_EXCEPT(
                 pex::exceptions::LengthError,
@@ -73,17 +73,17 @@ UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
 }
 
 UniformGrid UniformGrid::subset(Index const& min, Index const& max) const {
-    return UniformGrid(geom::Box2I(geom::Point2I(min.x * _stride.getX() + _bbox.getBeginX(),
-                                                 min.y * _stride.getY() * _bbox.getBeginY()),
-                                   geom::Extent2I((1 + max.x - min.x) * _stride.getX(),
-                                                  (1 + max.y - min.y) * _stride.getY())),
-                       _stride);
+    return UniformGrid(geom::Box2I(geom::Point2I(min.x * _cell_size.getX() + _bbox.getBeginX(),
+                                                 min.y * _cell_size.getY() * _bbox.getBeginY()),
+                                   geom::Extent2I((1 + max.x - min.x) * _cell_size.getX(),
+                                                  (1 + max.y - min.y) * _cell_size.getY())),
+                       _cell_size);
 }
 
 geom::Box2I UniformGrid::bbox_of(Index const& index) const {
-    return geom::Box2I(geom::Point2I(index.x * _stride.getX() + _bbox.getBeginX(),
-                                     index.y * _stride.getY() + _bbox.getBeginY()),
-                       _stride);
+    return geom::Box2I(geom::Point2I(index.x * _cell_size.getX() + _bbox.getBeginX(),
+                                     index.y * _cell_size.getY() + _bbox.getBeginY()),
+                       _cell_size);
 }
 
 }  // namespace cell_coadds

@@ -50,7 +50,7 @@ inline std::pair<int, int> index_to_pair(UniformGrid::Index const& index) {
 
 void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
     wrappers.wrapType(py::class_<UniformGrid>(wrappers.module, "UniformGrid"), [](auto& mod, auto& cls) {
-        cls.def(py::init<geom::Box2I const&, geom::Extent2I const&>(), "bbox"_a, "strides"_a);
+        cls.def(py::init<geom::Box2I const&, geom::Extent2I const&>(), "bbox"_a, "cell_size"_a);
         cls.def(py::init([](geom::Box2I const& bbox, std::pair<int, int> const& shape) {
                     return UniformGrid(bbox, pair_to_index(shape));
                 }),
@@ -78,7 +78,7 @@ void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
                 },
                 "position"_a);
         cls.def_property_readonly("bbox", &UniformGrid::get_bbox);
-        cls.def_property_readonly("stride", &UniformGrid::get_stride);
+        cls.def_property_readonly("cell_size", &UniformGrid::get_cell_size);
         cls.def_property_readonly("shape",
                                   [](UniformGrid const& self) { return index_to_pair(self.get_shape()); });
     });

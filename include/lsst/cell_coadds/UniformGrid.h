@@ -103,9 +103,9 @@ public:
     geom::Box2I get_bbox() const { return _bbox; }
 
     /**
-     * Return the stride (dimensions of each cell).
+     * Return the dimensions of each cell (also the separation between them).
      */
-    geom::Extent2I get_stride() const { return _stride; }
+    geom::Extent2I get_cell_size() const { return _cell_size; }
 
     /**
      * Return the number of cells in each dimension.
@@ -114,7 +114,7 @@ public:
 
 private:
     geom::Box2I _bbox;
-    geom::Extent2I _stride;
+    geom::Extent2I _cell_size;
     Index _shape;
 };
 
