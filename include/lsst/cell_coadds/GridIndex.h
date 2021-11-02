@@ -21,29 +21,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "pybind11/pybind11.h"
-#include "lsst/cpputils/python.h"
-#include "lsst/cell_coadds/UniformGrid.h"
-#include "lsst/cell_coadds/python.h"
-
-namespace py = pybind11;
-using namespace pybind11::literals;
+#ifndef LSST_CELL_COADDS_GridIndex_h
+#define LSST_CELL_COADDS_GridIndex_h
 
 namespace lsst {
 namespace cell_coadds {
 
-void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
-    wrappers.wrapType(py::class_<UniformGrid>(wrappers.module, "UniformGrid"), [](auto& mod, auto& cls) {
-        cls.def(py::init<geom::Box2I const&, geom::Extent2I const&>(), "bbox"_a, "cell_size"_a);
-        cls.def(py::init<geom::Box2I const&, GridIndex const&>(), "bbox"_a, "shape"_a);
-        cls.def("index", &UniformGrid::index, "position"_a);
-        cls.def("flatten", &UniformGrid::flatten, "index"_a);
-        cls.def("bbox_of", &UniformGrid::flatten, "position"_a);
-        cls.def_property_readonly("bbox", &UniformGrid::get_bbox);
-        cls.def_property_readonly("cell_size", &UniformGrid::get_cell_size);
-        cls.def_property_readonly("shape", &UniformGrid::get_shape);
-    });
-}
+/**
+ * A 2-d index or shape in a grid.
+ *
+ * This class is mapped to a (y, x) tuple in Python rather than being
+ * wrapped directly.
+ */
+struct GridIndex final {
+    int x;
+    int y;
+};
 
 }  // namespace cell_coadds
 }  // namespace lsst
+
+#endif  // !LSST_CELL_COADDS_GridIndex_h

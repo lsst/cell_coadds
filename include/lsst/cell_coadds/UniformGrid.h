@@ -26,6 +26,7 @@
 
 #include <vector>
 #include "lsst/geom/Box.h"
+#include "lsst/cell_coadds/GridIndex.h"
 
 namespace lsst {
 namespace cell_coadds {
@@ -35,16 +36,7 @@ namespace cell_coadds {
  */
 class UniformGrid final {
 public:
-    /**
-     * A 2-d index or shape in a grid.
-     *
-     * This class is mapped to a (y, x) tuple in Python rather than being
-     * wrapped directly.
-     */
-    struct Index {
-        int x;
-        int y;
-    };
+    using Index = GridIndex;
 
     /**
      * Construct from bounding box and stride.
