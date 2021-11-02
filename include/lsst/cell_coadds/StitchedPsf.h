@@ -37,7 +37,7 @@ namespace cell_coadds {
 /**
  * A piecewise Psf implementation backed by a 2-d grid of images.
  */
-class StitchedPsf : public meas::algorithms::ImagePsf {
+class StitchedPsf final : public meas::algorithms::ImagePsf {
 public:
     /**
      * Construct by taking ownership of a strided vector of images.
