@@ -42,9 +42,16 @@ struct type_caster<lsst::cell_coadds::GridIndex> {
     PYBIND11_TYPE_CASTER(lsst::cell_coadds::GridIndex, _("GridIndex"));
 
 public:
-    bool load(handle src, bool) { return PyArg_ParseTuple(src.ptr(), "ii", &value.x, &value.y); };
-    static handle cast(lsst::cell_coadds::GridIndex src, return_value_policy /* policy */,
-                       handle /* parent */) {
+    bool load(handle src, bool) {
+        if (PyArg_ParseTuple(src.ptr(), "ii", &value.x, &value.y)) {
+            return true;
+        } else {
+            PyErr_Clear();
+            return false;
+        }
+    };
+    static handle cast(
+        lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */) {
         // Static variable to hold the named tuple's type object.
         static PyObject* py_type = nullptr;
         if (!py_type) {
