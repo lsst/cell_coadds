@@ -64,15 +64,6 @@ public:
     Index index(geom::Point2I const& position) const;
 
     /**
-     * Flatten a 2-d index into an integer suitable for addressing a 1-d array.
-     *
-     * This is guaranteed to be row-major order (all cells in a row, and then
-     * cells in the next row); this method is a convenience, not an attempt
-     * to fully encapsulate the ordering.
-     */
-    std::size_t flatten(Index const& index) const { return _shape.x * index.y + index.x; }
-
-    /**
      * Return the bounding box of a single cell.
      */
     geom::Box2I bbox_of(Index const& index) const;

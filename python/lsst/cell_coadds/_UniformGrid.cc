@@ -37,8 +37,7 @@ void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
         cls.def(py::init<geom::Box2I const&, geom::Extent2I const&>(), "bbox"_a, "cell_size"_a);
         cls.def(py::init<geom::Box2I const&, GridIndex const&>(), "bbox"_a, "shape"_a);
         cls.def("index", &UniformGrid::index, "position"_a);
-        cls.def("flatten", &UniformGrid::flatten, "index"_a);
-        cls.def("bbox_of", &UniformGrid::flatten, "position"_a);
+        cls.def("bbox_of", &UniformGrid::bbox_of, "index"_a);
         cls.def_property_readonly("bbox", &UniformGrid::get_bbox, py::return_value_policy::copy);
         cls.def_property_readonly("cell_size", &UniformGrid::get_cell_size, py::return_value_policy::copy);
         cls.def_property_readonly("shape", &UniformGrid::get_shape, py::return_value_policy::copy);
