@@ -32,50 +32,60 @@ UniformGrid::UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& cell_siz
           _cell_size(cell_size),
           _shape{bbox.getWidth() / cell_size.getX(), bbox.getHeight() / cell_size.getY()} {
     if (_bbox.getWidth() % _cell_size.getX() != 0) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box width %s is not evenly divided by x cell_size %s.") %
-                           _bbox.getWidth() % _cell_size.getX())
-                                  .str());
+        throw LSST_EXCEPT(
+            pex::exceptions::LengthError,
+            (boost::format("Bounding box width %s is not evenly divided by x cell_size %s.") %
+             _bbox.getWidth() % _cell_size.getX())
+                .str());
     }
     if (_bbox.getHeight() % _cell_size.getY() != 0) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box height %s is not evenly divided by y cell_size %s.") %
-                           _bbox.getHeight() % _cell_size.getY())
-                                  .str());
+        throw LSST_EXCEPT(
+            pex::exceptions::LengthError,
+            (boost::format("Bounding box height %s is not evenly divided by y cell_size %s.") %
+             _bbox.getHeight() % _cell_size.getY())
+                .str());
     }
 }
 
 UniformGrid::UniformGrid(geom::Box2I const& bbox, Index const& shape)
         : _bbox(bbox), _cell_size(bbox.getWidth() / shape.x, bbox.getHeight() / shape.y), _shape(shape) {
     if (_bbox.getWidth() % _shape.x != 0) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box width %s is not evenly divided by x shape %s.") %
-                           _bbox.getWidth() % _shape.x)
-                                  .str());
+        throw LSST_EXCEPT(
+            pex::exceptions::LengthError,
+            (boost::format("Bounding box width %s is not evenly divided by x shape %s.") % _bbox.getWidth() %
+             _shape.x)
+                .str());
     }
     if (_bbox.getHeight() % _shape.y != 0) {
-        throw LSST_EXCEPT(pex::exceptions::LengthError,
-                          (boost::format("Bounding box height %s is not evenly divided by y shape %s.") %
-                           _bbox.getHeight() % _shape.y)
-                                  .str());
+        throw LSST_EXCEPT(
+            pex::exceptions::LengthError,
+            (boost::format("Bounding box height %s is not evenly divided by y shape %s.") %
+             _bbox.getHeight() % _shape.y)
+                .str());
     }
 }
+
+UniformGrid::UniformGrid(geom::Extent2I const& cell_size, Index const& shape, geom::Point2I const& min)
+        : _bbox(min, geom::Extent2I(cell_size.getX() * shape.x, cell_size.getY() * shape.y)),
+          _cell_size(cell_size),
+          _shape(shape) {}
 
 UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     geom::Extent2I offset = position - _bbox.getBegin();
     Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
     if (result.x < 0 || result.x >= _shape.x) {
         throw LSST_EXCEPT(
-                pex::exceptions::LengthError,
-                (boost::format("Position %s is not within bounding box %s.") % position % _bbox).str());
+            pex::exceptions::LengthError,
+            (boost::format("Position %s is not within bounding box %s.") % position % _bbox).str());
     }
     return result;
 }
 
 geom::Box2I UniformGrid::bbox_of(Index const& index) const {
-    return geom::Box2I(geom::Point2I(index.x * _cell_size.getX() + _bbox.getBeginX(),
-                                     index.y * _cell_size.getY() + _bbox.getBeginY()),
-                       _cell_size);
+    return geom::Box2I(
+        geom::Point2I(
+            index.x * _cell_size.getX() + _bbox.getBeginX(), index.y * _cell_size.getY() + _bbox.getBeginY()),
+        _cell_size);
 }
 
 }  // namespace cell_coadds

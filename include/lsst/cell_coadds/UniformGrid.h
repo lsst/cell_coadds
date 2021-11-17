@@ -39,17 +39,17 @@ public:
     using Index = GridIndex;
 
     /**
-     * Construct from bounding box and stride.
+     * Construct from bounding box and cell size.
      *
-     * @param bbox    Bounding box of the full grid.
+     * @param bbox       Bounding box of the full grid.
      *
-     * @param stride  Size of each grid cell.  Must divide the bbox width
-     *                and height evenly.
+     * @param cell_size  Size of each grid cell.  Must divide the bbox width
+     *                   and height evenly.
      */
-    UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& stride);
+    UniformGrid(geom::Box2I const& bbox, geom::Extent2I const& cell_size);
 
     /**
-     * Construct from bounding box and stride.
+     * Construct from bounding box and shape.
      *
      * @param bbox    Bounding box of the full grid.
      *
@@ -57,6 +57,18 @@ public:
      *                divide the bbox width and height evenly.
      */
     UniformGrid(geom::Box2I const& bbox, Index const& shape);
+
+    /**
+     * Construct from cell size and shape.
+     *
+     * @param cell_size  Size of each grid cell.
+     *
+     * @param shape      Number of cells in the grid in each dimension.
+     *
+     * @param min     Minimum x and y coordinates of the bounding box.
+     */
+    UniformGrid(
+        geom::Extent2I const& cell_size, Index const& shape, geom::Point2I const& min = geom::Point2I());
 
     /**
      * Find the index of the cell that contains the given point.
