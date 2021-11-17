@@ -29,7 +29,7 @@ from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
-from ._stitched import StitchedCellCoadd
+from ._stitched_cell_coadd import StitchedCellCoadd
 from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 
 

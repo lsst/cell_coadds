@@ -27,7 +27,8 @@ from ._common_components import *
 from ._image_planes import *
 from ._single_cell_coadd import *
 from ._multiple_cell_coadd import *
-from ._stitched import *
+from ._stitched_image_planes import *
+from ._stitched_cell_coadd import *
 
 from ._cell_coadds import *
 

@@ -21,44 +21,37 @@
 
 from __future__ import annotations
 
-__all__ = ("StitchedCellCoadd",)
+__all__ = ("StitchedImagePlanes",)
 
+from abc import abstractmethod
 from typing import (
-    TYPE_CHECKING,
+    AbstractSet,
     Callable,
+    Iterator,
     Mapping,
     Optional,
     Sequence,
     TypeVar,
 )
 
-from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
-from lsst.geom import Box2I
+from lsst.afw.image import ImageF, Mask
 
-from ._cell_coadds import UniformGrid, StitchedPsf
-from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
+from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes
 from . import typing_helpers
-
-if TYPE_CHECKING:
-    from ._multiple_cell_coadd import MultipleCellCoadd
-    from ._single_cell_coadd import SingleCellCoadd
 
 
 _T = TypeVar("_T", bound=typing_helpers.BoxSubset)
 
 
-class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
-    """A lazy-evaluation coadd that stitches together images from adjacent
-    cells.
+class StitchedImagePlanes(ImagePlanes):
+    """An ImagePlanes intermediate base class that stitches together per-cell
+    images.
 
     Parameters
     ----------
-    cell_coadd : `MultipleCellCoadd`
-        Cell-based coadd to stitch together.
-    bbox : `Box2I`, optional
-        The region over which a contiguous coadd is desired.  Defaults to
-        ``cell_coadd.inner_bbox``.
+    bbox : `Box2I`
+        The region over which contiguous piecewise images are desired.
 
     Notes
     -----
@@ -67,28 +60,39 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
     planes that may never be accessed.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Optional[Box2I] = None):
-        self._cell_coadd = cell_coadd
-        if bbox is None:
-            bbox = cell_coadd.inner_bbox
-        elif not cell_coadd.inner_bbox.contains(bbox):
-            raise ValueError(
-                f"Cell coadd inner bounding box {cell_coadd.inner_bbox} does not "
-                f"contain stitch target area {bbox}."
-            )
-        self._bbox = bbox
+    def __init__(self) -> None:
         self._image: Optional[ImageF] = None
         self._mask: Optional[Mask] = None
         self._variance: Optional[ImageF] = None
         self._mask_fractions: Optional[Mapping[str, ImageF]] = None
         self._noise_realizations: Optional[Sequence[ImageF]] = None
-        self._psf: Optional[StitchedPsf] = None
-        self._common = cell_coadd.common
 
     @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._bbox
+    @abstractmethod
+    def grid(self) -> UniformGrid:
+        """Object that defines the piecewise grid this object stitches
+        together.
+
+        This may include cells outside the region covered by these image
+        planes."""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def n_noise_realizations(self) -> int:
+        """The number of noise realizations cells are guaranteed to have."""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def mask_fraction_names(self) -> AbstractSet[str]:
+        """The names of all mask planes whose fractions were propagated in any
+        cell.
+
+        Cells that do not have a mask fraction for a particular name may be
+        assumed to have the fraction for that mask plane uniformly zero.
+        """
+        raise NotImplementedError()
 
     @property
     def image(self) -> ImageF:
@@ -97,6 +101,10 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
             self._image = self._make_plane(ImageF(self.bbox), lambda planes: planes.image)
         return self._image
 
+    def uncache_image(self) -> None:
+        """Remove any cached `image` plane."""
+        self._image = None
+
     @property
     def mask(self) -> Mask:
         # Docstring inherited.
@@ -104,12 +112,20 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
             self._mask = self._make_plane(Mask(self.bbox), lambda planes: planes.mask)
         return self._mask
 
+    def uncache_mask(self) -> None:
+        """Remove any cached `mask` plane."""
+        self._mask = None
+
     @property
     def variance(self) -> ImageF:
         # Docstring inherited.
         if self._variance is None:
             self._variance = self._make_plane(ImageF(self.bbox), lambda planes: planes.variance)
         return self._variance
+
+    def uncache_variance(self) -> None:
+        """Remove any cached `variance` plane."""
+        self._variance = None
 
     @property
     def mask_fractions(self) -> ImageF:
@@ -120,9 +136,13 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
             # it's worth the effort.
             self._mask_fractions = {
                 name: self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions.get(name))
-                for name in self._cell_coadd.mask_fraction_names
+                for name in self.mask_fraction_names
             }
         return self._mask_fractions
+
+    def uncache_mask_fraction(self) -> None:
+        """Remove any cached `mask_fraction` planes."""
+        self._mask_fractions = None
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:
@@ -133,29 +153,13 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
             # worth the effort.
             self._noise_realizations = tuple(
                 self._make_plane(ImageF(self.bbox), lambda planes: planes.noise_realizations[i])
-                for i in range(self._cell_coadd.n_noise_realizations)
+                for i in range(self.n_noise_realizations)
             )
         return self._noise_realizations
 
-    @property
-    def grid(self) -> UniformGrid:
-        """Object that defines piecewise grid this image stitches together."""
-        return self._cell_coadd.grid
-
-    @property
-    def psf(self) -> StitchedPsf:
-        """The piecewise PSF of this image."""
-        if self._psf is None:
-            self._psf = StitchedPsf(
-                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image).finish(),
-                self._cell_coadd.grid,
-            )
-        return self._psf
-
-    @property
-    def common(self) -> CommonComponents:
-        # Docstring inherited.
-        return self._cell_coadd.common
+    def uncache_noise_realizations(self) -> None:
+        """Remove any cached `noise_realization` planes."""
+        self._noise_realizations = None
 
     def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], Optional[_T]]) -> _T:
         """Stitch together a single image plane.
@@ -175,39 +179,17 @@ class StitchedCellCoadd(ImagePlanes, CommonComponentsProperties):
         result : image-like
             The same result object passed in.
         """
-        cell: SingleCellCoadd
-        for cell in self._cell_coadd.cells:
-            common_bbox = cell.inner.bbox.clippedTo(self.bbox)
+        for cell_planes in self._iter_cell_planes():
+            common_bbox = cell_planes.bbox.clippedTo(self.bbox)
             if not common_bbox.isEmpty():
-                input_plane = getter(cell.inner)
+                input_plane = getter(cell_planes)
                 if input_plane is None:
                     result[common_bbox] = 0
                 else:
                     result[common_bbox] = input_plane[common_bbox]
         return result
 
-    def asExposure(self) -> ExposureF:
-        """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
-        result = ExposureF(self.asMaskedImage())
-        # Exposure components derived from "common" components are all simple.
-        result.setWcs(self._cell_coadd.wcs)
-        result.setFilterLabel(FilterLabel(band=self.band))
-        if self.units is CoaddUnits.nJy:
-            result.setPhotoCalib(PhotoCalib(1.0))
-
-        # This ID does not include the band, but it probably should; hopefully
-        # DM-31924 will provide a good way to do that without access to butler
-        # things.
-        result.setId(self._cell_coadd.identifiers.patch.packed)
-
-        # We could add CoaddInputs here, but without WCS, PSF, etc in them;
-        # it's not clear that's good enough or even useful, given that the cell
-        # provide a much more clean view of what the inputs are at any given
-        # point.
-
-        # PSF is the first of many components that need piecewise
-        # implementations.  More to do here for at least aperture corrections
-        # and transmission curves.
-        result.setPsf(self.psf)
-
-        return result
+    @abstractmethod
+    def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
+        """Iterate over all cell image planes."""
+        raise NotImplementedError()
