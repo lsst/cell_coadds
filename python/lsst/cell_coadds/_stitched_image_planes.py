@@ -41,7 +41,7 @@ from ._image_planes import ImagePlanes
 from . import typing_helpers
 
 
-_T = TypeVar("_T", bound=typing_helpers.BoxSubset)
+_T = TypeVar("_T", bound=typing_helpers.ImageLike)
 
 
 class StitchedImagePlanes(ImagePlanes):

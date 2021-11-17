@@ -21,19 +21,23 @@
 
 from __future__ import annotations
 
+from typing import Protocol, Tuple, TypeVar, Union, overload
 
-from typing import Protocol, TypeVar, Union
-
-from lsst.geom import Box2I
+from lsst.geom import Box2I, Point2I
 
 _S = TypeVar("_S")
 
 
-class BoxSubset(Protocol):
-    """Interface for objects that can be indexed by a `Box2I`, returning a
-    view of the same type.
+class ImageLike(Protocol):
+    """Interface for objects that behave like `lsst.afw.image.Image` with
+    respect to subimage slicing, bounding box access, and XY0 offset.
     """
 
+    @overload
+    def __getitem__(self: _S, slices: Tuple[slice, slice]) -> _S:
+        pass
+
+    @overload
     def __getitem__(self: _S, bbox: Box2I) -> _S:
         pass
 
@@ -41,4 +45,10 @@ class BoxSubset(Protocol):
         pass
 
     def getBBox(self) -> Box2I:
+        pass
+
+    def getXY0(self) -> Point2I:
+        pass
+
+    def setXY0(self, xy0: Point2I) -> None:
         pass
