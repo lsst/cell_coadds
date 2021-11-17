@@ -168,7 +168,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Returns
         -------
-        stitched : `StichedCellCoadd`
+        stitched : `StitchedCellCoadd`
             Contiguous coadd covering the given area.  Each image plane is
             actually constructed when first accessed, not when this method
             is called.
