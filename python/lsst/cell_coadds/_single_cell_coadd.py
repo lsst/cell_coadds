@@ -77,7 +77,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox}."
         self._outer = outer
         self._psf = psf
-        self._inner = ViewImagePlanes(outer, inner_bbox)
+        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=lambda image: image[inner_bbox])
         self._common = common
         self._inputs = inputs
         self._identifiers = identifiers

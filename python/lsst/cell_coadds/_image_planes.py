@@ -28,10 +28,12 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from typing import Mapping, Sequence
+from typing import Callable, Optional, Mapping, Sequence
 
 from lsst.afw.image import ImageF, Mask, MaskedImageF
 from lsst.geom import Box2I
+
+from .typing_helpers import ImageLike
 
 
 class ImagePlanes(ABC):
@@ -141,13 +143,25 @@ class OwnedImagePlanes(ImagePlanes):
 
 
 class ViewImagePlanes(ImagePlanes):
-    """A lazy implementation of the `ImagePlanes` interface that just takes
-    subimages of another target `ImagePlanes` instance.
+    """An implementation of the `ImagePlanes` interface that extracts views
+    from another target `ImagePlanes` instance.
+
+    Parameters
+    ----------
+    target : `ImagePlanes`
+        Planes to construct views of.
+    make_view : `Callable`
+        Callable that takes an original image plane and returns a view into it.
+    bbox : `Box2I`, optional
+        Bounding box of the new image plane.  Defaults to ``target.bbox``.
     """
 
-    def __init__(self, target: ImagePlanes, bbox: Box2I):
+    def __init__(
+        self, target: ImagePlanes, make_view: Callable[[ImageLike], ImageLike], bbox: Optional[Box2I] = None
+    ):
         self._target = target
-        self._bbox = bbox
+        self._bbox = bbox if bbox is not None else self._target.bbox
+        self._make_view = make_view
 
     @property
     def bbox(self) -> Box2I:
@@ -157,28 +171,28 @@ class ViewImagePlanes(ImagePlanes):
     @property
     def image(self) -> ImageF:
         # Docstring inherited.
-        return self._target.image[self._bbox]
+        return self._make_view(self._target.image)
 
     @property
     def mask(self) -> Mask:
         # Docstring inherited.
-        return self._target.mask[self._bbox]
+        return self._make_view(self._target.mask)
 
     @property
     def variance(self) -> ImageF:
         # Docstring inherited.
-        return self._target.variance[self._bbox]
+        return self._make_view(self._target.variance)
 
     @property
     def mask_fractions(self) -> Mapping[str, ImageF]:
         # Docstring inherited.
         # We could make this even lazier with a custom Mapping class, but it
         # doesn't seem worthwhile.
-        return {name: image[self._bbox] for name, image in self._target.mask_fractions.items()}
+        return {name: self._make_view(image) for name, image in self._target.mask_fractions.items()}
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:
         # Docstring inherited.
         # We could make this even lazier with a custom Sequence class, but it
         # doesn't seem worthwhile.
-        return tuple(r[self._bbox] for r in self._target.noise_realizations)
+        return tuple(self._make_view(r) for r in self._target.noise_realizations)
