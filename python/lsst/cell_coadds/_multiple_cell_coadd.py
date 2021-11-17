@@ -30,6 +30,7 @@ from lsst.geom import Box2I, Extent2I
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
+from ._exploded_coadd import ExplodedCoadd
 from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 
 
@@ -177,3 +178,23 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # this return different types (from a common ABC), perhaps dispatched
         # by an enum.
         return StitchedCoadd(self, bbox=bbox)
+
+    def explode(self, pad_psfs_with: Optional[float] = None) -> ExplodedCoadd:
+        """Return a coadd whose image planes stitch together the outer regions
+        of each cell, duplicating pixels in the overlap regions.
+
+        Parameters
+        ----------
+        pad_psfs_with : `float` or `None`, optional
+            A floating-point value to pad PSF images with so each PSF-image
+            cell has the same dimensions as the image (outer) cell it
+            corresponds to.  If `None`, PSF images will not be padded and the
+            full PSF image will generally be smaller than the exploded image it
+            corresponds to.
+
+        Returns
+        -------
+        exploded : `ExplodedCoadd`
+            Exploded version of the coadd.
+        """
+        return ExplodedCoadd(self, pad_psfs_with=pad_psfs_with)
