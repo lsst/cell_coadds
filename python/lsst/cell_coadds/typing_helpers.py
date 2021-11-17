@@ -39,3 +39,6 @@ class BoxSubset(Protocol):
 
     def __setitem__(self: _S, bbox: Box2I, other: Union[_S, int]) -> None:
         pass
+
+    def getBBox(self) -> Box2I:
+        pass
