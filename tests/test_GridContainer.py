@@ -25,11 +25,13 @@ import copy
 from typing import Dict, List
 import unittest
 
-from lsst.cell_coadds import GridContainer, GridContainerBuilder, GridIndex
+from lsst.skymap import Index2D
+from lsst.cell_coadds import GridContainer, GridContainerBuilder
 
 
 class GridContainerTestCase(unittest.TestCase):
-    """Tests for GridContainer and GridIndex's C++/Python translation."""
+    """Tests for GridContainer and GridIndex/Index2D's C++/Python
+    translation."""
 
     def _fill(self, builder: GridContainerBuilder[Dict[str, int]]) -> None:
         """Populate a GridContainerBuilder with dicts that map "x" or "y" to
@@ -43,7 +45,7 @@ class GridContainerTestCase(unittest.TestCase):
         """Perform a complete battery of tests on a GridContainer instance."""
         for value in container:
             self.assertEqual(container[value["x"], value["y"]], value)
-            self.assertEqual(container[GridIndex(**value)], value)
+            self.assertEqual(container[Index2D(**value)], value)
         self.assertEqual(container.first, {"x": container.offset.x, "y": container.offset.y})
         self.assertEqual(
             container.last,
@@ -87,9 +89,9 @@ class GridContainerTestCase(unittest.TestCase):
         shape = (3, 2)
         builder: GridContainerBuilder[Dict[str, int]] = GridContainerBuilder(shape)
         self.assertEqual(builder.shape, shape)
-        self.assertIsInstance(builder.shape, GridIndex)
+        self.assertIsInstance(builder.shape, Index2D)
         self.assertEqual(builder.offset, (0, 0))
-        self.assertIsInstance(builder.offset, GridIndex)
+        self.assertIsInstance(builder.offset, Index2D)
         self.assertEqual(len(builder), shape[0] * shape[1])
         with self.assertRaises(Exception):
             builder.finish()
@@ -103,9 +105,9 @@ class GridContainerTestCase(unittest.TestCase):
         offset = (1, 2)
         builder: GridContainerBuilder[Dict[str, int]] = GridContainerBuilder(shape, offset)
         self.assertEqual(builder.shape, shape)
-        self.assertIsInstance(builder.shape, GridIndex)
+        self.assertIsInstance(builder.shape, Index2D)
         self.assertEqual(builder.offset, offset)
-        self.assertIsInstance(builder.offset, GridIndex)
+        self.assertIsInstance(builder.offset, Index2D)
         self.assertEqual(len(builder), shape[0] * shape[1])
         with self.assertRaises(Exception):
             builder.finish()

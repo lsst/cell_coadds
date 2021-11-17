@@ -56,19 +56,11 @@ public:
         static PyObject* py_type = nullptr;
         if (!py_type) {
             // Attempt to import that type object.
-            // I am a bit worried that this is fragile w.r.t. import order
-            // in cell_coadds/__init__.py; if so, we could try to make this
-            // a relative import (but the C API interfaces for that are awful
-            // and poorly documented) or make Python import-time code
-            // responsible for passing this type to C++ via a wrapped static
-            // method that would store it in some kind of global (well, class
-            // static) variable.  But this isn't obviously worse than either
-            // of those.
-            PyObject* module = PyImport_ImportModule("lsst.cell_coadds._grid_index");
+            PyObject* module = PyImport_ImportModule("lsst.skymap");
             if (!module) {
                 throw error_already_set();
             }
-            py_type = PyObject_GetAttrString(module, "GridIndex");
+            py_type = PyObject_GetAttrString(module, "Index2D");
             if (!py_type) {
                 throw error_already_set();
             }

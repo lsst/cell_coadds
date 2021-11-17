@@ -31,7 +31,7 @@ __all__ = (
 
 from dataclasses import dataclass
 
-from ._grid_index import GridIndex
+from lsst.skymap import Index2D
 
 
 @dataclass(frozen=True)
@@ -59,9 +59,9 @@ class GridIdentifiers:
     """
 
     @property
-    def index(self) -> GridIndex:
+    def index(self) -> Index2D:
         """The index as a 2-d (x, y) tuple."""
-        return GridIndex(x=self.x, y=self.y)
+        return Index2D(x=self.x, y=self.y)
 
 
 @dataclass(frozen=True)
