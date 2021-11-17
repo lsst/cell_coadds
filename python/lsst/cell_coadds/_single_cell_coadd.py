@@ -25,7 +25,7 @@ __all__ = ("SingleCellCoadd",)
 
 from typing import FrozenSet, TYPE_CHECKING
 
-from lsst.afw.image import ImageF
+from lsst.afw.image import ImageF, ImageD
 from lsst.geom import Box2I
 
 from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
@@ -43,7 +43,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     ----------
     outer: `OwnedImagePlanes`
         The actual coadded images.
-    psf : `ImageF`
+    psf : `ImageD`
         The coadded PSF image.
     inner_bbox: `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
@@ -66,7 +66,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         self,
         outer: OwnedImagePlanes,
         *,
-        psf: ImageF,
+        psf: ImageD,
         inner_bbox: Box2I,
         inputs: FrozenSet[ObservationIdentifiers],
         common: CommonComponents,
