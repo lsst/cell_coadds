@@ -30,7 +30,8 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import Tuple
+
+from ._grid_index import GridIndex
 
 
 @dataclass(frozen=True)
@@ -58,9 +59,9 @@ class GridIdentifiers:
     """
 
     @property
-    def index(self) -> Tuple[int, int]:
+    def index(self) -> GridIndex:
         """The index as a 2-d (x, y) tuple."""
-        return (self.x, self.y)
+        return GridIndex(x=self.x, y=self.y)
 
 
 @dataclass(frozen=True)
