@@ -25,7 +25,7 @@ __all__ = ("MultipleCellCoadd",)
 
 from typing import AbstractSet, Iterable, Optional, Set
 
-from lsst.geom import Box2I
+from lsst.geom import Box2I, Extent2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
@@ -53,11 +53,15 @@ class MultipleCellCoadd(CommonComponentsProperties):
         self,
         cells: Iterable[SingleCellCoadd],
         grid: UniformGrid,
+        outer_cell_size: Extent2I,
+        psf_image_size: Extent2I,
         *,
         common: CommonComponents,
         inner_bbox: Optional[Box2I] = None,
     ):
         self._grid = grid
+        self._outer_cell_size = outer_cell_size
+        self._psf_image_size = psf_image_size
         self._common = common
         cells_builder: GridContainerBuilder[SingleCellCoadd] = GridContainerBuilder(self._grid.shape)
         self._mask_fraction_names: Set[str] = set()
@@ -66,8 +70,18 @@ class MultipleCellCoadd(CommonComponentsProperties):
             cells_builder[index] = cell
             if cell.inner.bbox != self._grid.bbox_of(index):
                 raise ValueError(
-                    f"Cell at index row={index[0]}, col={index[1]} has "
-                    f"inner bbox {cell.inner.bbox}, but grid expects {self._grid.bbox_of(index)}."
+                    f"Cell at index {index} has inner bbox {cell.inner.bbox}, "
+                    f"but grid expects {self._grid.bbox_of(index)}."
+                )
+            if cell.outer.bbox.getDimensions() != self._outer_cell_size:
+                raise ValueError(
+                    f"Cell at index {index} has outer dimensions {cell.outer.bbox.getDimensions()}, "
+                    f"but coadd expects {self._outer_cell_size}."
+                )
+            if cell.psf_image.getDimensions() != self._psf_image_size:
+                raise ValueError(
+                    f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions}, "
+                    f"but coadd expects {self._psf_image_size}."
                 )
             self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
         self._cells = cells_builder.finish()
@@ -114,6 +128,16 @@ class MultipleCellCoadd(CommonComponentsProperties):
     def grid(self) -> UniformGrid:
         """Object that defines the inner geometry for all cells."""
         return self._grid
+
+    @property
+    def outer_cell_size(self) -> Extent2I:
+        """Dimensions of the outer region of each cell."""
+        return self._outer_cell_size
+
+    @property
+    def psf_image_size(self) -> Extent2I:
+        """Dimensions of PSF model images."""
+        return self._psf_image_size
 
     @property
     def outer_bbox(self) -> Box2I:
