@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-__all__ = ("StitchedCellCoadd",)
+__all__ = ("StitchedCoadd",)
 
 from typing import (
     TYPE_CHECKING,
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
-class StitchedCellCoadd(StitchedImagePlanes, CommonComponentsProperties):
+class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     """A lazy-evaluation coadd that stitches together images from adjacent
     cells.
 

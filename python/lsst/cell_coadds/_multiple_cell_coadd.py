@@ -29,7 +29,7 @@ from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._single_cell_coadd import SingleCellCoadd
-from ._stitched_cell_coadd import StitchedCellCoadd
+from ._stitched_coadd import StitchedCoadd
 from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 
 
@@ -132,7 +132,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # Docstring inherited.
         return self._common
 
-    def stitch(self, bbox: Optional[Box2I] = None) -> StitchedCellCoadd:
+    def stitch(self, bbox: Optional[Box2I] = None) -> StitchedCoadd:
         """Return a contiguous (but in general discontinuous) coadd by
         stitching together inner cells.
 
@@ -152,4 +152,4 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # discontinuities may also be provided; we'd implement that by having
         # this return different types (from a common ABC), perhaps dispatched
         # by an enum.
-        return StitchedCellCoadd(self, bbox=bbox)
+        return StitchedCoadd(self, bbox=bbox)
