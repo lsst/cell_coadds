@@ -42,11 +42,6 @@ class GridIdentifiers:
     patch.
     """
 
-    packed: int
-    """ID that uniquely identifies both this element and grid in which it lives
-    by packing together the IDs of each.
-    """
-
     sequential: int
     """Unique sequential integer ID for this element in the grid."""
 

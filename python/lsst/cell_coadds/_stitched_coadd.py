@@ -124,10 +124,15 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
 
-        # This ID does not include the band, but it probably should; hopefully
-        # DM-31924 will provide a good way to do that without access to butler
-        # things.
-        result.setId(self._cell_coadd.identifiers.patch.packed)
+        # We can't do result.setId here, because:
+        #
+        # - we don't know whether this should be a packed tract+patch+band ID
+        #   or just a tract+patch ID;
+        #
+        # - we don't know how to pack the information we have anyway.
+        #
+        # Maybe DM-31924 will provide a solution to at least the latter.
+        result.setId(self._cell_coadd.identifiers.patch)
 
         # We could add CoaddInputs here, but without WCS, PSF, etc in them;
         # it's not clear that's good enough or even useful, given that the cell
