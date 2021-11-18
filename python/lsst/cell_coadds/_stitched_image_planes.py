@@ -24,22 +24,13 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from typing import (
-    AbstractSet,
-    Callable,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
-    TypeVar,
-)
+from typing import AbstractSet, Callable, Iterator, Mapping, Optional, Sequence, TypeVar
 
 from lsst.afw.image import ImageF, Mask
 
+from . import typing_helpers
 from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes
-from . import typing_helpers
-
 
 _T = TypeVar("_T", bound=typing_helpers.ImageLike)
 

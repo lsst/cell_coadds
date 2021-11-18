@@ -28,7 +28,7 @@ __all__ = (
     "UniformGrid",
 )
 
-from typing import overload, Callable, Generic, Iterator, Tuple, TypeVar
+from typing import Callable, Generic, Iterator, Tuple, TypeVar, overload
 
 from lsst.afw.image import ImageD
 from lsst.geom import Box2I, Extent2I, Point2I

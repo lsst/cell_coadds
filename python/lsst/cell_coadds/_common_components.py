@@ -23,15 +23,14 @@ from __future__ import annotations
 
 __all__ = ("CoaddUnits", "CommonComponents", "CommonComponentsProperties")
 
-from abc import ABC, abstractmethod
 import enum
-from typing import Optional, TYPE_CHECKING
-
-
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from lsst.afw.geom import SkyWcs
+
     from ._identifiers import PatchIdentifiers
 
 

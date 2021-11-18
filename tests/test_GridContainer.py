@@ -22,11 +22,11 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict, List
 import unittest
+from typing import Dict, List
 
-from lsst.skymap import Index2D
 from lsst.cell_coadds import GridContainer, GridContainerBuilder
+from lsst.skymap import Index2D
 
 
 class GridContainerTestCase(unittest.TestCase):

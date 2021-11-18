@@ -26,15 +26,15 @@ __all__ = ("MultipleCellCoadd",)
 import enum
 from typing import AbstractSet, Iterable, Optional, Set
 
+from lsst.afw.fits import Fits
 from lsst.daf.base import PropertyList
 from lsst.geom import Box2I, Extent2I
-from lsst.afw.fits import Fits
 
+from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 from ._common_components import CommonComponents, CommonComponentsProperties
+from ._exploded_coadd import ExplodedCoadd
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
-from ._exploded_coadd import ExplodedCoadd
-from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 
 
 class PersistenceLayout(enum.Enum):

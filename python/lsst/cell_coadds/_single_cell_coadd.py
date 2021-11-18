@@ -23,13 +23,13 @@ from __future__ import annotations
 
 __all__ = ("SingleCellCoadd",)
 
-from typing import FrozenSet, TYPE_CHECKING
+from typing import TYPE_CHECKING, FrozenSet
 
-from lsst.afw.image import ImageF, ImageD
+from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
 
-from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
 from ._common_components import CommonComponents, CommonComponentsProperties
+from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
 
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers

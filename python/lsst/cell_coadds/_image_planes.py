@@ -28,7 +28,7 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Mapping, Sequence
+from typing import Callable, Mapping, Optional, Sequence
 
 from lsst.afw.image import ImageF, Mask, MaskedImageF
 from lsst.geom import Box2I

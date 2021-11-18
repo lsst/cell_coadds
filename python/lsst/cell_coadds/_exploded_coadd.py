@@ -23,15 +23,10 @@ from __future__ import annotations
 
 __all__ = ("ExplodedCoadd",)
 
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Iterator,
-    Optional,
-)
+from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
 
-from lsst.geom import Box2I
 from lsst.afw.image import ImageD
+from lsst.geom import Box2I
 
 from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes, ViewImagePlanes

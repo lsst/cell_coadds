@@ -23,17 +23,12 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Iterator,
-    Optional,
-)
+from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
 
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
 
-from ._cell_coadds import UniformGrid, StitchedPsf
+from ._cell_coadds import StitchedPsf, UniformGrid
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
