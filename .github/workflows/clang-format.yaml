@@ -1,0 +1,22 @@
+name: check C++ formatting
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  formatting-check:
+    name: check C++ formatting
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - "include"
+          - "src"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run clang-format style check for C/C++ programs.
+        uses: jidicula/clang-format-action@v4.3.0
+        with:
+          clang-format-version: "13"
+          check-path: ${{ matrix.path }}

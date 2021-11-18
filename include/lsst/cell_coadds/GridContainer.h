@@ -27,8 +27,9 @@
 #include <iterator>
 #include <optional>
 #include <vector>
-#include "lsst/geom/Box.h"
+
 #include "lsst/cell_coadds/GridIndex.h"
+#include "lsst/geom/Box.h"
 
 namespace lsst {
 namespace cell_coadds {

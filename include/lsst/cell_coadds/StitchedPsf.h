@@ -28,9 +28,9 @@
 #include <memory>
 #include <vector>
 
-#include "lsst/meas/algorithms/ImagePsf.h"
 #include "lsst/cell_coadds/GridContainer.h"
 #include "lsst/cell_coadds/UniformGrid.h"
+#include "lsst/meas/algorithms/ImagePsf.h"
 
 namespace lsst {
 namespace cell_coadds {
@@ -49,8 +49,8 @@ public:
      * @param grid     Object that defines the geometry of the piecewise image
      *                 this PSF corresponds to.
      */
-    StitchedPsf(GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images,
-                UniformGrid const& grid);
+    StitchedPsf(
+        GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images, UniformGrid const& grid);
 
     StitchedPsf(StitchedPsf const&) = default;
     StitchedPsf(StitchedPsf&&) = default;
@@ -63,7 +63,7 @@ public:
 
 protected:
     std::shared_ptr<afw::detection::Psf::Image> doComputeKernelImage(
-            geom::Point2D const& position, afw::image::Color const& color) const override;
+        geom::Point2D const& position, afw::image::Color const& color) const override;
     geom::Box2I doComputeBBox(geom::Point2D const& position, afw::image::Color const& color) const override;
 
 private:

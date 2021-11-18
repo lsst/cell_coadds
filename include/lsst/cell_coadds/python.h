@@ -24,9 +24,8 @@
 #ifndef LSST_CELL_COADDS_python_h
 #define LSST_CELL_COADDS_python_h
 
-#include "pybind11/pybind11.h"
-
 #include "lsst/cell_coadds/GridIndex.h"
+#include "pybind11/pybind11.h"
 
 namespace pybind11 {
 namespace detail {

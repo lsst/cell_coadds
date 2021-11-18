@@ -22,8 +22,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "lsst/pex/exceptions.h"
 #include "lsst/cell_coadds/StitchedPsf.h"
+
+#include "lsst/pex/exceptions.h"
 
 namespace lsst {
 namespace cell_coadds {
