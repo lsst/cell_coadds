@@ -30,8 +30,12 @@ __all__ = (
 
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Union
 
-from lsst.skymap import Index2D
+from lsst.skymap import CellInfo, Index2D, PatchInfo
+
+if TYPE_CHECKING:
+    from lsst.daf.butler import DataCoordinate
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,44 @@ class GridIdentifiers:
         """The index as a 2-d (x, y) tuple."""
         return Index2D(x=self.x, y=self.y)
 
+    @classmethod
+    def from_data_id(cls, data_id: DataCoordinate) -> GridIdentifiers:
+        """Construct a `GridIdentifier` for a patch from a data ID.
+
+        Parameters
+        ----------
+        data_id : `lsst.daf.butler.DataCoordinate`
+            Fully-expanded data ID that includes the 'patch' dimension.
+
+        Returns
+        -------
+        grid_identifiers : `GridIdentifiers`
+            Identifiers struct for the patch.
+        """
+        # The cell_x, cell_y below do not refer to cell as it is used
+        # throughout the rest of this package; it's a historical butler thing.
+        return cls(
+            sequential=data_id["patch"],
+            x=data_id.records["patch"].cell_x,
+            y=data_id.records["patch"].cell_y,
+        )
+
+    @classmethod
+    def from_info(cls, info: Union[PatchInfo, CellInfo]) -> GridIdentifiers:
+        """Construct from a skymap `PatchInfo` or `CellInfo`.
+
+        Parameters
+        ----------
+        info : `PatchInfo` or `CellInfo`
+            Structure describing the patch or cell.
+
+        Returns
+        -------
+        grid_identifiers : `GridIdentifiers`
+            Identifiers struct for the patch or cell.
+        """
+        return cls(sequential=info.sequential_index, x=info.index.x, y=info.index.y)
+
 
 @dataclass(frozen=True)
 class PatchIdentifiers:
@@ -74,6 +116,26 @@ class PatchIdentifiers:
     patch: GridIdentifiers
     """Identifiers for the patch itself.
     """
+
+    @classmethod
+    def from_data_id(cls, data_id: DataCoordinate) -> PatchIdentifiers:
+        """Construct from a data ID.
+
+        Parameters
+        ----------
+        data_id : `lsst.daf.butler.DataCoordinate`
+            Fully-expanded data ID that includes the 'patch' dimension.
+
+        Returns
+        -------
+        identifiers : `PatchIdentifiers`
+            Struct of identifiers for this patch.
+        """
+        return cls(
+            skymap=data_id["skymap"],
+            tract=data_id["tract"],
+            patch=GridIdentifiers.from_data_id(data_id),
+        )
 
 
 @dataclass(frozen=True)
@@ -110,3 +172,25 @@ class ObservationIdentifiers:
     detector: int
     """Unique identifier for the detector.
     """
+
+    @classmethod
+    def from_data_id(cls, data_id: DataCoordinate) -> ObservationIdentifiers:
+        """Construct from a data ID.
+
+        Parameters
+        ----------
+        data_id : `lsst.daf.butler.DataCoordinate`
+            Fully-expanded data ID that includes the 'visit' and 'detector'
+            dimensions.
+
+        Returns
+        -------
+        identifiers : `ObservationIdentifiers`
+            Struct of identifiers for this observation.
+        """
+        return cls(
+            instrument=data_id["instrument"],
+            packed=data_id.pack("visit_detector"),
+            visit=data_id["visit"],
+            detector=data_id["detector"],
+        )
