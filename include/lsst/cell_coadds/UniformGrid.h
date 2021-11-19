@@ -24,8 +24,6 @@
 #ifndef LSST_CELL_COADDS_UniformGrid_h
 #define LSST_CELL_COADDS_UniformGrid_h
 
-#include <vector>
-
 #include "lsst/cell_coadds/GridIndex.h"
 #include "lsst/geom/Box.h"
 
