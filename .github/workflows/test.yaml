@@ -1,0 +1,47 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: null
+
+jobs:
+  test:
+    name: test
+    strategy:
+      matrix:
+        pyver: [3.8]
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.pyver }}
+          channels: conda-forge
+          channel-priority: strict
+          show-channel-urls: true
+
+      - name: Install DM stack and mypy with conda/mamba
+        shell: bash -l {0}
+        run: |
+          conda config --set always_yes yes
+          conda install -q mamba
+
+          mamba install -q stackvana=0
+          mamba install -q mypy
+
+      - name: Build and run tests
+        shell: bash -l {0}
+        run: |
+          setup -v -r .
+          scons
+
+      - name: Run MyPy
+        shell: bash -l {0}
+        run: |
+          setup -v -r .
+          mypy python/ tests/

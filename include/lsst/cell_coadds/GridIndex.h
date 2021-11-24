@@ -21,11 +21,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#ifndef LSST_CELL_COADDS_GridIndex_h
+#define LSST_CELL_COADDS_GridIndex_h
 
-/** \file
-  * \brief Include files for lsst::cell::coadds.
-  */
-#ifndef LSST_CELL_COADDS_H
-#define LSST_CELL_COADDS_H
+namespace lsst {
+namespace cell_coadds {
 
-#endif
+/**
+ * A 2-d index or shape in a grid.
+ *
+ * This class is mapped to a (y, x) tuple in Python rather than being
+ * wrapped directly.
+ */
+struct GridIndex final {
+    int x;
+    int y;
+};
+
+}  // namespace cell_coadds
+}  // namespace lsst
+
+#endif  // !LSST_CELL_COADDS_GridIndex_h

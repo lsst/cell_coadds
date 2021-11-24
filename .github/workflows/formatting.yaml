@@ -1,4 +1,4 @@
-name: lint
+name: check Python formatting
 
 on:
   - push
@@ -7,6 +7,7 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    name: check Python formatting
     steps:
       - uses: actions/checkout@v2
 
@@ -16,7 +17,10 @@ jobs:
           python-version: 3.8
 
       - name: Install
-        run: pip install -r <(curl https://raw.githubusercontent.com/lsst/linting/master/requirements.txt)
+        run: pip install black isort
 
-      - name: Run linter
-        run: flake8
+      - name: Run isort
+        run: isort --check-only --quiet python/ tests/
+
+      - name: Run black
+        run: black --check python/ tests/
