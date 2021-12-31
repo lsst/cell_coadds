@@ -32,6 +32,7 @@ namespace cell_coadds {
 void wrapUniformGrid(utils::python::WrapperCollection &);
 void wrapStitchedPsf(utils::python::WrapperCollection &);
 void wrapGridContainer(utils::python::WrapperCollection &);
+void wrap_fits_helpers(utils::python::WrapperCollection &);
 
 PYBIND11_MODULE(_cell_coadds, mod) {
     utils::python::WrapperCollection wrappers(mod, "lsst.cell_coadds");
@@ -39,6 +40,7 @@ PYBIND11_MODULE(_cell_coadds, mod) {
     wrapUniformGrid(wrappers);
     wrapGridContainer(wrappers);
     wrapStitchedPsf(wrappers);
+    wrap_fits_helpers(wrappers);
     wrappers.finish();
 }
 
