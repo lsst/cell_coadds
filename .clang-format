@@ -6,3 +6,4 @@ BinPackParameters: false
 AccessModifierOffset: -4
 ConstructorInitializerIndentWidth: 8
 AlignAfterOpenBracket: AlwaysBreak
+AllowAllParametersOfDeclarationOnNextLine: false
