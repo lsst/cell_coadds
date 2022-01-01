@@ -30,7 +30,7 @@ from lsst.geom import Box2I
 
 from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes, ViewImagePlanes
-from ._stitched_image_planes import StitchedImagePlanes
+from ._stitched_image_planes import StitchedImagePlanes, StitchedSingleImagePlane
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
@@ -53,7 +53,10 @@ class ExplodedCoadd(StitchedImagePlanes):
     """
 
     def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: Optional[float] = None):
-        super().__init__()
+        super().__init__(
+            mask_fraction_names=cell_coadd.mask_fraction_names,
+            n_noise_realizations=cell_coadd.n_noise_realizations,
+        )
         self._grid = UniformGrid(cell_coadd.outer_cell_size, cell_coadd.grid.shape)
         if pad_psfs_with is None:
             self._psf_grid = UniformGrid(cell_coadd.psf_image_size, cell_coadd.grid.shape)
@@ -134,3 +137,21 @@ class ExplodedCoadd(StitchedImagePlanes):
                 ] = cell.psf_image.array
             self._psf_image = stitched_psf_image
         return self._psf_image
+
+    def uncache_psf_image(self) -> None:
+        """Remove any cached `psf_image` plane."""
+        self._psf_image = None
+
+    def get_psf_image(self) -> ImageF:
+        return self.psf_image
+
+    def __iter__(self) -> Iterator[StitchedSingleImagePlane]:
+        yield from super().__iter__()
+        yield StitchedSingleImagePlane(
+            name="psf",
+            description="grid of PSF model images",
+            image_type=ImageF,
+            get=self.get_psf_image,
+            uncache=self.uncache_psf_image,
+            grid=self.psf_grid,
+        )

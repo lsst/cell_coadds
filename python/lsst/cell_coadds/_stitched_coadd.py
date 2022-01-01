@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
+from typing import TYPE_CHECKING, Iterator, Optional
 
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
@@ -57,7 +57,10 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     """
 
     def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Optional[Box2I] = None):
-        super().__init__()
+        super().__init__(
+            mask_fraction_names=cell_coadd.mask_fraction_names,
+            n_noise_realizations=cell_coadd.n_noise_realizations,
+        )
         if bbox is None:
             bbox = cell_coadd.inner_bbox
         elif not cell_coadd.inner_bbox.contains(bbox):
@@ -89,16 +92,6 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # Docstring inherited.
         for cell in self._cell_coadd.cells:
             yield cell.inner
-
-    @property
-    def n_noise_realizations(self) -> int:
-        # Docstring inherited.
-        return self._cell_coadd.n_noise_realizations
-
-    @property
-    def mask_fraction_names(self) -> AbstractSet[str]:
-        # Docstring inherited.
-        return self._cell_coadd.mask_fraction_names
 
     @property
     def psf(self) -> StitchedPsf:

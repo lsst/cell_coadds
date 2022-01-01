@@ -52,3 +52,6 @@ class ImageLike(Protocol):
 
     def setXY0(self, xy0: Point2I) -> None:
         pass
+
+
+ImageLikeType = TypeVar("ImageLikeType", bound=ImageLike)

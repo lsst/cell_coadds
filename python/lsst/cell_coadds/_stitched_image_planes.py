@@ -23,16 +23,15 @@ from __future__ import annotations
 
 __all__ = ("StitchedImagePlanes",)
 
+import dataclasses
 from abc import abstractmethod
-from typing import AbstractSet, Callable, Iterator, Mapping, Optional, Sequence, TypeVar
+from typing import AbstractSet, Callable, Dict, Iterable, Iterator, List, Optional, Type, cast
 
 from lsst.afw.image import ImageF, Mask
 
 from . import typing_helpers
 from ._cell_coadds import UniformGrid
-from ._image_planes import ImagePlanes
-
-_T = TypeVar("_T", bound=typing_helpers.ImageLike)
+from ._image_planes import ImagePlanes, SingleImagePlane
 
 
 class StitchedImagePlanes(ImagePlanes):
@@ -51,12 +50,12 @@ class StitchedImagePlanes(ImagePlanes):
     planes that may never be accessed.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, mask_fraction_names: Iterable[str], n_noise_realizations: int) -> None:
         self._image: Optional[ImageF] = None
         self._mask: Optional[Mask] = None
         self._variance: Optional[ImageF] = None
-        self._mask_fractions: Optional[Mapping[str, ImageF]] = None
-        self._noise_realizations: Optional[Sequence[ImageF]] = None
+        self._mask_fractions: Dict[str, Optional[ImageF]] = dict.fromkeys(mask_fraction_names)
+        self._noise_realizations: List[Optional[ImageF]] = [None] * n_noise_realizations
 
     @property
     @abstractmethod
@@ -69,90 +68,75 @@ class StitchedImagePlanes(ImagePlanes):
         raise NotImplementedError()
 
     @property
-    @abstractmethod
-    def n_noise_realizations(self) -> int:
-        """The number of noise realizations cells are guaranteed to have."""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def mask_fraction_names(self) -> AbstractSet[str]:
-        """The names of all mask planes whose fractions were propagated in any
-        cell.
-
-        Cells that do not have a mask fraction for a particular name may be
-        assumed to have the fraction for that mask plane uniformly zero.
-        """
-        raise NotImplementedError()
-
-    @property
     def image(self) -> ImageF:
         # Docstring inherited.
         if self._image is None:
-            self._image = self._make_plane(ImageF(self.bbox), lambda planes: planes.image)
+            self._image = self._stitch_plane(ImageF(self.bbox), ImagePlanes.get_image)
         return self._image
 
     def uncache_image(self) -> None:
-        """Remove any cached `image` plane."""
+        # Docstring inherited.
         self._image = None
 
     @property
     def mask(self) -> Mask:
         # Docstring inherited.
         if self._mask is None:
-            self._mask = self._make_plane(Mask(self.bbox), lambda planes: planes.mask)
+            self._mask = self._stitch_plane(Mask(self.bbox), ImagePlanes.get_mask)
         return self._mask
 
     def uncache_mask(self) -> None:
-        """Remove any cached `mask` plane."""
+        # Docstring inherited.
         self._mask = None
 
     @property
     def variance(self) -> ImageF:
         # Docstring inherited.
         if self._variance is None:
-            self._variance = self._make_plane(ImageF(self.bbox), lambda planes: planes.variance)
+            self._variance = self._stitch_plane(ImageF(self.bbox), ImagePlanes.get_variance)
         return self._variance
 
     def uncache_variance(self) -> None:
-        """Remove any cached `variance` plane."""
+        # Docstring inherited.
         self._variance = None
 
     @property
-    def mask_fractions(self) -> ImageF:
+    def mask_fraction_names(self) -> AbstractSet[str]:
         # Docstring inherited.
-        if self._mask_fractions is None:
-            # Could make this lazier with a custom Mapping class (only stitch a
-            # mask fraction plane if that plane is requested), but not clear
-            # it's worth the effort.
-            self._mask_fractions = {
-                name: self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions.get(name))
-                for name in self.mask_fraction_names
-            }
-        return self._mask_fractions
+        return self._mask_fractions.keys()
 
-    def uncache_mask_fraction(self) -> None:
-        """Remove any cached `mask_fraction` planes."""
-        self._mask_fractions = None
+    def get_mask_fraction(self, name: str) -> ImageF:
+        # Docstring inherited.
+        if (result := self._mask_fractions[name]) is None:
+            result = self._stitch_plane(ImageF(self.bbox), ImagePlanes.mask_fraction_getter(name))
+            self._mask_fractions[name] = result
+        return result
+
+    def uncache_mask_fraction(self, name: str) -> None:
+        # Docstring inherited.
+        self._mask_fractions[name] = None
 
     @property
-    def noise_realizations(self) -> Sequence[ImageF]:
+    def n_noise_realizations(self) -> int:
         # Docstring inherited.
-        if self._noise_realizations is None:
-            # Could make this lazier with a custom Sequence class (only stitch
-            # a noise plane if that plane is requested), but not clear it's
-            # worth the effort.
-            self._noise_realizations = tuple(
-                self._make_plane(ImageF(self.bbox), lambda planes: planes.noise_realizations[i])
-                for i in range(self.n_noise_realizations)
-            )
-        return self._noise_realizations
+        return len(self._noise_realizations)
 
-    def uncache_noise_realizations(self) -> None:
-        """Remove any cached `noise_realization` planes."""
-        self._noise_realizations = None
+    def get_noise_realization(self, index: int) -> ImageF:
+        # Docstring inherited.
+        if (result := self._noise_realizations[index]) is None:
+            result = self._stitch_plane(ImageF(self.bbox), ImagePlanes.noise_realization_getter(index))
+            self._noise_realizations[index] = result
+        return result
 
-    def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], Optional[_T]]) -> _T:
+    def uncache_noise_realization(self, index: int) -> None:
+        # Docstring inherited.
+        self._noise_realizations[index] = None
+
+    def _stitch_plane(
+        self,
+        result: typing_helpers.ImageLikeType,
+        getter: Callable[[ImagePlanes], Optional[typing_helpers.ImageLikeType]],
+    ) -> typing_helpers.ImageLikeType:
         """Stitch together a single image plane.
 
         Parameters
@@ -163,7 +147,7 @@ class StitchedImagePlanes(ImagePlanes):
         getter : `Callable`
             Callable that obtains the appropriate image-like object to assign
             a subimage from, given an `ImagePlanes` instance from a cell inner
-            region.
+            region.  May return `None` to represent a zero subimage.
 
         Returns
         -------
@@ -184,3 +168,28 @@ class StitchedImagePlanes(ImagePlanes):
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         """Iterate over all cell image planes."""
         raise NotImplementedError()
+
+    def _make_single_plane(
+        self,
+        name: str,
+        description: str,
+        image_type: Type[typing_helpers.ImageLikeType],
+        get: Callable[[], typing_helpers.ImageLikeType],
+        uncache: Callable[[], None],
+    ) -> StitchedSingleImagePlane[typing_helpers.ImageLikeType]:
+        return StitchedSingleImagePlane(
+            name=name,
+            description=description,
+            image_type=image_type,
+            get=get,
+            uncache=uncache,
+            grid=self.grid,
+        )
+
+    def __iter__(self) -> Iterator[StitchedSingleImagePlane]:
+        yield from cast(Iterator[StitchedSingleImagePlane], super().__iter__())
+
+
+@dataclasses.dataclass(frozen=True, eq=False)
+class StitchedSingleImagePlane(SingleImagePlane[typing_helpers.ImageLikeType]):
+    grid: UniformGrid
