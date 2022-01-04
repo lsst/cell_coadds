@@ -30,7 +30,7 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from lsst.skymap import CellInfo, Index2D, PatchInfo
 
@@ -119,6 +119,10 @@ class PatchIdentifiers:
     """Identifiers for the patch itself.
     """
 
+    band: Optional[str]
+    """Name of the band, if any.
+    """
+
     @classmethod
     def from_data_id(cls, data_id: DataCoordinate) -> PatchIdentifiers:
         """Construct from a data ID.
@@ -126,7 +130,8 @@ class PatchIdentifiers:
         Parameters
         ----------
         data_id : `lsst.daf.butler.DataCoordinate`
-            Fully-expanded data ID that includes the 'patch' dimension.
+            Fully-expanded data ID that includes the 'patch' dimension and
+            optionally the `band` dimension.
 
         Returns
         -------
@@ -139,6 +144,7 @@ class PatchIdentifiers:
             skymap=data_id["skymap"],  # type: ignore
             tract=data_id["tract"],  # type: ignore
             patch=GridIdentifiers.from_data_id(data_id),
+            band=data_id.get("band"),
         )
 
 
