@@ -75,9 +75,14 @@ public:
     Index index(geom::Point2I const& position) const;
 
     /**
+     * Return the minimum point of a single cell's bounding box.
+     */
+    geom::Point2I min_of(Index const& index) const;
+
+    /**
      * Return the bounding box of a single cell.
      */
-    geom::Box2I bbox_of(Index const& index) const;
+    geom::Box2I bbox_of(Index const& index) const { return geom::Box2I(min_of(index), _cell_size); }
 
     /**
      * Return the bounding box of the full grid.

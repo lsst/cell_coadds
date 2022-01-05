@@ -81,11 +81,9 @@ UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     return result;
 }
 
-geom::Box2I UniformGrid::bbox_of(Index const& index) const {
-    return geom::Box2I(
-        geom::Point2I(
-            index.x * _cell_size.getX() + _bbox.getBeginX(), index.y * _cell_size.getY() + _bbox.getBeginY()),
-        _cell_size);
+geom::Point2I UniformGrid::min_of(Index const& index) const {
+    return geom::Point2I(
+        index.x * _cell_size.getX() + _bbox.getBeginX(), index.y * _cell_size.getY() + _bbox.getBeginY());
 }
 
 }  // namespace cell_coadds
