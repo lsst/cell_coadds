@@ -99,7 +99,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         elif not max_inner_bbox.contains(inner_bbox):
             raise ValueError(
                 f"Requested inner bounding box {inner_bbox} is not fully covered by these "
-                f"cells (bbox is {max_inner_bbox}."
+                f"cells (bbox is {max_inner_bbox})."
             )
         self._inner_bbox = inner_bbox
 
