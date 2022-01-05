@@ -394,6 +394,26 @@ class OwnedImagePlanes(ImagePlanes):
         self._mask_fractions = dict(mask_fractions)
         self._noise_realizations = list(noise_realizations)
 
+    @classmethod
+    def make_copy_of(cls, other: ImagePlanes, *, deep: bool = False) -> OwnedImagePlanes:
+        if deep:
+
+            def factory(image: typing_helpers.ImageLikeType) -> typing_helpers.ImageLikeType:
+                return image.clone(deep=True)
+
+        else:
+
+            def factory(image: typing_helpers.ImageLikeType) -> typing_helpers.ImageLikeType:
+                return image
+
+        return cls(
+            image=factory(other.image),
+            mask=factory(other.mask),
+            variance=factory(other.variance),
+            mask_fractions={k: factory(v) for k, v in other.mask_fractions.items()},
+            noise_realizations=[factory(v) for v in other.noise_realizations],
+        )
+
     @property
     def bbox(self) -> Box2I:
         # Docstring inherited.
