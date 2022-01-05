@@ -32,6 +32,8 @@ __all__ = (
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union
 
+import numpy as np
+from lsst.afw.table import BaseRecord, Schema
 from lsst.skymap import CellInfo, Index2D, PatchInfo
 
 if TYPE_CHECKING:
@@ -102,6 +104,28 @@ class GridIdentifiers:
         """
         return cls(sequential=info.sequential_index, x=info.index.x, y=info.index.y)
 
+    @classmethod
+    def make_schema(cls, schema: Optional[Schema] = None) -> Schema:
+        if schema is None:
+            schema = Schema()
+        schema.addField("index.sequential", type=np.int64, doc="Sequential grid index.")
+        schema.addField("index.x", type=np.int64, doc="X-coordinate grid index.")
+        schema.addField("index.y", type=np.int64, doc="y-coordinate grid index.")
+        return schema
+
+    def write_to_record(self, record: BaseRecord) -> None:
+        record["index.sequential"] = self.sequential
+        record["index.x"] = self.x
+        record["index.y"] = self.y
+
+    @classmethod
+    def read_from_record(cls, record: BaseRecord) -> GridIdentifiers:
+        return cls(
+            sequential=record["index.sequential"],
+            x=record["index.x"],
+            y=record["index.y"],
+        )
+
 
 @dataclass(frozen=True)
 class PatchIdentifiers:
@@ -156,7 +180,7 @@ class CellIdentifiers(PatchIdentifiers):
     """Identifiers for the cell itself."""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class ObservationIdentifiers:
     """Struct of identifiers for an observation that contributed to a coadd
     cell."""
@@ -206,3 +230,19 @@ class ObservationIdentifiers:
             visit=data_id["visit"],  # type: ignore
             detector=data_id["detector"],  # type: ignore
         )
+
+    @classmethod
+    def make_schema(cls, schema: Optional[Schema] = None, instrument_len: int = 16) -> Schema:
+        if schema is None:
+            schema = Schema()
+        schema.addField("instrument", type=str, size=instrument_len, doc="Name of the instrument.")
+        schema.addField("packed", type=np.int64, doc="Packed combination of visit and detector.")
+        schema.addField("visit", type=np.int64, doc="ID for the visit.")
+        schema.addField("detector", type=np.int64, doc="ID for the detector.")
+        return schema
+
+    def write_to_record(self, record: BaseRecord) -> None:
+        record["instrument"] = self.instrument
+        record["packed"] = self.packed
+        record["visit"] = self.visit
+        record["detector"] = self.detector
