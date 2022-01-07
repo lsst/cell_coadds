@@ -59,6 +59,11 @@ class UniformGridTestCase(unittest.TestCase):
         self.assertEqual(index, (3, 3))
         self.assertIsInstance(index, Index2D)
 
+    def test_repr(self):
+        """Test that UniformGrid.__repr__ round-trips through eval."""
+        grid = UniformGrid(self.bbox, self.cell_size)
+        self.assertEqual(eval(repr(grid)), grid, msg=repr(grid))
+
 
 if __name__ == "__main__":
     unittest.main()

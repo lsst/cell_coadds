@@ -42,6 +42,9 @@ void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
             "shape"_a,
             "min"_a = geom::Point2I());
         cls.def("__eq__", &UniformGrid::operator==, py::is_operator());
+        cls.def("__repr__", [](UniformGrid const& self) -> py::str {
+            return py::str("UniformGrid(bbox={!r}, shape={!r})").format(self.get_bbox(), self.get_shape());
+        });
         cls.def("index", &UniformGrid::index, "position"_a);
         cls.def("min_of", &UniformGrid::min_of, "index"_a);
         cls.def("bbox_of", &UniformGrid::bbox_of, "index"_a);
