@@ -34,9 +34,9 @@ class UniformGridTestCase(unittest.TestCase):
     translation."""
 
     def setUp(self) -> None:
-        self.bbox = Box2I(Point2I(1, 2), Extent2I(15, 12))
-        self.cell_size = Extent2I(3, 2)
-        self.shape = (5, 6)
+        self.bbox = Box2I(Point2I(x=1, y=2), Extent2I(x=15, y=12))
+        self.cell_size = Extent2I(x=3, y=2)
+        self.shape = Index2D(x=5, y=6)
 
     def test_ctor_bbox_cell_size(self) -> None:
         """Test UniformGrid after construction with (bbox, cell_size)."""
@@ -55,9 +55,9 @@ class UniformGridTestCase(unittest.TestCase):
         self.assertEqual(grid.cell_size, self.cell_size)
         self.assertEqual(grid.shape, self.shape)
         self.assertIsInstance(grid.shape, Index2D)
-        self.assertEqual(grid.bbox_of((3, 4)), Box2I(Point2I(10, 10), self.cell_size))
-        index = grid.index(Point2I(11, 9))
-        self.assertEqual(index, (3, 3))
+        self.assertEqual(grid.bbox_of(Index2D(x=3, y=4)), Box2I(Point2I(x=10, y=10), self.cell_size))
+        index = grid.index(Point2I(x=11, y=9))
+        self.assertEqual(index, Index2D(x=3, y=3))
         self.assertIsInstance(index, Index2D)
 
     def test_index(self):
@@ -70,22 +70,37 @@ class UniformGridTestCase(unittest.TestCase):
         self.assertEqual(grid.index(Point2I(x=10, y=5)), Index2D(x=3, y=1))
         self.assertEqual(grid.index(Point2I(x=10, y=6)), Index2D(x=3, y=2))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMin() - Extent2I(0, 1))
+            grid.index(self.bbox.getMin() - Extent2I(x=0, y=1))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMin() - Extent2I(1, 0))
+            grid.index(self.bbox.getMin() - Extent2I(x=1, y=0))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMin() - Extent2I(1, 1))
+            grid.index(self.bbox.getMin() - Extent2I(x=1, y=1))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMax() + Extent2I(0, 1))
+            grid.index(self.bbox.getMax() + Extent2I(x=0, y=1))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMax() + Extent2I(1, 0))
+            grid.index(self.bbox.getMax() + Extent2I(x=1, y=0))
         with self.assertRaises(LengthError):
-            grid.index(self.bbox.getMax() + Extent2I(1, 1))
+            grid.index(self.bbox.getMax() + Extent2I(x=1, y=1))
 
     def test_repr(self):
         """Test that UniformGrid.__repr__ round-trips through eval."""
         grid = UniformGrid(self.bbox, self.cell_size)
         self.assertEqual(eval(repr(grid)), grid, msg=repr(grid))
+
+    def test_index_overloads(self):
+        """Test methods that accept either a single (x, y) object argument or
+        kw-only x and y args.
+        """
+        grid = UniformGrid(self.bbox, self.cell_size)
+        self.assertEqual(grid.index(Point2I(x=9, y=5)), grid.index(x=9, y=5))
+        self.assertEqual(grid.min_of(Index2D(x=1, y=3)), grid.min_of(x=1, y=3))
+        self.assertEqual(grid.bbox_of(Index2D(x=1, y=3)), grid.bbox_of(x=1, y=3))
+        with self.assertRaises(TypeError):
+            grid.index(9, 5)
+        with self.assertRaises(TypeError):
+            grid.min_of(1, 3)
+        with self.assertRaises(TypeError):
+            grid.bbox_of(1, 3)
 
 
 if __name__ == "__main__":

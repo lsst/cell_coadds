@@ -39,12 +39,13 @@ class GridContainerTestCase(unittest.TestCase):
         """
         for y in range(builder.offset.y, builder.offset.y + builder.shape.y):
             for x in range(builder.offset.x, builder.offset.x + builder.shape.x):
-                builder[x, y] = {"x": x, "y": y}
+                builder.set(x=x, y=y, value={"x": x, "y": y})
 
     def _check(self, container: GridContainer[Dict[str, int]]) -> None:
         """Perform a complete battery of tests on a GridContainer instance."""
         for value in container:
-            self.assertEqual(container[value["x"], value["y"]], value)
+            self.assertEqual(container.get(x=value["x"], y=value["y"]), value)
+            self.assertEqual(container.get(Index2D(x=value["x"], y=value["y"])), value)
             self.assertEqual(container[Index2D(**value)], value)
         self.assertEqual(container.first, {"x": container.offset.x, "y": container.offset.y})
         self.assertEqual(
@@ -86,11 +87,11 @@ class GridContainerTestCase(unittest.TestCase):
     def test_simple_ctor(self):
         """Test a GridContainer built with the shape-only builder
         constructor."""
-        shape = (3, 2)
+        shape = Index2D(x=3, y=2)
         builder: GridContainerBuilder[Dict[str, int]] = GridContainerBuilder(shape)
         self.assertEqual(builder.shape, shape)
         self.assertIsInstance(builder.shape, Index2D)
-        self.assertEqual(builder.offset, (0, 0))
+        self.assertEqual(builder.offset, Index2D(x=0, y=0))
         self.assertIsInstance(builder.offset, Index2D)
         self.assertEqual(len(builder), shape[0] * shape[1])
         with self.assertRaises(Exception):
@@ -101,8 +102,8 @@ class GridContainerTestCase(unittest.TestCase):
     def test_complex_ctor(self):
         """Test a GridContainer built with the shape-and-offset builder
         constructor."""
-        shape = (3, 2)
-        offset = (1, 2)
+        shape = Index2D(x=3, y=2)
+        offset = Index2D(x=1, y=2)
         builder: GridContainerBuilder[Dict[str, int]] = GridContainerBuilder(shape, offset)
         self.assertEqual(builder.shape, shape)
         self.assertIsInstance(builder.shape, Index2D)

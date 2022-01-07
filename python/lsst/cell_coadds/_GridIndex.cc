@@ -30,31 +30,45 @@ using namespace pybind11::literals;
 namespace pybind11 {
 namespace detail {
 
+// Return the type object for lsst.skymap.Index2D.
+//
+// This caches the result in a static variable on first use.
+static PyObject* get_Index2D_type() {
+    static PyObject* result = nullptr;
+    if (!result) {
+        // Attempt to import that type object.
+        PyObject* module = PyImport_ImportModule("lsst.skymap");
+        if (!module) {
+            throw error_already_set();
+        }
+        result = PyObject_GetAttrString(module, "Index2D");
+        if (!result) {
+            throw error_already_set();
+        }
+    }
+    return result;
+}
+
 bool type_caster<lsst::cell_coadds::GridIndex>::load(handle src, bool) {
-    if (PyArg_ParseTuple(src.ptr(), "ii", &value.x, &value.y)) {
-        return true;
-    } else {
+    int isinstance = PyObject_IsInstance(src.ptr(), get_Index2D_type());
+    if (isinstance < 0) {
         PyErr_Clear();
+        return false;
+    } else if (isinstance > 0) {
+        if (PyArg_ParseTuple(src.ptr(), "ii", &value.x, &value.y)) {
+            return true;
+        } else {
+            PyErr_Clear();
+            return false;
+        }
+    } else {
         return false;
     }
 };
 
 handle type_caster<lsst::cell_coadds::GridIndex>::cast(
     lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */) {
-    // Static variable to hold the named tuple's type object.
-    static PyObject* py_type = nullptr;
-    if (!py_type) {
-        // Attempt to import that type object.
-        PyObject* module = PyImport_ImportModule("lsst.skymap");
-        if (!module) {
-            throw error_already_set();
-        }
-        py_type = PyObject_GetAttrString(module, "Index2D");
-        if (!py_type) {
-            throw error_already_set();
-        }
-    }
-    return PyObject_CallFunction(py_type, "ii", src.x, src.y);
+    return PyObject_CallFunction(get_Index2D_type(), "ii", src.x, src.y);
 }
 
 }  // namespace detail

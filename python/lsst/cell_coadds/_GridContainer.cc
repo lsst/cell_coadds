@@ -68,6 +68,25 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
                 "offset", &GridContainerBuilder<py::object>::get_offset, py::return_value_policy::copy);
             cls.def("__len__", &GridContainerBuilder<py::object>::size);
             cls.def(
+                "set",
+                [](GridContainerBuilder<py::object>& self, int x, int y, py::object value) {
+                    GridIndex index{x, y};
+                    check_index(index, self);
+                    return self.set(index, std::move(value));
+                },
+                py::kw_only(),
+                "x"_a,
+                "y"_a,
+                "value"_a);
+            cls.def(
+                "set",
+                [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
+                    check_index(index, self);
+                    self.set(index, std::move(value));
+                },
+                "index"_a,
+                "value"_a);
+            cls.def(
                 "__setitem__",
                 [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
                     check_index(index, self);
@@ -85,6 +104,23 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def("__len__", &GridContainer<py::object>::size);
             cls.def_property_readonly("first", &GridContainer<py::object>::get_first);
             cls.def_property_readonly("last", &GridContainer<py::object>::get_last);
+            cls.def(
+                "get",
+                [](GridContainer<py::object> const& self, int x, int y) -> py::object {
+                    GridIndex index{x, y};
+                    check_index(index, self);
+                    return self[index];
+                },
+                py::kw_only(),
+                "x"_a,
+                "y"_a);
+            cls.def(
+                "get",
+                [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
+                    check_index(index, self);
+                    return self[index];
+                },
+                "index"_a);
             cls.def(
                 "__getitem__",
                 [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
