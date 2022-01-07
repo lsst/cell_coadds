@@ -75,13 +75,13 @@ bool UniformGrid::operator==(UniformGrid const& other) const {
 }
 
 UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
-    geom::Extent2I offset = position - _bbox.getBegin();
-    Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
-    if (result.x < 0 || result.x >= _shape.x) {
+    if (!_bbox.contains(position)) {
         throw LSST_EXCEPT(
             pex::exceptions::LengthError,
             (boost::format("Position %s is not within bounding box %s.") % position % _bbox).str());
     }
+    geom::Extent2I offset = position - _bbox.getBegin();
+    Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
     return result;
 }
 

@@ -25,6 +25,7 @@ import unittest
 
 from lsst.cell_coadds import UniformGrid
 from lsst.geom import Box2I, Extent2I, Point2I
+from lsst.pex.exceptions import LengthError
 from lsst.skymap import Index2D
 
 
@@ -58,6 +59,28 @@ class UniformGridTestCase(unittest.TestCase):
         index = grid.index(Point2I(11, 9))
         self.assertEqual(index, (3, 3))
         self.assertIsInstance(index, Index2D)
+
+    def test_index(self):
+        """Test various inputs to UniformGrid.index."""
+        grid = UniformGrid(self.bbox, self.cell_size)
+        self.assertEqual(grid.index(self.bbox.getMin()), Index2D(x=0, y=0))
+        self.assertEqual(grid.index(self.bbox.getMax()), Index2D(x=4, y=5))
+        self.assertEqual(grid.index(Point2I(x=9, y=5)), Index2D(x=2, y=1))
+        self.assertEqual(grid.index(Point2I(x=9, y=6)), Index2D(x=2, y=2))
+        self.assertEqual(grid.index(Point2I(x=10, y=5)), Index2D(x=3, y=1))
+        self.assertEqual(grid.index(Point2I(x=10, y=6)), Index2D(x=3, y=2))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMin() - Extent2I(0, 1))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMin() - Extent2I(1, 0))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMin() - Extent2I(1, 1))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMax() + Extent2I(0, 1))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMax() + Extent2I(1, 0))
+        with self.assertRaises(LengthError):
+            grid.index(self.bbox.getMax() + Extent2I(1, 1))
 
     def test_repr(self):
         """Test that UniformGrid.__repr__ round-trips through eval."""
