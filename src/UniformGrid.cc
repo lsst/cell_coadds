@@ -70,6 +70,10 @@ UniformGrid::UniformGrid(geom::Extent2I const& cell_size, Index const& shape, ge
           _cell_size(cell_size),
           _shape(shape) {}
 
+bool UniformGrid::operator==(UniformGrid const& other) const {
+    return _bbox == other._bbox && _shape == other._shape;
+}
+
 UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
     geom::Extent2I offset = position - _bbox.getBegin();
     Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};

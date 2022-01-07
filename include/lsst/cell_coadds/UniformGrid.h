@@ -69,6 +69,14 @@ public:
     UniformGrid(
         geom::Extent2I const& cell_size, Index const& shape, geom::Point2I const& min = geom::Point2I());
 
+    //@{
+    /**
+     * Equality comparison.
+     */
+    bool operator==(UniformGrid const& other) const;
+    bool operator!=(UniformGrid const& other) const { return !(*this == other); }
+    //@}
+
     /**
      * Find the index of the cell that contains the given point.
      */
