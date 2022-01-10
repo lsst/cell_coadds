@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "lsst/cell_coadds/GridIndex.h"
+#include "lsst/pex/exceptions.h"
 #include "lsst/geom/Box.h"
 
 namespace lsst {
@@ -67,6 +68,20 @@ protected:
     // Flatten a 2-d index into a 1-d index.  All derived classes should go
     // through this method to map their 2-d grid to an underlying container.
     std::size_t _flatten_index(Index const& index) const {
+        if (index.x < get_offset().x || (index.x - get_offset().x) >= get_shape().x) {
+            throw LSST_EXCEPT(
+                pex::exceptions::LengthError,
+                (boost::format("x index %s out of range; expected a value between %s and %s") % index.x %
+                 get_offset().x % (get_shape().x + get_offset().x - 1))
+                    .str());
+        }
+        if (index.y < get_offset().y || (index.y - get_offset().y) >= get_shape().y) {
+            throw LSST_EXCEPT(
+                pex::exceptions::LengthError,
+                (boost::format("y index %s out of range; expected a value between %s and %s") % index.y %
+                 get_offset().y % (get_shape().y + get_offset().y - 1))
+                    .str());
+        }
         return (index.x - _offset.x) + (index.y - _offset.y) * _shape.x;
     }
 

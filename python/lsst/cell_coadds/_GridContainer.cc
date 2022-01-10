@@ -37,25 +37,6 @@ using namespace pybind11::literals;
 namespace lsst {
 namespace cell_coadds {
 
-namespace {
-
-void check_index(GridIndex const& index, _GridContainerCommon const& container) {
-    if (index.x < container.get_offset().x ||
-        (index.x - container.get_offset().x) >= container.get_shape().x) {
-        throw py::index_error((boost::format("x index %s out of range; expected a value between %s and %s") %
-                               index.x % container.get_offset().x % container.get_shape().x)
-                                  .str());
-    }
-    if (index.y < container.get_offset().y ||
-        (index.y - container.get_offset().y) >= container.get_shape().y) {
-        throw py::index_error((boost::format("x index %s out of range; expected a value between %s and %s") %
-                               index.y % container.get_offset().y % container.get_shape().y)
-                                  .str());
-    }
-}
-
-}  // namespace
-
 void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
     wrappers.wrapType(
         py::class_<GridContainerBuilder<py::object>>(wrappers.module, "GridContainerBuilder"),
@@ -71,7 +52,6 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
                 "set",
                 [](GridContainerBuilder<py::object>& self, int x, int y, py::object value) {
                     GridIndex index{x, y};
-                    check_index(index, self);
                     return self.set(index, std::move(value));
                 },
                 py::kw_only(),
@@ -81,7 +61,6 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def(
                 "set",
                 [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
-                    check_index(index, self);
                     self.set(index, std::move(value));
                 },
                 "index"_a,
@@ -89,7 +68,6 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def(
                 "__setitem__",
                 [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
-                    check_index(index, self);
                     self.set(index, std::move(value));
                 });
             cls.def("finish", [](GridContainerBuilder<py::object> self) { return std::move(self).finish(); });
@@ -107,9 +85,7 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def(
                 "get",
                 [](GridContainer<py::object> const& self, int x, int y) -> py::object {
-                    GridIndex index{x, y};
-                    check_index(index, self);
-                    return self[index];
+                    return self[GridIndex{x, y}];
                 },
                 py::kw_only(),
                 "x"_a,
@@ -117,14 +93,12 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def(
                 "get",
                 [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
-                    check_index(index, self);
                     return self[index];
                 },
                 "index"_a);
             cls.def(
                 "__getitem__",
                 [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
-                    check_index(index, self);
                     return self[index];
                 });
             cls.def("__iter__", [](GridContainer<py::object> const& self) {
