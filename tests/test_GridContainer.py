@@ -25,7 +25,9 @@ import copy
 import unittest
 from typing import Dict, List
 
-from lsst.cell_coadds import GridContainer, GridContainerBuilder
+from lsst.cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
+from lsst.geom import Box2I, Extent2I, Point2I
+from lsst.pex.exceptions import LengthError
 from lsst.skymap import Index2D
 
 
@@ -114,6 +116,51 @@ class GridContainerTestCase(unittest.TestCase):
             builder.finish()
         self._fill(builder)
         self._check(builder.finish())
+
+    def test_subset_overlapping(self):
+        """Test various inputs to GridContainer.subset_overlapping."""
+        cell_size = Extent2I(x=3, y=2)
+        full_bbox = Box2I(Point2I(x=1, y=2), Extent2I(x=15, y=12))
+        full_shape = Index2D(x=5, y=6)
+        full_builder: GridContainerBuilder[Dict[str, int]] = GridContainerBuilder(full_shape)
+        self._fill(full_builder)
+        full_container = full_builder.finish()
+        grid = UniformGrid(full_bbox, cell_size)
+        self.assertEqual(grid.shape, full_shape)
+        # Subset with the orignal bounding box; should behave like a copy.
+        subset_container_full = full_container.subset_overlapping(grid, full_bbox)
+        self.assertEqual(subset_container_full.shape, full_container.shape)
+        self.assertEqual(subset_container_full.offset, full_container.offset)
+        self.assertEqual(list(subset_container_full), list(full_container))
+        # Subset the full container with a nontrivial bbox.
+        bbox_1 = Box2I(Point2I(x=6, y=4), Point2I(x=10, y=7))
+        subset_container_1 = full_container.subset_overlapping(grid, bbox_1)
+        self.assertEqual(subset_container_1.offset, Index2D(x=1, y=1))
+        self.assertEqual(subset_container_1.shape, Index2D(x=3, y=2))
+        union_bbox_1 = Box2I()
+        for v in subset_container_1:
+            cell_bbox = grid.bbox_of(Index2D(**v))
+            self.assertTrue(cell_bbox.overlaps(bbox_1))
+            union_bbox_1.include(cell_bbox)
+        self.assertTrue(union_bbox_1.contains(bbox_1))
+        self._check(subset_container_1)
+        # Subset the subset container with an even smaller bbox, to check the
+        # case where the original offset is nonzero.
+        bbox_2 = Box2I(Point2I(x=6, y=5), Point2I(x=7, y=5))
+        subset_container_2 = subset_container_1.subset_overlapping(grid, bbox_2)
+        self.assertEqual(subset_container_2.offset, Index2D(x=1, y=1))
+        self.assertEqual(subset_container_2.shape, Index2D(x=2, y=1))
+        union_bbox_2 = Box2I()
+        for v in subset_container_2:
+            cell_bbox = grid.bbox_of(Index2D(**v))
+            self.assertTrue(cell_bbox.overlaps(bbox_1))
+            union_bbox_2.include(cell_bbox)
+        self.assertTrue(union_bbox_2.contains(bbox_2))
+        self._check(subset_container_2)
+        # Subsetting the container by a bbox that isn't contained by the cells
+        # is an error.
+        with self.assertRaises(LengthError):
+            subset_container_1.subset_overlapping(grid, full_bbox)
 
 
 if __name__ == "__main__":

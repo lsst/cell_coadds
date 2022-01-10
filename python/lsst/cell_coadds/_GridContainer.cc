@@ -108,6 +108,11 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def("rebuild_transformed", [](GridContainer<py::object> self, py::object callable) {
                 return std::move(self).rebuild_transformed(callable);
             });
+            cls.def(
+                "subset_overlapping",
+                [](GridContainer<py::object> const& self, UniformGrid const& grid, geom::Box2I const& bbox) {
+                    return self.subset_overlapping(grid, bbox);
+                });
             cls.def("__copy__", [](GridContainer<py::object> pass_by_value_copies) {
                 return pass_by_value_copies;
             });

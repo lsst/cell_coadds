@@ -30,6 +30,7 @@
 
 #include "lsst/cell_coadds/GridIndex.h"
 #include "lsst/pex/exceptions.h"
+#include "lsst/cell_coadds/UniformGrid.h"
 #include "lsst/geom/Box.h"
 
 namespace lsst {
@@ -253,6 +254,28 @@ public:
             builder._array.begin(),
             [func](T&& original) { return std::optional(func(std::move(original))); });
         return builder;
+    }
+
+    /**
+     * Return a new container with just the cells that overlap a bounding box.
+     *
+     * @param grid   Grid that maps the container's cells to the coordinates
+     *               used to define the bounding box.  May define a grid that
+     *               is a super of the container's cells.
+     * @param bbox   Bounding box that returned cells must overlap.
+     */
+    GridContainer subset_overlapping(UniformGrid const& grid, geom::Box2I const& bbox) const {
+        auto offset = grid.index(bbox.getBegin());
+        auto last = grid.index(bbox.getMax());
+        auto end = Index{last.x + 1, last.y + 1};
+        Index shape{end.x - offset.x, end.y - offset.y};
+        GridContainerBuilder<T> builder(shape, offset);
+        for (Index index = offset; index.y != end.y; ++index.y) {
+            for (index.x = offset.x; index.x != end.x; ++index.x) {
+                builder.set(index, (*this)[index]);
+            }
+        }
+        return std::move(builder).finish();
     }
 
 private:
