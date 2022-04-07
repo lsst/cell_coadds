@@ -24,8 +24,8 @@
 #ifndef LSST_CELL_COADDS_python_h
 #define LSST_CELL_COADDS_python_h
 
-#include "pybind11/pybind11.h"
 #include "lsst/cell_coadds/GridIndex.h"
+#include "pybind11/pybind11.h"
 
 namespace pybind11 {
 namespace detail {
@@ -42,8 +42,8 @@ struct type_caster<lsst::cell_coadds::GridIndex> {
 
 public:
     bool load(handle src, bool);
-    static handle cast(
-        lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */);
+    static handle
+    cast(lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */);
 };
 
 }  // namespace detail

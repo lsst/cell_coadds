@@ -50,7 +50,8 @@ public:
      *                 this PSF corresponds to.
      */
     StitchedPsf(
-        GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images, UniformGrid const& grid);
+        GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images,
+        UniformGrid const& grid);
 
     StitchedPsf(StitchedPsf const&) = default;
     StitchedPsf(StitchedPsf&&) = default;
@@ -63,7 +64,8 @@ public:
 
 protected:
     std::shared_ptr<afw::detection::Psf::Image> doComputeKernelImage(
-        geom::Point2D const& position, afw::image::Color const& color) const override;
+        geom::Point2D const& position,
+        afw::image::Color const& color) const override;
     geom::Box2I doComputeBBox(geom::Point2D const& position, afw::image::Color const& color) const override;
 
 private:

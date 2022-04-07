@@ -67,7 +67,9 @@ public:
      * @param min     Minimum x and y coordinates of the bounding box.
      */
     UniformGrid(
-        geom::Extent2I const& cell_size, Index const& shape, geom::Point2I const& min = geom::Point2I());
+        geom::Extent2I const& cell_size,
+        Index const& shape,
+        geom::Point2I const& min = geom::Point2I());
 
     //@{
     /**

@@ -29,9 +29,9 @@
 #include <vector>
 
 #include "lsst/cell_coadds/GridIndex.h"
-#include "lsst/pex/exceptions.h"
 #include "lsst/cell_coadds/UniformGrid.h"
 #include "lsst/geom/Box.h"
+#include "lsst/pex/exceptions.h"
 
 namespace lsst {
 namespace cell_coadds {
