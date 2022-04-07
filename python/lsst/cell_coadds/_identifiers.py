@@ -78,10 +78,12 @@ class GridIdentifiers:
         """
         # The cell_x, cell_y below do not refer to cell as it is used
         # throughout the rest of this package; it's a historical butler thing.
+        # The 'type: ignore' directives below are present because we require a
+        # a fully-expanded data ID, but this isn't embedded in the types.
         return cls(
-            sequential=data_id["patch"],
-            x=data_id.records["patch"].cell_x,
-            y=data_id.records["patch"].cell_y,
+            sequential=data_id["patch"],  # type: ignore
+            x=data_id.records["patch"].cell_x,  # type: ignore
+            y=data_id.records["patch"].cell_y,  # type: ignore
         )
 
     @classmethod
@@ -131,9 +133,11 @@ class PatchIdentifiers:
         identifiers : `PatchIdentifiers`
             Struct of identifiers for this patch.
         """
+        # The 'type: ignore' directives below are present because we require a
+        # a fully-expanded data ID, but this isn't embedded in the types.
         return cls(
-            skymap=data_id["skymap"],
-            tract=data_id["tract"],
+            skymap=data_id["skymap"],  # type: ignore
+            tract=data_id["tract"],  # type: ignore
             patch=GridIdentifiers.from_data_id(data_id),
         )
 
@@ -188,9 +192,11 @@ class ObservationIdentifiers:
         identifiers : `ObservationIdentifiers`
             Struct of identifiers for this observation.
         """
+        # The 'type: ignore' directives below are present because we require a
+        # a fully-expanded data ID, but this isn't embedded in the types.
         return cls(
-            instrument=data_id["instrument"],
-            packed=data_id.pack("visit_detector"),
-            visit=data_id["visit"],
-            detector=data_id["detector"],
+            instrument=data_id["instrument"],  # type: ignore
+            packed=data_id.pack("visit_detector"),  # type: ignore
+            visit=data_id["visit"],  # type: ignore
+            detector=data_id["detector"],  # type: ignore
         )
