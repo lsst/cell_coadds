@@ -102,9 +102,11 @@ class OwnedImagePlanes(ImagePlanes):
         image: ImageF,
         mask: Mask,
         variance: ImageF,
-        mask_fractions: ImageF,
+        mask_fractions: Optional[Mapping[str, ImageF]] = None,
         noise_realizations: Sequence[ImageF] = (),
     ):
+        if mask_fractions is None:
+            mask_fractions = {}
         self._image = image
         self._mask = mask
         self._variance = variance

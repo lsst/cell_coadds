@@ -32,41 +32,20 @@ namespace detail {
 
 /*
  *  Custom type-caster that translates the C++ GridIndex struct into the Python
- *  GridIndex named tuple (defined in _grid_index.py), and converts arbitrary
- *  Python 2-tuples into C++ GridIndex.  If we add a named tuple for cells to
- *  the skymap package, we can switch to using that here instead.
+ *  lsst.skymap.Index2D named tuple, and converts arbitrary Python 2-tuples
+ *  into C++ GridIndex.  If we add a named tuple for cells to the skymap
+ *  package, we can switch to using that here instead.
  */
 template <>
 struct type_caster<lsst::cell_coadds::GridIndex> {
-    PYBIND11_TYPE_CASTER(lsst::cell_coadds::GridIndex, _("GridIndex"));
+    PYBIND11_TYPE_CASTER(lsst::cell_coadds::GridIndex, _("Index2D"));
 
 public:
-    bool load(handle src, bool) {
-        if (PyArg_ParseTuple(src.ptr(), "ii", &value.x, &value.y)) {
-            return true;
-        } else {
-            PyErr_Clear();
-            return false;
-        }
-    };
-    static handle cast(
-        lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */) {
-        // Static variable to hold the named tuple's type object.
-        static PyObject* py_type = nullptr;
-        if (!py_type) {
-            // Attempt to import that type object.
-            PyObject* module = PyImport_ImportModule("lsst.skymap");
-            if (!module) {
-                throw error_already_set();
-            }
-            py_type = PyObject_GetAttrString(module, "Index2D");
-            if (!py_type) {
-                throw error_already_set();
-            }
-        }
-        return PyObject_CallFunction(py_type, "ii", src.x, src.y);
-    }
+    bool load(handle src, bool);
+    static handle
+    cast(lsst::cell_coadds::GridIndex src, return_value_policy /* policy */, handle /* parent */);
 };
+
 }  // namespace detail
 }  // namespace pybind11
 

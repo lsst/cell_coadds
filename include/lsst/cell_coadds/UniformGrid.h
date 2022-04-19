@@ -67,7 +67,17 @@ public:
      * @param min     Minimum x and y coordinates of the bounding box.
      */
     UniformGrid(
-        geom::Extent2I const& cell_size, Index const& shape, geom::Point2I const& min = geom::Point2I());
+        geom::Extent2I const& cell_size,
+        Index const& shape,
+        geom::Point2I const& min = geom::Point2I());
+
+    //@{
+    /**
+     * Equality comparison.
+     */
+    bool operator==(UniformGrid const& other) const;
+    bool operator!=(UniformGrid const& other) const { return !(*this == other); }
+    //@}
 
     /**
      * Find the index of the cell that contains the given point.
@@ -75,9 +85,14 @@ public:
     Index index(geom::Point2I const& position) const;
 
     /**
+     * Return the minimum point of a single cell's bounding box.
+     */
+    geom::Point2I min_of(Index const& index) const;
+
+    /**
      * Return the bounding box of a single cell.
      */
-    geom::Box2I bbox_of(Index const& index) const;
+    geom::Box2I bbox_of(Index const& index) const { return geom::Box2I(min_of(index), _cell_size); }
 
     /**
      * Return the bounding box of the full grid.

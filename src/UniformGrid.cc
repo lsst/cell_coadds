@@ -70,22 +70,24 @@ UniformGrid::UniformGrid(geom::Extent2I const& cell_size, Index const& shape, ge
           _cell_size(cell_size),
           _shape(shape) {}
 
+bool UniformGrid::operator==(UniformGrid const& other) const {
+    return _bbox == other._bbox && _shape == other._shape;
+}
+
 UniformGrid::Index UniformGrid::index(geom::Point2I const& position) const {
-    geom::Extent2I offset = position - _bbox.getBegin();
-    Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
-    if (result.x < 0 || result.x >= _shape.x) {
+    if (!_bbox.contains(position)) {
         throw LSST_EXCEPT(
             pex::exceptions::LengthError,
             (boost::format("Position %s is not within bounding box %s.") % position % _bbox).str());
     }
+    geom::Extent2I offset = position - _bbox.getBegin();
+    Index result = {offset.getX() / _cell_size.getX(), offset.getY() / _cell_size.getY()};
     return result;
 }
 
-geom::Box2I UniformGrid::bbox_of(Index const& index) const {
-    return geom::Box2I(
-        geom::Point2I(
-            index.x * _cell_size.getX() + _bbox.getBeginX(), index.y * _cell_size.getY() + _bbox.getBeginY()),
-        _cell_size);
+geom::Point2I UniformGrid::min_of(Index const& index) const {
+    return geom::Point2I(
+        index.x * _cell_size.getX() + _bbox.getBeginX(), index.y * _cell_size.getY() + _bbox.getBeginY());
 }
 
 }  // namespace cell_coadds

@@ -30,12 +30,15 @@ namespace cell_coadds {
 /**
  * A 2-d index or shape in a grid.
  *
- * This class is mapped to a (y, x) tuple in Python rather than being
- * wrapped directly.
+ * This class is mapped to the lsst.skymap.Index2D (x, y) namedtuple in Python
+ * rather than being wrapped directly.
  */
 struct GridIndex final {
     int x;
     int y;
+
+    bool operator==(GridIndex const& other) const { return x == other.x && y == other.y; }
+    bool operator!=(GridIndex const& other) const { return !(*this == other); }
 };
 
 }  // namespace cell_coadds

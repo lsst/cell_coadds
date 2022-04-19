@@ -105,7 +105,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         """The piecewise PSF of this image."""
         if self._psf is None:
             self._psf = StitchedPsf(
-                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image).finish(),
+                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()).finish(),
                 self._cell_coadd.grid,
             )
         return self._psf

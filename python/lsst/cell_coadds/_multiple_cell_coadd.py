@@ -23,11 +23,8 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-import enum
 from typing import AbstractSet, Iterable, Optional, Set
 
-from lsst.afw.fits import Fits
-from lsst.daf.base import PropertyList
 from lsst.geom import Box2I, Extent2I
 
 from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
@@ -35,13 +32,6 @@ from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
-
-
-class PersistenceLayout(enum.Enum):
-    EXPLODED = enum.auto()
-
-
-PERSISTENCE_VERSION = (0, 1, 0)
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
@@ -109,7 +99,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         elif not max_inner_bbox.contains(inner_bbox):
             raise ValueError(
                 f"Requested inner bounding box {inner_bbox} is not fully covered by these "
-                f"cells (bbox is {max_inner_bbox}."
+                f"cells (bbox is {max_inner_bbox})."
             )
         self._inner_bbox = inner_bbox
 
@@ -206,65 +196,3 @@ class MultipleCellCoadd(CommonComponentsProperties):
             Exploded version of the coadd.
         """
         return ExplodedCoadd(self, pad_psfs_with=pad_psfs_with)
-
-    def writeFits(self, filename: str, layout: PersistenceLayout) -> None:
-        # TODO: docs
-        primary_metadata = PropertyList()
-        primary_metadata.set("MCC_LAYT", layout.name, "Layout for how to save overlapping regions.")
-        primary_metadata.set(
-            "MCC_VERS",
-            ".".join(str(v) for v in PERSISTENCE_VERSION),
-            "Format version for persistence of multiple-cell coadds.",
-        )
-        if layout is PersistenceLayout.EXPLODED:
-            hdu = 2
-            primary_metadata.set("MCC_IMGX", hdu, "Index of HDU containing the main image (where primary=1).")
-            hdu += 1
-            primary_metadata.set("MCC_MSKX", hdu, "Index of HDU containing the mask.")
-            hdu += 1
-            primary_metadata.set("MCC_VARX", hdu, "Index of HDU containing the variance.")
-            hdu += 1
-            primary_metadata.set("MCC_PSFX", hdu, "Index of HDU containing PSF model images.")
-            hdu += 1
-            primary_metadata.set("MCC_GRDX", hdu, "Index of binary table HDU describing grid cells.")
-            hdu += 1
-            for n, name in enumerate(self.mask_fraction_names):
-                primary_metadata.set(f"MCC_MFX{n}", hdu, f"Index of HDU containing mask fraction image {n}.")
-                primary_metadata.set(f"MCC_MFN{n}", name, f"Name for mask fraction image {n}.")
-                hdu += 1
-            for n in range(self.n_noise_realizations):
-                primary_metadata.set(
-                    f"MCC_NRX{n}", hdu, f"Index of HDU containing noise realization image {n}."
-                )
-                hdu += 1
-        else:
-            raise NotImplementedError(f"Unrecognized persistence layout '{layout.name}'.")
-        # Hate to be using afw.fits.Fits, as it's horribly unsafe relative to
-        # most things we do in Python w.r.t. memory management, but the
-        # alternative is writing some C++ to do the same thing, and the only
-        # difference is that C++ code is expected to be able to deal with
-        # memory-unsafe interfaces.
-        fits = Fits(filename, "w", Fits.AUTO_CLOSE & Fits.AUTO_CHECK)
-        fits.createEmpty()
-        fits.writeMetadata(primary_metadata)
-        if layout is PersistenceLayout.EXPLODED:
-            hdu = 2
-            primary_metadata.set("MCC_IMGX", hdu, "Index of HDU containing the main image (where primary=1).")
-            hdu += 1
-            primary_metadata.set("MCC_MSKX", hdu, "Index of HDU containing the mask.")
-            hdu += 1
-            primary_metadata.set("MCC_VARX", hdu, "Index of HDU containing the variance.")
-            hdu += 1
-            primary_metadata.set("MCC_PSFX", hdu, "Index of HDU containing PSF model images.")
-            hdu += 1
-            primary_metadata.set("MCC_GRDX", hdu, "Index of binary table HDU describing grid cells.")
-            hdu += 1
-            for n, name in enumerate(self.mask_fraction_names):
-                primary_metadata.set(f"MCC_MFX{n}", hdu, f"Index of HDU containing mask fraction image {n}.")
-                primary_metadata.set(f"MCC_MFN{n}", name, f"Name for mask fraction image {n}.")
-                hdu += 1
-            for n in range(self.n_noise_realizations):
-                primary_metadata.set(
-                    f"MCC_NRX{n}", hdu, f"Index of HDU containing noise realization image {n}."
-                )
-                hdu += 1

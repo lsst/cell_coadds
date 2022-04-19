@@ -30,7 +30,8 @@ namespace lsst {
 namespace cell_coadds {
 
 StitchedPsf::StitchedPsf(
-    GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images, UniformGrid const& grid)
+    GridContainer<std::shared_ptr<afw::detection::Psf::Image>> const& images,
+    UniformGrid const& grid)
         : _images(images), _grid(grid) {}
 
 std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height) const {
@@ -63,7 +64,8 @@ std::shared_ptr<afw::detection::Psf> StitchedPsf::resized(int width, int height)
 }
 
 std::shared_ptr<afw::detection::Psf::Image> StitchedPsf::doComputeKernelImage(
-    geom::Point2D const& position, afw::image::Color const& color) const {
+    geom::Point2D const& position,
+    afw::image::Color const& color) const {
     return _images[_grid.index(geom::Point2I(position))];
 }
 

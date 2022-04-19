@@ -37,25 +37,6 @@ using namespace pybind11::literals;
 namespace lsst {
 namespace cell_coadds {
 
-namespace {
-
-void check_index(GridIndex const& index, _GridContainerCommon const& container) {
-    if (index.x < container.get_offset().x ||
-        (index.x - container.get_offset().x) >= container.get_shape().x) {
-        throw py::index_error((boost::format("x index %s out of range; expected a value between %s and %s") %
-                               index.x % container.get_offset().x % container.get_shape().x)
-                                  .str());
-    }
-    if (index.y < container.get_offset().y ||
-        (index.y - container.get_offset().y) >= container.get_shape().y) {
-        throw py::index_error((boost::format("x index %s out of range; expected a value between %s and %s") %
-                               index.y % container.get_offset().y % container.get_shape().y)
-                                  .str());
-    }
-}
-
-}  // namespace
-
 void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
     wrappers.wrapType(
         py::class_<GridContainerBuilder<py::object>>(wrappers.module, "GridContainerBuilder"),
@@ -68,9 +49,25 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
                 "offset", &GridContainerBuilder<py::object>::get_offset, py::return_value_policy::copy);
             cls.def("__len__", &GridContainerBuilder<py::object>::size);
             cls.def(
+                "set",
+                [](GridContainerBuilder<py::object>& self, int x, int y, py::object value) {
+                    GridIndex index{x, y};
+                    return self.set(index, std::move(value));
+                },
+                py::kw_only(),
+                "x"_a,
+                "y"_a,
+                "value"_a);
+            cls.def(
+                "set",
+                [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
+                    self.set(index, std::move(value));
+                },
+                "index"_a,
+                "value"_a);
+            cls.def(
                 "__setitem__",
                 [](GridContainerBuilder<py::object>& self, GridIndex const& index, py::object value) {
-                    check_index(index, self);
                     self.set(index, std::move(value));
                 });
             cls.def("finish", [](GridContainerBuilder<py::object> self) { return std::move(self).finish(); });
@@ -86,9 +83,22 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def_property_readonly("first", &GridContainer<py::object>::get_first);
             cls.def_property_readonly("last", &GridContainer<py::object>::get_last);
             cls.def(
+                "get",
+                [](GridContainer<py::object> const& self, int x, int y) -> py::object {
+                    return self[GridIndex{x, y}];
+                },
+                py::kw_only(),
+                "x"_a,
+                "y"_a);
+            cls.def(
+                "get",
+                [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
+                    return self[index];
+                },
+                "index"_a);
+            cls.def(
                 "__getitem__",
                 [](GridContainer<py::object> const& self, GridIndex const& index) -> py::object {
-                    check_index(index, self);
                     return self[index];
                 });
             cls.def("__iter__", [](GridContainer<py::object> const& self) {
@@ -98,6 +108,11 @@ void wrapGridContainer(utils::python::WrapperCollection& wrappers) {
             cls.def("rebuild_transformed", [](GridContainer<py::object> self, py::object callable) {
                 return std::move(self).rebuild_transformed(callable);
             });
+            cls.def(
+                "subset_overlapping",
+                [](GridContainer<py::object> const& self, UniformGrid const& grid, geom::Box2I const& bbox) {
+                    return self.subset_overlapping(grid, bbox);
+                });
             cls.def("__copy__", [](GridContainer<py::object> pass_by_value_copies) {
                 return pass_by_value_copies;
             });

@@ -25,7 +25,7 @@ __all__ = ("ExplodedCoadd",)
 
 from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
 
-from lsst.afw.image import ImageD
+from lsst.afw.image import ImageF
 from lsst.geom import Box2I
 
 from ._cell_coadds import UniformGrid
@@ -66,7 +66,7 @@ class ExplodedCoadd(StitchedImagePlanes):
             self._psf_grid = self._grid
         self._cell_coadd = cell_coadd
         self._pad_psfs_with = pad_psfs_with
-        self._psf_image: Optional[ImageD] = None
+        self._psf_image: Optional[ImageF] = None
 
     @property
     def bbox(self) -> Box2I:
@@ -115,10 +115,10 @@ class ExplodedCoadd(StitchedImagePlanes):
             yield ViewImagePlanes(cell.outer, _make_view, bbox=new_bbox)
 
     @property
-    def psf_image(self) -> ImageD:
+    def psf_image(self) -> ImageF:
         """A stitched-together image of the PSF models for each cell."""
         if self._psf_image is None:
-            stitched_psf_image = ImageD(self.psf_grid.bbox)
+            stitched_psf_image = ImageF(self.psf_grid.bbox)
             if self._pad_psfs_with is not None:
                 stitched_psf_image.set(self._pad_psfs_with)
             for cell in self._cell_coadd.cells:
