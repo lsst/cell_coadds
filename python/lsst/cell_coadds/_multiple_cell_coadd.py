@@ -172,10 +172,11 @@ class MultipleCellCoadd(CommonComponentsProperties):
             is called.
         """
         # In the future, stitching algorithms that apply ramps to smooth
-        # discontinuities may also be provided; we'd implement that by having
-        # this return different types (from a common ABC), perhaps dispatched
-        # by an enum.
-        return StitchedCoadd(self, bbox=bbox)
+        # discontinuities may also be provided; we'd might implement that by
+        # having this return different types (from a common ABC), perhaps
+        # dispatched by an enum, so this is a more future-proof interface than
+        # calling the StitchedCoadd constructor directly.
+        return StitchedCoadd.build(self, bbox=bbox)
 
     def explode(self, pad_psfs_with: Optional[float] = None) -> ExplodedCoadd:
         """Return a coadd whose image planes stitch together the outer regions
@@ -195,4 +196,4 @@ class MultipleCellCoadd(CommonComponentsProperties):
         exploded : `ExplodedCoadd`
             Exploded version of the coadd.
         """
-        return ExplodedCoadd(self, pad_psfs_with=pad_psfs_with)
+        return ExplodedCoadd.build(self, pad_psfs_with=pad_psfs_with)

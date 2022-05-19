@@ -23,60 +23,70 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from typing import TYPE_CHECKING, Iterator, Optional
+from typing import TYPE_CHECKING, Optional
 
-from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
+from lsst.afw.image import ExposureF, FilterLabel, ImageF, Mask, PhotoCalib
 from lsst.geom import Box2I
 
 from ._cell_coadds import StitchedPsf, UniformGrid
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
-from ._image_planes import ImagePlanes
-from ._stitched_image_planes import StitchedImagePlanes
+from ._image_planes import ImagePlanes, ImagePlaneTag
+
+from . import typing_helpers
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
-class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
-    """A lazy-evaluation coadd that stitches together images from adjacent
-    cells.
+class StitchInnerCoaddCells:
+    def __init__(self, coadd: MultipleCellCoadd, bbox: Box2I):
+        self._coadd = coadd
+        self._bbox = bbox
 
-    Parameters
-    ----------
-    cell_coadd : `MultipleCellCoadd`
-        Cell-based coadd to stitch together.
-    bbox : `Box2I`, optional
-        The region over which a contiguous coadd is desired.  Defaults to
-        ``cell_coadd.inner_bbox``.
+    def __call__(self, tag: ImagePlaneTag) -> typing_helpers.ImageLike:
+        result = tag.image_type(self._bbox)
+        for cell in self._coadd.cells:
+            common_bbox = cell.inner.bbox.clippedTo(self._bbox)
+            if not common_bbox.isEmpty():
+                result[common_bbox] = tag.get(cell.inner)[common_bbox]
+        return result
 
-    Notes
-    -----
-    This class simply inserts subimages from each cell into the full image,
-    doing so when an attribute is first accessed to avoid stitching together
-    planes that may never be accessed.
+
+class StitchedCoadd(ImagePlanes, CommonComponentsProperties):
+    """Coadd that stitches together images from adjacent cells, considering
+    their inner regions only.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Optional[Box2I] = None):
-        super().__init__(
-            mask_fraction_names=cell_coadd.mask_fraction_names,
-            n_noise_realizations=cell_coadd.n_noise_realizations,
-        )
-        if bbox is None:
-            bbox = cell_coadd.inner_bbox
-        elif not cell_coadd.inner_bbox.contains(bbox):
-            raise ValueError(
-                f"Cell coadd inner bounding box {cell_coadd.inner_bbox} does not "
-                f"contain stitch target area {bbox}."
-            )
-        self._bbox = bbox
-        self._cell_coadd = cell_coadd
-        self._psf: Optional[StitchedPsf] = None
-        self._common = cell_coadd.common
+    def __init__(
+        self,
+        image: ImageF,
+        mask: Mask,
+        variance: ImageF,
+        grid: UniformGrid,
+        psf: StitchedPsf,
+        common: CommonComponents,
+    ):
+        super().__init__(image, mask, variance)
+        self._grid = grid
+        self._psf = psf
+        self._common = common
 
-    @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._bbox
+    @classmethod
+    def build(cls, coadd: MultipleCellCoadd, bbox: Optional[Box2I] = None) -> StitchedCoadd:
+        if bbox is None:
+            bbox = coadd.inner_bbox
+        psf = StitchedPsf(
+            coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()).finish(),
+            coadd.grid,
+        )
+        return cls.from_callback(
+            StitchInnerCoaddCells(bbox, coadd),
+            coadd.mask_fraction_names,
+            coadd.n_noise_realizations,
+            grid=coadd.grid,
+            psf=psf,
+            common=coadd.common,
+        )
 
     @property
     def grid(self) -> UniformGrid:
@@ -86,33 +96,23 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         This may include cells outside the region covered by these image
         planes.
         """
-        return self._cell_coadd.grid
-
-    def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
-        # Docstring inherited.
-        for cell in self._cell_coadd.cells:
-            yield cell.inner
+        return self._grid
 
     @property
     def psf(self) -> StitchedPsf:
         """The piecewise PSF of this image."""
-        if self._psf is None:
-            self._psf = StitchedPsf(
-                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()).finish(),
-                self._cell_coadd.grid,
-            )
         return self._psf
 
     @property
     def common(self) -> CommonComponents:
         # Docstring inherited.
-        return self._cell_coadd.common
+        return self._common
 
     def asExposure(self) -> ExposureF:
         """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
         result = ExposureF(self.asMaskedImage())
         # Exposure components derived from "common" components are all simple.
-        result.setWcs(self._cell_coadd.wcs)
+        result.setWcs(self._common.wcs)
         result.setFilterLabel(FilterLabel(band=self.band))
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
@@ -125,7 +125,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # - we don't know how to pack the information we have anyway.
         #
         # Maybe DM-31924 will provide a solution to at least the latter.
-        result.setId(self._cell_coadd.identifiers.patch)
+        result.setId(self._common.identifiers.patch)
 
         # We could add CoaddInputs here, but without WCS, PSF, etc in them;
         # it's not clear that's good enough or even useful, given that the cell

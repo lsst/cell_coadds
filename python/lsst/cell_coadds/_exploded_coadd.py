@@ -23,23 +23,70 @@ from __future__ import annotations
 
 __all__ = ("ExplodedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
+from typing import TYPE_CHECKING, Optional
 
-from lsst.afw.image import ImageF
 from lsst.geom import Box2I
+from lsst.afw.image import ImageF, Mask
 
 from ._cell_coadds import UniformGrid
-from ._image_planes import ImagePlanes, ViewImagePlanes
-from ._stitched_image_planes import StitchedImagePlanes, StitchedSingleImagePlane
-from .typing_helpers import ImageLike
+from ._common_components import CommonComponents, CommonComponentsProperties
+from ._image_planes import ImagePlaneTag, ImagePlanes
+from . import typing_helpers
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
-class ExplodedCoadd(StitchedImagePlanes):
-    """A lazy-evaluation coadd that stitches together the outer regions of the
-    cells in a `MultipleCellCoadd` (including multiple values for most pixels).
+class ExplodeOuterCoaddCells:
+    def __init__(self, coadd: MultipleCellCoadd, grid: UniformGrid, bbox: Box2I):
+        self._coadd = coadd
+        self._grid = grid
+        self._bbox = bbox
+
+    def __call__(self, tag: ImagePlaneTag) -> typing_helpers.ImageLike:
+        result = tag.image_type(self._bbox)
+        for cell in self._coadd.cells:
+            cell_bbox = self._grid.bbox_of(cell.identifiers.cell.index)
+            common_bbox = cell_bbox.clippedTo(self._bbox)
+            if not common_bbox.isEmpty():
+                cell_image: typing_helpers.ImageLike = tag.get(cell.outer).clone(False)  # shallow copy
+                cell_image.setXY0(cell_bbox.getMin())
+                result[common_bbox] = cell_image[common_bbox]
+        return result
+
+
+def stitch_cell_psf_images(
+    coadd: MultipleCellCoadd, exploded_grid: UniformGrid, pad_psfs_with: Optional[float] = None
+) -> ImageF:
+    if pad_psfs_with is None:
+        psf_grid = UniformGrid(coadd.psf_image_size, coadd.grid.shape)
+    elif (coadd.psf_image_size > coadd.outer_cell_size).any():
+        raise ValueError(
+            f"PSF image dimensions {coadd.psf_image_size} are larger than "
+            f"outer cell dimensions {coadd.outer_cell_size}; cannot pad."
+        )
+    else:
+        psf_grid = exploded_grid
+    stitched_psf_image = ImageF(psf_grid.bbox)
+    if pad_psfs_with is not None:
+        stitched_psf_image.set(pad_psfs_with)
+    for cell in coadd.cells:
+        target_subimage = stitched_psf_image[psf_grid.bbox_of(cell.identifiers.cell.index)]
+        target_dimensions = target_subimage.getDimensions()
+        source_dimensions = cell.psf_image.getDimensions()
+        offset = (target_dimensions - source_dimensions) // 2
+        # Use numpy views instead of Image methods because the images
+        # are not in the same coordinate system to begin with, so xy0
+        # doesn't help us.
+        target_subimage.array[
+            offset.y : offset.y + source_dimensions.y, offset.x : offset.x + source_dimensions.x
+        ] = cell.psf_image.array
+    return stitched_psf_image, psf_grid
+
+
+class ExplodedCoadd(ImagePlanes, CommonComponentsProperties):
+    """A coadd that stitches together the outer regions of the cells in a
+    `MultipleCellCoadd` (including multiple values for most pixels).
 
     Parameters
     ----------
@@ -52,29 +99,35 @@ class ExplodedCoadd(StitchedImagePlanes):
         generally be smaller than the exploded image it corresponds to.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: Optional[float] = None):
-        super().__init__(
-            mask_fraction_names=cell_coadd.mask_fraction_names,
-            n_noise_realizations=cell_coadd.n_noise_realizations,
-        )
-        self._grid = UniformGrid(cell_coadd.outer_cell_size, cell_coadd.grid.shape)
-        if pad_psfs_with is None:
-            self._psf_grid = UniformGrid(cell_coadd.psf_image_size, cell_coadd.grid.shape)
-        elif (cell_coadd.psf_image_size > cell_coadd.outer_cell_size).any():
-            raise ValueError(
-                f"PSF image dimensions {cell_coadd.psf_image_size} are larger than "
-                f"outer cell dimensions {cell_coadd.outer_cell_size}; cannot pad."
-            )
-        else:
-            self._psf_grid = self._grid
-        self._cell_coadd = cell_coadd
-        self._pad_psfs_with = pad_psfs_with
-        self._psf_image: Optional[ImageF] = None
+    def __init__(
+        self,
+        image: ImageF,
+        mask: Mask,
+        variance: ImageF,
+        grid: UniformGrid,
+        psf_grid: UniformGrid,
+        psf_image: ImageF,
+        common: CommonComponents,
+    ):
+        super().__init__(image, mask, variance)
+        self._grid = grid
+        self._psf_grid = psf_grid
+        self._psf_image = psf_image
+        self._common = common
 
-    @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._grid.bbox
+    @classmethod
+    def build(cls, coadd: MultipleCellCoadd, pad_psfs_with: Optional[float] = None) -> ExplodedCoadd:
+        grid = UniformGrid(coadd.outer_cell_size, coadd.grid.shape)
+        psf_image, psf_grid = stitch_cell_psf_images(coadd, grid, pad_psfs_with)
+        return cls.from_callback(
+            ExplodeOuterCoaddCells(coadd, grid, grid.bbox),
+            coadd.mask_fraction_names,
+            coadd.n_noise_realizations,
+            grid=grid,
+            psf_grid=psf_grid,
+            psf_image=psf_image,
+            common=coadd.common,
+        )
 
     @property
     def grid(self) -> UniformGrid:
@@ -96,62 +149,6 @@ class ExplodedCoadd(StitchedImagePlanes):
         return self._psf_grid
 
     @property
-    def n_noise_realizations(self) -> int:
-        # Docstring inherited.
-        return self._cell_coadd.n_noise_realizations
-
-    @property
-    def mask_fraction_names(self) -> AbstractSet[str]:
-        # Docstring inherited.
-        return self._cell_coadd.mask_fraction_names
-
-    def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
-        # Docstring inherited.
-        for cell in self._cell_coadd.cells:
-            new_bbox = self._grid.bbox_of(cell.identifiers.cell.index)
-
-            def _make_view(original: ImageLike) -> ImageLike:
-                result = original[:, :]  # copy bbox, share pixel data.
-                result.setXY0(new_bbox.getMin())
-                return result
-
-            yield ViewImagePlanes(cell.outer, _make_view, bbox=new_bbox)
-
-    @property
     def psf_image(self) -> ImageF:
         """A stitched-together image of the PSF models for each cell."""
-        if self._psf_image is None:
-            stitched_psf_image = ImageF(self.psf_grid.bbox)
-            if self._pad_psfs_with is not None:
-                stitched_psf_image.set(self._pad_psfs_with)
-            for cell in self._cell_coadd.cells:
-                target_subimage = stitched_psf_image[self.psf_grid.bbox_of(cell.identifiers.cell.index)]
-                target_dimensions = target_subimage.getDimensions()
-                source_dimensions = cell.psf_image.getDimensions()
-                offset = (target_dimensions - source_dimensions) // 2
-                # Use numpy views instead of Image methods because the images
-                # are not in the same coordinate system to begin with, so xy0
-                # doesn't help us.
-                target_subimage.array[
-                    offset.y : offset.y + source_dimensions.y, offset.x : offset.x + source_dimensions.x
-                ] = cell.psf_image.array
-            self._psf_image = stitched_psf_image
         return self._psf_image
-
-    def uncache_psf_image(self) -> None:
-        """Remove any cached `psf_image` plane."""
-        self._psf_image = None
-
-    def get_psf_image(self) -> ImageF:
-        return self.psf_image
-
-    def __iter__(self) -> Iterator[StitchedSingleImagePlane]:
-        yield from super().__iter__()
-        yield StitchedSingleImagePlane(
-            name="psf",
-            description="grid of PSF model images",
-            image_type=ImageF,
-            get=self.get_psf_image,
-            uncache=self.uncache_psf_image,
-            grid=self.psf_grid,
-        )

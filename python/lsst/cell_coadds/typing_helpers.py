@@ -33,6 +33,9 @@ class ImageLike(Protocol):
     respect to subimage slicing, bounding box access, and XY0 offset.
     """
 
+    def __init__(self, bbox: Box2I):
+        ...
+
     @overload
     def __getitem__(self: _S, slices: Tuple[slice, slice]) -> _S:
         pass
@@ -55,6 +58,3 @@ class ImageLike(Protocol):
 
     def clone(self, deep: bool) -> _S:
         pass
-
-
-ImageLikeType = TypeVar("ImageLikeType", bound=ImageLike)

@@ -29,7 +29,7 @@ from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
-from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
+from ._image_planes import ImagePlanes
 
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers
@@ -41,7 +41,7 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     Parameters
     ----------
-    outer: `OwnedImagePlanes`
+    outer: `DirectImagePlanes`
         The actual coadded images.
     psf : `ImageD`
         The coadded PSF image.
@@ -64,7 +64,7 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     def __init__(
         self,
-        outer: OwnedImagePlanes,
+        outer: ImagePlanes,
         *,
         psf: ImageD,
         inner_bbox: Box2I,
@@ -77,7 +77,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox}."
         self._outer = outer
         self._psf = psf
-        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=lambda image: image[inner_bbox])
+        self._inner = outer[inner_bbox]
         self._common = common
         self._inputs = inputs
         self._identifiers = identifiers
