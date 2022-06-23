@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import pickle
 import unittest
 
 from lsst.cell_coadds import UniformGrid
@@ -101,6 +102,12 @@ class UniformGridTestCase(unittest.TestCase):
             grid.min_of(1, 3)
         with self.assertRaises(TypeError):
             grid.bbox_of(1, 3)
+
+    def test_pickle(self):
+        """Test that UniformGrid objects are pickleable."""
+        grid1 = UniformGrid(self.bbox, self.cell_size)
+        grid2 = pickle.loads(pickle.dumps(grid1, pickle.HIGHEST_PROTOCOL))
+        self.assertEqual(grid1, grid2)
 
 
 if __name__ == "__main__":
