@@ -30,6 +30,7 @@ from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
+from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers
@@ -77,7 +78,8 @@ class SingleCellCoadd(CommonComponentsProperties):
         ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox}."
         self._outer = outer
         self._psf = psf
-        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=lambda image: image[inner_bbox])
+        self._inner_bbox = inner_bbox
+        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self._make_view)
         self._common = common
         self._inputs = inputs
         self._identifiers = identifiers
@@ -115,3 +117,6 @@ class SingleCellCoadd(CommonComponentsProperties):
     def common(self) -> CommonComponents:
         # Docstring inherited.
         return self._common
+
+    def _make_view(self, image: ImageLike) -> ImageLike:
+        return image[self._inner_bbox]
