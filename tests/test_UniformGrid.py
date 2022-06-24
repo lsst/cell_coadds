@@ -107,6 +107,7 @@ class UniformGridTestCase(unittest.TestCase):
         """Test that UniformGrid objects are pickleable."""
         grid1 = UniformGrid(self.bbox, self.cell_size)
         grid2 = pickle.loads(pickle.dumps(grid1, pickle.HIGHEST_PROTOCOL))
+        self.assertIsInstance(grid2, UniformGrid)
         self.assertEqual(grid1, grid2)
 
 

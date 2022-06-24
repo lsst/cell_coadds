@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import copy
+import pickle
 import unittest
 from typing import Dict, List
 
@@ -29,6 +30,7 @@ from lsst.cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.pex.exceptions import LengthError
 from lsst.skymap import Index2D
+from lsst.utils.tests import methodParameters
 
 
 class GridContainerTestCase(unittest.TestCase):
@@ -161,6 +163,32 @@ class GridContainerTestCase(unittest.TestCase):
         # is an error.
         with self.assertRaises(LengthError):
             subset_container_1.subset_overlapping(grid, full_bbox)
+
+    @methodParameters(offset=(Index2D(x=1, y=2), None))
+    def test_pickle(self, offset):
+        """Test that we can serialize GridContainer with pickle."""
+        shape = Index2D(x=3, y=2)
+        builder: GridContainerBuilder[Dict[str, int]]
+        if offset is None:
+            builder = GridContainerBuilder(shape)
+        else:
+            builder = GridContainerBuilder(shape, offset)
+        self._fill(builder)
+        grid_container: GridContainer = builder.finish()
+        pickled_container = pickle.loads(pickle.dumps(grid_container, pickle.HIGHEST_PROTOCOL))
+        self.assertIsInstance(pickled_container, GridContainer)
+        # This line below is failing, so compare internals.
+        # self.assertEqual(pickled_container, grid_container)
+        self.assertEqual(pickled_container.shape, grid_container.shape)
+        self.assertEqual(pickled_container.offset, grid_container.offset)
+        self.assertEqual(pickled_container.first, grid_container.first)
+        self.assertEqual(pickled_container.last, grid_container.last)
+        self.assertListEqual(list(pickled_container.__iter__()), list(grid_container.__iter__()))
+        self._check(pickled_container)
+
+        pickled_builder = pickle.loads(pickle.dumps(builder, pickle.HIGHEST_PROTOCOL))
+        self.assertEqual(pickled_builder.shape, builder.shape)
+        self.assertEqual(pickled_builder.offset, builder.offset)
 
 
 if __name__ == "__main__":
