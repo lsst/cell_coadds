@@ -10,8 +10,10 @@ jobs:
   test:
     name: test
     strategy:
+      fail-fast: false
       matrix:
-        pyver: [3.8]
+        # 3.9 is omitted since there's no stackvana build for py3.9
+        pyver: ["3.8", "3.10"]
 
     runs-on: "ubuntu-latest"
 
