@@ -42,6 +42,11 @@ jobs:
           setup -v -r .
           scons
 
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage.xml
+
       - name: Run MyPy
         shell: bash -l {0}
         run: |
