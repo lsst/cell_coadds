@@ -2,6 +2,17 @@
 cell_coadds
 ###########
 
+
+|build|
+|coverage|
+
+.. |build| image:: https://github.com/lsst-dm/cell_coadds/actions/workflows/test.yaml/badge.svg?branch=main
+   :target: https://github.com/lsst-dm/cell_coadds/actions/workflows/test.yaml
+
+.. |coverage| image:: https://codecov.io/github/lsst-dm/cell_coadds/branch/main/graph/badge.svg
+   :target: https://codecov.io/github/lsst-dm/cell_coadds
+
+
 ``cell_coadds`` is a package being developed for eventual inclusion in the `LSST Science Pipelines <https://pipelines.lsst.io>`_.
 
 It will eventually include code for building coadds of astronomical images in small (few arcsecond) cells, in which only input images that fully contain a cell are included.

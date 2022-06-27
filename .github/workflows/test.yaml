@@ -45,7 +45,9 @@ jobs:
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v2
         with:
-          file: ./coverage.xml
+          directory: tests/.tests/
+          file: pytest-cell_coadds.xml-cov-cell_coadds.xml
+          fail_ci_if_error: false
 
       - name: Run MyPy
         shell: bash -l {0}
