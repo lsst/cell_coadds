@@ -11,6 +11,7 @@ jobs:
     name: check C++ formatting
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         path:
           - "include"
