@@ -73,6 +73,17 @@ void wrapUniformGrid(utils::python::WrapperCollection& wrappers) {
         cls.def_property_readonly("bbox", &UniformGrid::get_bbox, py::return_value_policy::copy);
         cls.def_property_readonly("cell_size", &UniformGrid::get_cell_size, py::return_value_policy::copy);
         cls.def_property_readonly("shape", &UniformGrid::get_shape, py::return_value_policy::copy);
+        cls.def(py::pickle(
+            [](const UniformGrid& self) {  // __getstate__
+                return py::make_tuple(self.get_bbox(), self.get_cell_size());
+            },
+            [](py::tuple t) {  // __setstate__
+                if (t.size() != 2) {
+                    throw std::runtime_error(
+                        "Tuple size = " + std::to_string(t.size()) + "; must be 2 for UniformGrid");
+                }
+                return new UniformGrid(t[0].cast<geom::Box2I>(), t[1].cast<geom::Extent2I>());
+            }));
     });
 }
 

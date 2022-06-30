@@ -1,14 +1,17 @@
 name: check C++ formatting
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+  pull_request: null
 
 jobs:
   formatting-check:
     name: check C++ formatting
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         path:
           - "include"

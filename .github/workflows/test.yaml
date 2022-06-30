@@ -10,13 +10,15 @@ jobs:
   test:
     name: test
     strategy:
+      fail-fast: false
       matrix:
-        pyver: [3.8]
+        # 3.9 is omitted since there's no stackvana build for py3.9
+        pyver: ["3.8", "3.10"]
 
     runs-on: "ubuntu-latest"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
@@ -39,6 +41,13 @@ jobs:
         run: |
           setup -v -r .
           scons
+
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v2
+        with:
+          directory: tests/.tests/
+          file: pytest-cell_coadds.xml-cov-cell_coadds.xml
+          fail_ci_if_error: false
 
       - name: Run MyPy
         shell: bash -l {0}
