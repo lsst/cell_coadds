@@ -52,4 +52,5 @@ jobs:
         shell: bash -l {0}
         run: |
           setup -v -r .
+          export MYPYPATH=
           mypy python/ tests/
