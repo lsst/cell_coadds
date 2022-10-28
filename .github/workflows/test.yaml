@@ -31,7 +31,10 @@ jobs:
       - name: Git LFS
         shell: bash -l {0}
         run: |
+            cd ..
             git clone https://github.com/lsst/testdata_ci_imsim
+            cd testdata_ci_imsim
+            setup -j -r .
 
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
