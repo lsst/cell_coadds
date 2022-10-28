@@ -28,6 +28,11 @@ jobs:
           miniforge-variant: Miniforge3
           use-mamba: true
 
+      - name: Git LFS
+        shell: bash -l {0}
+        run: |
+            git clone https://github.com/lsst/testdata_ci_imsim
+
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
