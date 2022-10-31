@@ -28,14 +28,6 @@ jobs:
           miniforge-variant: Miniforge3
           use-mamba: true
 
-      - name: Git LFS
-        shell: bash -l {0}
-        run: |
-            cd ..
-            git clone https://github.com/lsst/testdata_ci_imsim
-            cd testdata_ci_imsim
-            setup -j -r .
-
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
@@ -52,6 +44,30 @@ jobs:
         run: |
           setup -v -r .
           scons
+
+      - name: Git LFS
+        shell: bash -l {0}
+        run: |
+            cd ..
+            git clone https://github.com/lsst/testdata_ci_imsim
+            cd testdata_ci_imsim
+            setup -j -r .
+            cd -
+
+      - name: Setup other packages
+        shell: bash -l {0}
+        run: |
+            cd ..
+            git clone https://github.com/lsst-dm/ci_builder
+            # cd ci_builder
+            setup -k -r ci_builder
+
+            git clone https://github.com/lsst/ci_imsim
+            cd ci_imsim
+            setup -k -r .
+            bin/rewrite.sh
+            bin/ci_imsim_run.py
+            cd -
 
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v2
