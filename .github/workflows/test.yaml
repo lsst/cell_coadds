@@ -61,6 +61,8 @@ jobs:
             # cd ci_builder
             setup -k -r ci_builder
 
+            echo $TESTDATA_CI_IMSIM_DIR
+
             git clone https://github.com/lsst/ci_imsim
             cd ci_imsim
             setup -k -r .
