@@ -50,8 +50,7 @@ jobs:
         run: |
             cd ..
             git clone https://github.com/lsst/testdata_ci_imsim
-            cd testdata_ci_imsim
-            setup -j -r .
+            setup -j -r testdata_ci_imsim
             cd -
 
       - name: Setup other packages
