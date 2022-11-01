@@ -48,17 +48,17 @@ jobs:
       - name: Git LFS
         shell: bash -l {0}
         run: |
-            cd ..
+            # cd ..
             git clone https://github.com/lsst/testdata_ci_imsim
             setup -j -r testdata_ci_imsim
-            cd -
+            # cd -
 
       - name: Setup other packages
         shell: bash -l {0}
         run: |
-            cd ..
+            # cd ..
             git clone https://github.com/lsst-dm/ci_builder
-            # cd ci_builder
+            ## cd ci_builder
             setup -k -r ci_builder
 
             echo $TESTDATA_CI_IMSIM_DIR
