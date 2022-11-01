@@ -28,6 +28,16 @@ jobs:
           miniforge-variant: Miniforge3
           use-mamba: true
 
+      - name: Git LFS
+        shell: bash -l {0}
+        run: |
+            # cd ..
+            pwd
+            git clone https://github.com/lsst/testdata_ci_imsim
+            ls
+            # setup -j -r testdata_ci_imsim
+            # cd -
+      
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
@@ -45,18 +55,11 @@ jobs:
           setup -v -r .
           scons
 
-      - name: Git LFS
-        shell: bash -l {0}
-        run: |
-            # cd ..
-            git clone https://github.com/lsst/testdata_ci_imsim
-            setup -j -r testdata_ci_imsim
-            # cd -
-
       - name: Setup other packages
         shell: bash -l {0}
         run: |
             # cd ..
+            setup -k -r testdata_ci_imsim
             git clone https://github.com/lsst-dm/ci_builder
             ## cd ci_builder
             setup -k -r ci_builder
