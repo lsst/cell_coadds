@@ -32,7 +32,7 @@ __all__ = (
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union
 
-from lsst.skymap import CellInfo, Index2D, PatchInfo
+from lsst.skymap import Index2D
 
 if TYPE_CHECKING:
     from lsst.daf.butler import DataCoordinate
@@ -115,7 +115,7 @@ class PatchIdentifiers:
     """The name of the tract this patch belongs to.
     """
 
-    patch: GridIdentifiers
+    patch: Index2D
     """Identifiers for the patch itself.
     """
 
@@ -143,7 +143,9 @@ class PatchIdentifiers:
         return cls(
             skymap=data_id["skymap"],  # type: ignore
             tract=data_id["tract"],  # type: ignore
-            patch=GridIdentifiers.from_data_id(data_id),
+            patch=Index2D(
+                x=data_id.records["patch"].cell_x, y=data_id.records["patch"].cell_y  # type: ignore
+            ),
             band=data_id.get("band"),
         )
 
@@ -152,7 +154,7 @@ class PatchIdentifiers:
 class CellIdentifiers(PatchIdentifiers):
     """Struct of identifiers for a coadd cell."""
 
-    cell: GridIdentifiers
+    cell: Index2D
     """Identifiers for the cell itself."""
 
 

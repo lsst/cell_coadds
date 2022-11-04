@@ -67,7 +67,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         cells_builder: GridContainerBuilder[SingleCellCoadd] = GridContainerBuilder(self._grid.shape)
         self._mask_fraction_names: Set[str] = set()
         for cell in cells:
-            index = cell.identifiers.cell.index
+            index = cell.identifiers.cell
             cells_builder[index] = cell
             if cell.inner.bbox != self._grid.bbox_of(index):
                 raise ValueError(
