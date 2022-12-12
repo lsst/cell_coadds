@@ -37,7 +37,7 @@ from lsst.skymap import CellInfo, PatchInfo
 
 from ._cell_coadds import UniformGrid
 from ._common_components import CoaddUnits, CommonComponents
-from ._identifiers import CellIdentifiers, GridIdentifiers, ObservationIdentifiers, PatchIdentifiers
+from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._multiple_cell_coadd import MultipleCellCoadd
 from ._single_cell_coadd import SingleCellCoadd
 
@@ -295,7 +295,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
                 continue
 
             identifiers = CellIdentifiers(
-                cell=GridIdentifiers.from_info(cellInfo),
+                cell=cellInfo.index,
                 skymap=common.identifiers.skymap,
                 tract=common.identifiers.tract,
                 patch=common.identifiers.patch,

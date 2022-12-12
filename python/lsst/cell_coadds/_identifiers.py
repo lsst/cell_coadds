@@ -22,7 +22,6 @@
 from __future__ import annotations
 
 __all__ = (
-    "GridIdentifiers",
     "PatchIdentifiers",
     "CellIdentifiers",
     "ObservationIdentifiers",
@@ -30,77 +29,12 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
-from lsst.skymap import CellInfo, Index2D, PatchInfo
+from lsst.skymap import Index2D
 
 if TYPE_CHECKING:
     from lsst.daf.butler import DataCoordinate
-
-
-@dataclass(frozen=True)
-class GridIdentifiers:
-    """Struct of identifiers that identify an element in a grid.
-
-    This may be used to represent patches within a tract, or cells within a
-    patch.
-    """
-
-    sequential: int
-    """Unique sequential integer ID for this element in the grid."""
-
-    x: int
-    """The column of this element in its grid.
-    """
-
-    y: int
-    """The row of this element in its grid.
-    """
-
-    @property
-    def index(self) -> Index2D:
-        """The index as a 2-d (x, y) tuple."""
-        return Index2D(x=self.x, y=self.y)
-
-    @classmethod
-    def from_data_id(cls, data_id: DataCoordinate) -> GridIdentifiers:
-        """Construct a `GridIdentifier` for a patch from a data ID.
-
-        Parameters
-        ----------
-        data_id : `lsst.daf.butler.DataCoordinate`
-            Fully-expanded data ID that includes the 'patch' dimension.
-
-        Returns
-        -------
-        grid_identifiers : `GridIdentifiers`
-            Identifiers struct for the patch.
-        """
-        # The cell_x, cell_y below do not refer to cell as it is used
-        # throughout the rest of this package; it's a historical butler thing.
-        # The 'type: ignore' directives below are present because we require a
-        # a fully-expanded data ID, but this isn't embedded in the types.
-        return cls(
-            sequential=data_id["patch"],  # type: ignore
-            x=data_id.records["patch"].cell_x,  # type: ignore
-            y=data_id.records["patch"].cell_y,  # type: ignore
-        )
-
-    @classmethod
-    def from_info(cls, info: Union[PatchInfo, CellInfo]) -> GridIdentifiers:
-        """Construct from a skymap `PatchInfo` or `CellInfo`.
-
-        Parameters
-        ----------
-        info : `PatchInfo` or `CellInfo`
-            Structure describing the patch or cell.
-
-        Returns
-        -------
-        grid_identifiers : `GridIdentifiers`
-            Identifiers struct for the patch or cell.
-        """
-        return cls(sequential=info.sequential_index, x=info.index.x, y=info.index.y)
 
 
 @dataclass(frozen=True)
@@ -115,7 +49,7 @@ class PatchIdentifiers:
     """The name of the tract this patch belongs to.
     """
 
-    patch: GridIdentifiers
+    patch: Index2D
     """Identifiers for the patch itself.
     """
 
@@ -143,7 +77,9 @@ class PatchIdentifiers:
         return cls(
             skymap=data_id["skymap"],  # type: ignore
             tract=data_id["tract"],  # type: ignore
-            patch=GridIdentifiers.from_data_id(data_id),
+            patch=Index2D(
+                x=data_id.records["patch"].cell_x, y=data_id.records["patch"].cell_y  # type: ignore
+            ),
             band=data_id.get("band"),
         )
 
@@ -152,7 +88,7 @@ class PatchIdentifiers:
 class CellIdentifiers(PatchIdentifiers):
     """Struct of identifiers for a coadd cell."""
 
-    cell: GridIdentifiers
+    cell: Index2D
     """Identifiers for the cell itself."""
 
 
