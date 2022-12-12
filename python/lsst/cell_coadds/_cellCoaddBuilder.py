@@ -166,11 +166,6 @@ class MultipleCellCoaddBuilderConfig(
         default="calexps",
     )
 
-    psf_dimensions = pexConfig.Field[int](
-        doc="Dimensions of the PSF image",
-        default=41,
-    )
-
     singleCellCoaddBuilder = singleCellCoaddBuilderRegistry.makeField(
         doc="Coaddition algorithm to use. See `SingleCellCoaddBuilderTask` for details",
         optional=False,
