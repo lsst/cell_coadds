@@ -29,7 +29,7 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from lsst.skymap import Index2D
 
@@ -53,7 +53,7 @@ class PatchIdentifiers:
     """Identifiers for the patch itself.
     """
 
-    band: Optional[str]
+    band: str | None
     """Name of the band, if any.
     """
 
@@ -63,7 +63,7 @@ class PatchIdentifiers:
 
         Parameters
         ----------
-        data_id : `lsst.daf.butler.DataCoordinate`
+        data_id : `~lsst.daf.butler.DataCoordinate`
             Fully-expanded data ID that includes the 'patch' dimension and
             optionally the `band` dimension.
 
@@ -125,7 +125,7 @@ class ObservationIdentifiers:
 
         Parameters
         ----------
-        data_id : `lsst.daf.butler.DataCoordinate`
+        data_id : `~lsst.daf.butler.DataCoordinate`
             Fully-expanded data ID that includes the 'visit' and 'detector'
             dimensions.
 
