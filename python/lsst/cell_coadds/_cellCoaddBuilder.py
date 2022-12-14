@@ -166,11 +166,6 @@ class MultipleCellCoaddBuilderConfig(
         default="calexps",
     )
 
-    psf_dimensions = pexConfig.Field[int](
-        doc="Dimensions of the PSF image",
-        default=41,
-    )
-
     singleCellCoaddBuilder = singleCellCoaddBuilderRegistry.makeField(
         doc="Coaddition algorithm to use. See `SingleCellCoaddBuilderTask` for details",
         optional=False,
@@ -323,10 +318,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             outer_cell_size=cellInfo.outer_bbox.getDimensions(),
             inner_bbox=None,
             common=common,
-            psf_image_size=lsst.geom.Extent2I(
-                self.config.psf_dimensions,
-                self.config.psf_dimensions,
-            ),
+            psf_image_size=cellCoadds[0].psf_image.getDimensions(),
         )
         return multipleCellCoadd
 
