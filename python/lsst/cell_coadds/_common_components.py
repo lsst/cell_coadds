@@ -26,7 +26,7 @@ __all__ = ("CoaddUnits", "CommonComponents", "CommonComponentsProperties")
 import enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from lsst.afw.geom import SkyWcs
@@ -68,7 +68,7 @@ class CommonComponents:
     coordinates.
     """
 
-    band: Optional[str]
+    band: str | None
     """String label for the filter bandpass.
 
     May be `None` only for coadds that represent a combination of multiple
@@ -99,7 +99,7 @@ class CommonComponentsProperties(ABC):
         return self.common.wcs
 
     @property
-    def band(self) -> Optional[str]:
+    def band(self) -> str | None:
         """String label for the filter bandpass.
 
         May be `None` only for coadds that represent a combination of multiple
