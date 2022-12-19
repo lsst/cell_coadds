@@ -91,6 +91,35 @@ class CellIdentifiers(PatchIdentifiers):
     cell: Index2D
     """Identifiers for the cell itself."""
 
+    @classmethod
+    def from_data_id(  # type: ignore [override]
+        cls, data_id: DataCoordinate, cell: Index2D
+    ) -> CellIdentifiers:
+        """Construct from a data ID and a cell index.
+
+        Parameters
+        ----------
+        data_id : `~lsst.daf.butler.DataCoordinate`
+            Fully-expanded data ID that includes the 'patch' dimension and
+            optionally the `band` dimension.
+        cell : `~lsst.skymap.Index2D`
+            Index of the cell within the patch.
+
+        Returns
+        -------
+        identifiers : `CellIdentifiers`
+            Struct of identifiers for this cell within a patch.
+        """
+        return cls(
+            skymap=data_id["skymap"],  # type: ignore
+            tract=data_id["tract"],  # type: ignore
+            patch=Index2D(
+                x=data_id.records["patch"].cell_x, y=data_id.records["patch"].cell_y  # type: ignore
+            ),
+            band=data_id.get("band"),
+            cell=cell,
+        )
+
 
 @dataclass(frozen=True)
 class ObservationIdentifiers:
