@@ -36,13 +36,8 @@ jobs:
             git clone https://github.com/lsst/testdata_ci_imsim
             ls
             # setup -j -r testdata_ci_imsim
-<<<<<<< HEAD
-            cd -
-      
-=======
             # cd -
 
->>>>>>> 04353b9 ([pre-commit.ci] auto fixes from pre-commit.com hooks)
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
