@@ -23,15 +23,18 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from typing import AbstractSet, Iterable, Optional, Set
+from typing import TYPE_CHECKING, AbstractSet, Iterable, Optional, Set
 
-from lsst.geom import Box2I, Extent2I
+from lsst.geom import Box2I
 
 from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
+
+if TYPE_CHECKING:
+    from lsst.geom import Extent2I  # pragma: no cover
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
