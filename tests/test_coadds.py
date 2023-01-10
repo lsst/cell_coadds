@@ -226,6 +226,19 @@ class ExplodedCoaddTestCase(MultipleCellCoaddTestCase):
         del cls.exploded_coadd
         super().tearDownClass()
 
+    def test_exploded_psf_image(self):
+        """Show that psf_image sizes are absurd."""
+        self.assertEqual(
+            self.exploded_coadd.psf_image.getBBox().getDimensions(),
+            geom.Extent2I(3 * self.psf_size, 2 * self.psf_size),
+        )
+        for pad_psfs_with in (-999, -4, 0, 4, 8, 21, 40, 100):
+            exploded_coadd = self.multiple_cell_coadd.explode(pad_psfs_with=pad_psfs_with)
+            self.assertEqual(
+                exploded_coadd.psf_image.getBBox().getDimensions(),
+                geom.Extent2I(3 * self.outer_size, 2 * self.outer_size),
+            )
+
 
 class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
     """Test the construction and methods of a StitchedCoadd instance."""
