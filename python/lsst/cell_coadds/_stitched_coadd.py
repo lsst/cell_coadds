@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
+from typing import TYPE_CHECKING, AbstractSet, Iterator
 
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
@@ -56,7 +56,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     planes that may never be accessed.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Optional[Box2I] = None):
+    def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Box2I | None = None):
         super().__init__()
         if bbox is None:
             bbox = cell_coadd.inner_bbox
@@ -67,7 +67,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             )
         self._bbox = bbox
         self._cell_coadd = cell_coadd
-        self._psf: Optional[StitchedPsf] = None
+        self._psf: StitchedPsf | None = None
         self._common = cell_coadd.common
 
     @property

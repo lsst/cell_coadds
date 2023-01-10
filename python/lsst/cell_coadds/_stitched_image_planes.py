@@ -24,7 +24,7 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from typing import AbstractSet, Callable, Iterator, Mapping, Optional, Sequence, TypeVar
+from typing import AbstractSet, Callable, Iterator, Mapping, Sequence, TypeVar
 
 from lsst.afw.image import ImageF, Mask
 
@@ -52,11 +52,11 @@ class StitchedImagePlanes(ImagePlanes):
     """
 
     def __init__(self) -> None:
-        self._image: Optional[ImageF] = None
-        self._mask: Optional[Mask] = None
-        self._variance: Optional[ImageF] = None
-        self._mask_fractions: Optional[Mapping[str, ImageF]] = None
-        self._noise_realizations: Optional[Sequence[ImageF]] = None
+        self._image: ImageF | None = None
+        self._mask: Mask | None = None
+        self._variance: ImageF | None = None
+        self._mask_fractions: Mapping[str, ImageF] | None = None
+        self._noise_realizations: Sequence[ImageF] | None = None
 
     @property
     @abstractmethod
@@ -152,7 +152,7 @@ class StitchedImagePlanes(ImagePlanes):
         """Remove any cached `noise_realization` planes."""
         self._noise_realizations = None
 
-    def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], Optional[_T]]) -> _T:
+    def _make_plane(self, result: _T, getter: Callable[[ImagePlanes], _T | None]) -> _T:
         """Stitch together a single image plane.
 
         Parameters

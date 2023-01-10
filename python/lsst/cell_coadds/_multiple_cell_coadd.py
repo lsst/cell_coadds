@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterable, Optional, Set
+from typing import TYPE_CHECKING, AbstractSet, Iterable, Set
 
 from lsst.geom import Box2I
 
@@ -61,7 +61,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         psf_image_size: Extent2I,
         *,
         common: CommonComponents,
-        inner_bbox: Optional[Box2I] = None,
+        inner_bbox: Box2I | None = None,
     ):
         self._grid = grid
         self._outer_cell_size = outer_cell_size
@@ -158,7 +158,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # Docstring inherited.
         return self._common
 
-    def stitch(self, bbox: Optional[Box2I] = None) -> StitchedCoadd:
+    def stitch(self, bbox: Box2I | None = None) -> StitchedCoadd:
         """Return a contiguous (but in general discontinuous) coadd by
         stitching together inner cells.
 
@@ -180,13 +180,13 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # by an enum.
         return StitchedCoadd(self, bbox=bbox)
 
-    def explode(self, pad_psfs_with: Optional[float] = None) -> ExplodedCoadd:
+    def explode(self, pad_psfs_with: float | None = None) -> ExplodedCoadd:
         """Return a coadd whose image planes stitch together the outer regions
         of each cell, duplicating pixels in the overlap regions.
 
         Parameters
         ----------
-        pad_psfs_with : `float` or `None`, optional
+        pad_psfs_with : `float` or None, optional
             A floating-point value to pad PSF images with so each PSF-image
             cell has the same dimensions as the image (outer) cell it
             corresponds to.  If `None`, PSF images will not be padded and the

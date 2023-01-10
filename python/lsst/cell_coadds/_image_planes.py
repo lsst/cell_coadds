@@ -28,7 +28,7 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, Sequence
 
 from lsst.afw.image import ImageF, Mask, MaskedImageF
 from lsst.geom import Box2I
@@ -102,7 +102,7 @@ class OwnedImagePlanes(ImagePlanes):
         image: ImageF,
         mask: Mask,
         variance: ImageF,
-        mask_fractions: Optional[Mapping[str, ImageF]] = None,
+        mask_fractions: Mapping[str, ImageF] | None = None,
         noise_realizations: Sequence[ImageF] = (),
     ):
         if mask_fractions is None:
@@ -159,7 +159,7 @@ class ViewImagePlanes(ImagePlanes):
     """
 
     def __init__(
-        self, target: ImagePlanes, make_view: Callable[[ImageLike], ImageLike], bbox: Optional[Box2I] = None
+        self, target: ImagePlanes, make_view: Callable[[ImageLike], ImageLike], bbox: Box2I | None = None
     ):
         self._target = target
         self._bbox = bbox if bbox is not None else self._target.bbox
