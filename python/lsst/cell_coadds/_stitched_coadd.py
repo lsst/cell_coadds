@@ -120,7 +120,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         result = ExposureF(self.asMaskedImage())
         # Exposure components derived from "common" components are all simple.
         result.setWcs(self._cell_coadd.wcs)
-        result.setFilterLabel(FilterLabel(band=self.band))
+        result.setFilter(FilterLabel(band=self.band))
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
 
@@ -132,7 +132,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # - we don't know how to pack the information we have anyway.
         #
         # Maybe DM-31924 will provide a solution to at least the latter.
-        result.setId(self._cell_coadd.identifiers.patch)
+        # result.setId(self._cell_coadd.identifiers.patch)
 
         # We could add CoaddInputs here, but without WCS, PSF, etc in them;
         # it's not clear that's good enough or even useful, given that the cell

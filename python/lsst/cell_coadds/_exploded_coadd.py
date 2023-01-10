@@ -57,7 +57,9 @@ class ExplodedCoadd(StitchedImagePlanes):
         self._grid = UniformGrid(cell_coadd.outer_cell_size, cell_coadd.grid.shape)
         if pad_psfs_with is None:
             self._psf_grid = UniformGrid(cell_coadd.psf_image_size, cell_coadd.grid.shape)
-        elif (cell_coadd.psf_image_size > cell_coadd.outer_cell_size).any():
+        elif (cell_coadd.psf_image_size.x > cell_coadd.outer_cell_size.x) or (
+            cell_coadd.psf_image_size.y > cell_coadd.outer_cell_size.y
+        ):
             raise ValueError(
                 f"PSF image dimensions {cell_coadd.psf_image_size} are larger than "
                 f"outer cell dimensions {cell_coadd.outer_cell_size}; cannot pad."
@@ -122,7 +124,7 @@ class ExplodedCoadd(StitchedImagePlanes):
             if self._pad_psfs_with is not None:
                 stitched_psf_image.set(self._pad_psfs_with)
             for cell in self._cell_coadd.cells:
-                target_subimage = stitched_psf_image[self.psf_grid.bbox_of(cell.identifiers.cell.index)]
+                target_subimage = stitched_psf_image[self.psf_grid.bbox_of(cell.identifiers.cell)]
                 target_dimensions = target_subimage.getDimensions()
                 source_dimensions = cell.psf_image.getDimensions()
                 offset = (target_dimensions - source_dimensions) // 2
