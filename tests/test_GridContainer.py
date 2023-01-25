@@ -88,7 +88,7 @@ class GridContainerTestCase(unittest.TestCase):
             )
         )
 
-    def test_simple_ctor(self):
+    def test_simple_ctor(self) -> None:
         """Test a GridContainer built with the shape-only builder
         constructor."""
         shape = Index2D(x=3, y=2)
@@ -103,7 +103,7 @@ class GridContainerTestCase(unittest.TestCase):
         self._fill(builder)
         self._check(builder.finish())
 
-    def test_complex_ctor(self):
+    def test_complex_ctor(self) -> None:
         """Test a GridContainer built with the shape-and-offset builder
         constructor."""
         shape = Index2D(x=3, y=2)
@@ -119,7 +119,7 @@ class GridContainerTestCase(unittest.TestCase):
         self._fill(builder)
         self._check(builder.finish())
 
-    def test_subset_overlapping(self):
+    def test_subset_overlapping(self) -> None:
         """Test various inputs to GridContainer.subset_overlapping."""
         cell_size = Extent2I(x=3, y=2)
         full_bbox = Box2I(Point2I(x=1, y=2), Extent2I(x=15, y=12))
@@ -165,7 +165,7 @@ class GridContainerTestCase(unittest.TestCase):
             subset_container_1.subset_overlapping(grid, full_bbox)
 
     @methodParameters(offset=(Index2D(x=1, y=2), None))
-    def test_pickle(self, offset):
+    def test_pickle(self, offset) -> None:
         """Test that we can serialize GridContainer with pickle."""
         shape = Index2D(x=3, y=2)
         builder: GridContainerBuilder[Dict[str, int]]

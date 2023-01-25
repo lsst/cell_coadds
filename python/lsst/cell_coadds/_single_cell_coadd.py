@@ -33,7 +33,7 @@ from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
-    from ._identifiers import CellIdentifiers, ObservationIdentifiers
+    from ._identifiers import CellIdentifiers, ObservationIdentifiers  # pragma: no cover
 
 
 class SingleCellCoadd(CommonComponentsProperties):
@@ -75,7 +75,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     ):
         assert outer.bbox.contains(
             inner_bbox
-        ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox()}."
+        ), f"Cell inner bbox {inner_bbox} is not contained by outer bbox {outer.bbox}."
         self._outer = outer
         self._psf = psf
         self._inner_bbox = inner_bbox

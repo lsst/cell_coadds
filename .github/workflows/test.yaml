@@ -36,7 +36,10 @@ jobs:
           mamba install -q mypy
 
       - name: Build and run tests
+        id: build
         shell: bash -l {0}
+        # We want coverage report uploaded even if build fails
+        continue-on-error: true
         run: |
           setup -v -r .
           scons
@@ -54,3 +57,7 @@ jobs:
           setup -v -r .
           export MYPYPATH=
           mypy python/ tests/
+
+      - name: Check if the build failed
+        if: "steps.build.outcome == 'failure'"
+        run: exit 1

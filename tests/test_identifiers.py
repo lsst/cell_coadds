@@ -22,7 +22,7 @@
 import unittest
 
 from lsst.cell_coadds import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
-from lsst.daf.butler import DataCoordinate, DimensionUniverse
+from lsst.cell_coadds.test_utils import generate_data_id
 from lsst.skymap import Index2D
 
 
@@ -32,41 +32,7 @@ class IdentifiersTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        universe = DimensionUniverse()
-
-        instrument = universe["instrument"]
-        instrument_record = instrument.RecordClass(name="test", detector_max=109, visit_max=10000)
-
-        skymap = universe["skymap"]
-        skymap_record = skymap.RecordClass(name="test_skymap")
-
-        band = universe["band"]
-        band_record = band.RecordClass(name="r")
-
-        visit = universe["visit"]
-        visit_record = visit.RecordClass(id=12345, instrument="test")
-
-        detector = universe["detector"]
-        detector_record = detector.RecordClass(id=9, instrument="test")
-
-        physical_filter = universe["physical_filter"]
-        physical_filter_record = physical_filter.RecordClass(name="r", instrument="test", band="r")
-
-        patch = universe["patch"]
-        patch_record = patch.RecordClass(skymap="test_skymap", tract=9813, patch=42, cell_x=4, cell_y=2)
-
-        record = dict(
-            instrument=instrument_record,
-            visit=visit_record.id,
-            detector=detector_record.id,
-            patch=patch_record,
-            tract=9813,
-            band=band_record,
-            skymap=skymap_record,
-            physical_filter=physical_filter_record,
-        )
-        data_id = DataCoordinate.standardize(record, universe=universe)  # type: ignore
-        cls.data_id = data_id.expanded(record)  # type: ignore
+        cls.data_id = generate_data_id()  # type: ignore
 
     def test_cell_identifiers(self) -> None:
         """Test we can construct a CellIdentifiers from a DataCoordinate."""

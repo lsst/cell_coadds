@@ -29,9 +29,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from lsst.afw.geom import SkyWcs
+    from lsst.afw.geom import SkyWcs  # pragma: no cover
 
-    from ._identifiers import PatchIdentifiers
+    from ._identifiers import PatchIdentifiers  # pragma: no cover
 
 
 class CoaddUnits(enum.Enum):
