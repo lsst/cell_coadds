@@ -24,8 +24,10 @@ repos:
       - id: codecov-config
         name: codecov-config-check
         description: Check if the codecov config file is valid
-        files: .github/.codecov.yml
-        entry: |
-          sh -c "curl --data-binary @.github/.codecov.yml \\
+        files: ".github/.codecov.yml"
+        entry: >
+          sh -c "curl -V --keepalive-time 60 \\
+                 --data-binary @.github/.codecov.yml \\
                  https://codecov.io/validate | grep Valid"
         language: system
+        pass_filenames: false
