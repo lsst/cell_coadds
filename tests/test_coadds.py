@@ -151,7 +151,7 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     patch_outer_bbox, psfSigma=cls.psf_sigmas[identifiers.cell]
                 )
 
-                for (inst_flux, position, shape) in sources:
+                for inst_flux, position, shape in sources:
                     dataset.addSource(inst_flux, position, shape)
 
                 # Create a spatially varying variance plane.
@@ -271,7 +271,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
     def test_computeShape(self):
         """Test the computeShape method for a StitchedPsf object."""
         stitched_psf = self.stitched_coadd.psf
-        for (position, cell_index) in self.test_positions:
+        for position, cell_index in self.test_positions:
             psf_shape = stitched_psf.computeShape(position)  # check we can compute shape
             self.assertIsNot(psf_shape.getIxx(), np.nan)
             self.assertIsNot(psf_shape.getIyy(), np.nan)
@@ -292,7 +292,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
             geom.Extent2I(self.psf_size, self.psf_size),
         )
 
-        for (position, cell_index) in self.test_positions:
+        for position, cell_index in self.test_positions:
             image1 = stitched_psf.computeKernelImage(position)
             image2 = SingleGaussianPsf(
                 self.psf_size, self.psf_size, self.psf_sigmas[cell_index]
@@ -305,7 +305,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         stitched_psf = self.stitched_coadd.psf
         psf_extent = geom.Extent2I(self.psf_size, self.psf_size)
 
-        for (position, cell_index) in self.test_positions:
+        for position, cell_index in self.test_positions:
             image1 = stitched_psf.computeImage(position)
             image2 = SingleGaussianPsf(
                 self.psf_size, self.psf_size, self.psf_sigmas[cell_index]
@@ -318,7 +318,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         result as calling computeKernelImage.
         """
         stitched_psf = self.stitched_coadd.psf
-        for (position, cell_index) in self.test_positions:
+        for position, cell_index in self.test_positions:
             pos = geom.Point2D(geom.Point2I(position))  # round to integer
             image1 = stitched_psf.computeKernelImage(pos)
             image2 = stitched_psf.computeImage(pos)
@@ -328,7 +328,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         """Test the computeApertureFlux method for a StitchedPsf object."""
         stitched_coadd = self.multiple_cell_coadd.stitch()
         stitched_psf = stitched_coadd.psf
-        for (position, cell_index) in self.test_positions:
+        for position, cell_index in self.test_positions:
             flux1sigma = stitched_psf.computeApertureFlux(self.psf_sigmas[cell_index], position=position)
             self.assertAlmostEqual(flux1sigma, 0.39, delta=5e-2)
 
