@@ -20,7 +20,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from . import typing_helpers
-from ._cell_coadds import *
 from ._cell_coadd_builder import *
 from ._common_components import *
 from ._exploded_coadd import *
