@@ -38,15 +38,6 @@ They include:
 
     prior to each commit.
 
-- C++ formatting via `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_.
-    This can also be installed into the usual LSST conda environment (from ``conda-forge``), and then
-    run with
-
-    .. code-block:: sh
-
-        $ clang-format include/lsst/cell_coadds/*
-        $ clang-format src/*
-
 - Python static type-checking via `MyPy <http://mypy-lang.org/>`_.
     MyPy is also available from ``conda-forge``.
     Run it here with:
@@ -55,14 +46,13 @@ They include:
 
         $ mypy python/ tests/
 
-    In order to extend type checking to the Python bindings of C++ classes,
-    this package includes a typing stub file (``python/lsst/cell_coadds/_cell_coadds.pyi``).
+    This package includes a typing stub file (``python/lsst/cell_coadds/_cell_coadds.pyi``).
     This should be updated whenever changes are made to the Python bindings.
     Major changes (especially new code) can be mostly handled by the
     ``stubgen`` tool included with ``mypy``, but generally require some hand-editing afterwards (the existing type stubs should certainly not be blindly replaced by ``stubgen`` output).
 
 The best way to use all of these tools is via editor integrations, which should be possible for all major editors.
-All necessary configuration files for these tools are included in the repository (``pyproject.toml``, ``mypy.ini``, and ``.clang-format``), and these configurations should be allowed to take precedence over any others to ensure the CI checks that use those configurations are satisfied.
+All necessary configuration files for these tools are included in the repository (``pyproject.toml``, ``mypy.ini`` etc.), and these configurations should be allowed to take precedence over any others to ensure the CI checks that use those configurations are satisfied.
 Additionally, you may `install a pre-commit <https://pre-commit.com/#installation>`_ hook to ensure that the staged changes are in accordance with these conventions.
 
 .. code-block:: sh
