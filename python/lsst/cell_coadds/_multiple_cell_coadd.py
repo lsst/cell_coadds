@@ -27,9 +27,10 @@ from typing import TYPE_CHECKING, AbstractSet, Iterable, Set
 
 from lsst.geom import Box2I
 
-from ._cell_coadds import GridContainer, GridContainerBuilder, UniformGrid
+from ._cell_coadds import UniformGrid
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
+from ._grid_container import GridContainer
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
 
@@ -67,7 +68,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         self._outer_cell_size = outer_cell_size
         self._psf_image_size = psf_image_size
         self._common = common
-        cells_builder: GridContainerBuilder[SingleCellCoadd] = GridContainerBuilder(self._grid.shape)
+        cells_builder = GridContainer(self._grid.shape)
         self._mask_fraction_names: Set[str] = set()
         for cell in cells:
             index = cell.identifiers.cell
@@ -88,7 +89,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
                     f"but coadd expects {self._psf_image_size}."
                 )
             self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
-        self._cells = cells_builder.finish()
+        self._cells = cells_builder
         n_noise_realizations = {len(cell.outer.noise_realizations) for cell in self._cells}
         self._n_noise_realizations = n_noise_realizations.pop()
         if n_noise_realizations:
