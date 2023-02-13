@@ -28,10 +28,10 @@ from typing import TYPE_CHECKING, AbstractSet, Iterator
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
 
-from ._cell_coadds import StitchedPsf
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
+from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:

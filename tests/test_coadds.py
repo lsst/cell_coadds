@@ -326,8 +326,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
 
     def test_computeApetureFlux(self):
         """Test the computeApertureFlux method for a StitchedPsf object."""
-        stitched_coadd = self.multiple_cell_coadd.stitch()
-        stitched_psf = stitched_coadd.psf
+        stitched_psf = self.stitched_coadd.psf
         for position, cell_index in self.test_positions:
             flux1sigma = stitched_psf.computeApertureFlux(self.psf_sigmas[cell_index], position=position)
             self.assertAlmostEqual(flux1sigma, 0.39, delta=5e-2)
