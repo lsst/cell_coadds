@@ -259,7 +259,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         """
 
         cellCoadds: list[SingleCellCoadd] = []
-        patchInfo: PatchInfo = skyInfo.patchInfo  # type: ignore[attr-defined]
+        patchInfo: PatchInfo = skyInfo.patchInfo
         common = CommonComponents(
             units=CoaddUnits.nJy,
             wcs=patchInfo.wcs,
@@ -298,10 +298,10 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             )
             # TODO: singleCellCoaddBuilder.run should return a SingleCellCoadd
             cellCoadd = SingleCellCoadd(
-                outer=result.image_planes,  # type: ignore[attr-defined]
-                psf=result.psf,  # type: ignore[attr-defined]
+                outer=result.image_planes,
+                psf=result.psf,
                 inner_bbox=cellInfo.inner_bbox,
-                inputs=result.inputs,  # type: ignore[attr-defined]
+                inputs=result.inputs,
                 common=common,
                 identifiers=identifiers,
             )
@@ -364,7 +364,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             skyCalexp = lsst.sphgeom.ConvexPolygon([corner.getVector() for corner in calexp_corners])
 
             if skyInfo:
-                if skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):  # type: ignore[attr-defined]
+                if skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):
                     pass
             if skyCell.isWithin(skyCalexp):
                 tiny_bbox_min_corner = calexp_wcs.skyToPixel(
