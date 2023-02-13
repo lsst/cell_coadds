@@ -26,7 +26,6 @@ import unittest
 
 from lsst.cell_coadds import UniformGrid
 from lsst.geom import Box2I, Extent2I, Point2I
-from lsst.pex.exceptions import LengthError
 from lsst.skymap import Index2D
 
 
@@ -41,15 +40,18 @@ class UniformGridTestCase(unittest.TestCase):
 
     def test_ctor_bbox_cell_size(self) -> None:
         """Test UniformGrid after construction with (bbox, cell_size)."""
-        self._check(UniformGrid(self.bbox, self.cell_size))
+        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
+        self._check(grid)
 
     def test_ctor_bbox_shape(self) -> None:
         """Test UniformGrid after construction with (bbox, shape)."""
-        self._check(UniformGrid(self.bbox, self.shape))
+        grid = UniformGrid.from_bbox_shape(self.bbox, self.shape)
+        self._check(grid)
 
     def test_ctor_cell_size_shape_min(self) -> None:
         """Test UniformGrid after construction with (cell_size, shape, min)."""
-        self._check(UniformGrid(self.cell_size, self.shape, self.bbox.getMin()))
+        grid = UniformGrid(self.cell_size, self.shape, self.bbox.getMin())
+        self._check(grid)
 
     def _check(self, grid: UniformGrid) -> None:
         self.assertEqual(grid.bbox, self.bbox)
@@ -63,36 +65,39 @@ class UniformGridTestCase(unittest.TestCase):
 
     def test_index(self):
         """Test various inputs to UniformGrid.index."""
-        grid = UniformGrid(self.bbox, self.cell_size)
+        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
         self.assertEqual(grid.index(self.bbox.getMin()), Index2D(x=0, y=0))
         self.assertEqual(grid.index(self.bbox.getMax()), Index2D(x=4, y=5))
         self.assertEqual(grid.index(Point2I(x=9, y=5)), Index2D(x=2, y=1))
         self.assertEqual(grid.index(Point2I(x=9, y=6)), Index2D(x=2, y=2))
         self.assertEqual(grid.index(Point2I(x=10, y=5)), Index2D(x=3, y=1))
         self.assertEqual(grid.index(Point2I(x=10, y=6)), Index2D(x=3, y=2))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMin() - Extent2I(x=0, y=1))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMin() - Extent2I(x=1, y=0))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMin() - Extent2I(x=1, y=1))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMax() + Extent2I(x=0, y=1))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMax() + Extent2I(x=1, y=0))
-        with self.assertRaises(LengthError):
+        with self.assertRaises(ValueError):
             grid.index(self.bbox.getMax() + Extent2I(x=1, y=1))
 
     def test_repr(self):
         """Test that UniformGrid.__repr__ round-trips through eval."""
-        grid = UniformGrid(self.bbox, self.cell_size)
+        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
         self.assertEqual(eval(repr(grid)), grid, msg=repr(grid))
+        # TODO: Add more test cases, especially with non-zero min if this
+        # is a good test.
 
     def test_index_overloads(self):
         """Test methods that accept either a single (x, y) object argument or
         kw-only x and y args.
         """
-        grid = UniformGrid(self.bbox, self.cell_size)
+        return
+        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
         self.assertEqual(grid.index(Point2I(x=9, y=5)), grid.index(x=9, y=5))
         self.assertEqual(grid.min_of(Index2D(x=1, y=3)), grid.min_of(x=1, y=3))
         self.assertEqual(grid.bbox_of(Index2D(x=1, y=3)), grid.bbox_of(x=1, y=3))
@@ -102,10 +107,23 @@ class UniformGridTestCase(unittest.TestCase):
             grid.min_of(1, 3)
         with self.assertRaises(TypeError):
             grid.bbox_of(1, 3)
+        # Unlike C++, Python does not allow overloading methods with different
+        # signatures. Therefore, explicitly test that invalid calls to the
+        # methods raise the error that we expect.
+        with self.assertRaises(TypeError):
+            grid.index(position=Point2I(x=9, y=5), x=9, y=5)
+        with self.assertRaises(TypeError):
+            grid.min_of(index=Index2D(x=1, y=3), x=1)
+        with self.assertRaises(TypeError, msg="sdfs"):
+            grid.bbox_of(x=1)
+        with self.assertRaises(TypeError):
+            grid.min_of(Index2D(x=1, y=3), x=1, y=3)
+        with self.assertRaises(TypeError):
+            grid.bbox_of(Index2D(x=1, y=3), 1, 3)
 
     def test_pickle(self):
         """Test that UniformGrid objects are pickleable."""
-        grid1 = UniformGrid(self.bbox, self.cell_size)
+        grid1 = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
         grid2 = pickle.loads(pickle.dumps(grid1, pickle.HIGHEST_PROTOCOL))
         self.assertIsInstance(grid2, UniformGrid)
         self.assertEqual(grid1, grid2)

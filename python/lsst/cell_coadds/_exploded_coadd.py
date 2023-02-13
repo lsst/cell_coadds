@@ -28,9 +28,9 @@ from typing import TYPE_CHECKING, AbstractSet, Iterator
 from lsst.afw.image import ImageF
 from lsst.geom import Box2I
 
-from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
+from ._uniform_grid import UniformGrid
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:

@@ -27,12 +27,12 @@ from typing import TYPE_CHECKING, AbstractSet, Iterable, Set
 
 from lsst.geom import Box2I
 
-from ._cell_coadds import UniformGrid
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
 from ._grid_container import GridContainer
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
+from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
     from lsst.geom import Extent2I  # pragma: no cover

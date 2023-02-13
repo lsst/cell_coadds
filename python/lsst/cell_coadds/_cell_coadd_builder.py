@@ -35,11 +35,11 @@ from lsst.daf.butler import DataCoordinate, DeferredDatasetHandle
 from lsst.pipe.tasks.coaddBase import makeSkyInfo
 from lsst.skymap import CellInfo, PatchInfo
 
-from ._cell_coadds import UniformGrid
 from ._common_components import CoaddUnits, CommonComponents
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._multiple_cell_coadd import MultipleCellCoadd
 from ._single_cell_coadd import SingleCellCoadd
+from ._uniform_grid import UniformGrid
 
 __all__ = (
     "MultipleCellCoaddBuilderConfig",
@@ -310,7 +310,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         # grid has no notion about border or inner/outer boundaries.
         # So we have to clip the outermost border when constructing the grid.
         grid_bbox = patchInfo.outer_bbox.erodedBy(patchInfo.getCellBorder())
-        grid = UniformGrid(grid_bbox, patchInfo.getCellInnerDimensions())
+        grid = UniformGrid.from_bbox_cell_size(grid_bbox, patchInfo.getCellInnerDimensions())
 
         multipleCellCoadd = MultipleCellCoadd(
             cellCoadds,
