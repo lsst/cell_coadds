@@ -40,7 +40,7 @@ class GridContainerBuilder:  # noqa: F811
         y_iter = range(self.offset.y, self.offset.y + self.shape.y)
         yx_iter = product(y_iter, x_iter)
         state = {}
-        for (y, x) in yx_iter:
+        for y, x in yx_iter:
             state[Index2D(x, y)] = gc[Index2D(x, y)]
         return state
 

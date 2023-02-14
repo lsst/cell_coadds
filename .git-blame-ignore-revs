@@ -1,0 +1,5 @@
+# Run this command to always ignore formatting commits in `git blame`
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Changes to be compliant with black 23.1.0
+c4c4e7b9ce37287cd515b1275558d4776bd0b75d

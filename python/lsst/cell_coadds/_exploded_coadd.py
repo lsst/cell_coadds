@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("ExplodedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator, Optional
+from typing import TYPE_CHECKING, AbstractSet, Iterator
 
 from lsst.afw.image import ImageF
 from lsst.geom import Box2I
@@ -52,7 +52,7 @@ class ExplodedCoadd(StitchedImagePlanes):
         generally be smaller than the exploded image it corresponds to.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: Optional[float] = None):
+    def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: float | None = None):
         super().__init__()
         self._grid = UniformGrid(cell_coadd.outer_cell_size, cell_coadd.grid.shape)
         if pad_psfs_with is None:
@@ -68,7 +68,7 @@ class ExplodedCoadd(StitchedImagePlanes):
             self._psf_grid = self._grid
         self._cell_coadd = cell_coadd
         self._pad_psfs_with = pad_psfs_with
-        self._psf_image: Optional[ImageF] = None
+        self._psf_image: ImageF | None = None
 
     @property
     def bbox(self) -> Box2I:

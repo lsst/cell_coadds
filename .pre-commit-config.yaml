@@ -1,21 +1,21 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 23.1.0
     hooks:
       - id: black
         language_version: python3.10
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 6.0.0
     hooks:
       - id: flake8
   - repo: https://github.com/pycqa/isort
-    rev: 5.10.1
+    rev: 5.12.0
     hooks:
       - id: isort
         name: isort (python)
@@ -24,8 +24,10 @@ repos:
       - id: codecov-config
         name: codecov-config-check
         description: Check if the codecov config file is valid
-        files: .github/.codecov.yml
-        entry: |
-          sh -c "curl --data-binary @.github/.codecov.yml \\
+        files: ".github/.codecov.yml"
+        entry: >
+          sh -c "curl -V --keepalive-time 60 \\
+                 --data-binary @.github/.codecov.yml \\
                  https://codecov.io/validate | grep Valid"
         language: system
+        pass_filenames: false
