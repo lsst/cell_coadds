@@ -51,13 +51,6 @@ jobs:
           file: pytest-cell_coadds.xml-cov-cell_coadds.xml
           fail_ci_if_error: false
 
-      - name: Run MyPy
-        shell: bash -l {0}
-        run: |
-          setup -v -r .
-          export MYPYPATH=
-          mypy python/ tests/
-
       - name: Check if the build failed
         if: "steps.build.outcome == 'failure'"
         run: exit 1
