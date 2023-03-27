@@ -88,7 +88,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
-        for cell in self._cell_coadd.cells:
+        for cell in self._cell_coadd.cells.values():
             yield cell.inner
 
     @property

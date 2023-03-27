@@ -106,7 +106,7 @@ class ExplodedCoadd(StitchedImagePlanes):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
-        for cell in self._cell_coadd.cells:
+        for cell in self._cell_coadd.cells.values():
             new_bbox = self._grid.bbox_of(cell.identifiers.cell.index)
 
             def _make_view(original: ImageLike) -> ImageLike:
@@ -123,7 +123,7 @@ class ExplodedCoadd(StitchedImagePlanes):
             stitched_psf_image = ImageF(self.psf_grid.bbox)
             if self._pad_psfs_with is not None:
                 stitched_psf_image.set(self._pad_psfs_with)
-            for cell in self._cell_coadd.cells:
+            for cell in self._cell_coadd.cells.values():
                 target_subimage = stitched_psf_image[self.psf_grid.bbox_of(cell.identifiers.cell)]
                 target_dimensions = target_subimage.getDimensions()
                 source_dimensions = cell.psf_image.getDimensions()
