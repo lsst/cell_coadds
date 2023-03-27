@@ -45,7 +45,7 @@ class GridContainerTestCase(unittest.TestCase):
 
     def _check(self, container: GridContainer[dict[str, int]]) -> None:
         """Perform a complete battery of tests on a GridContainer instance."""
-        for value in container:
+        for value in container.values():
             self.assertEqual(container[Index2D(x=value["x"], y=value["y"])], value)
             self.assertEqual(container.get(Index2D(x=value["x"], y=value["y"])), value)
             self.assertEqual(container[Index2D(**value)], value)
@@ -58,10 +58,13 @@ class GridContainerTestCase(unittest.TestCase):
                 "y": container.offset.y + container.shape.y - 1,
             },
         )
-        transformed = container.rebuild_transformed(lambda cell: list(cell.values()))
+        transformed: GridContainer[list[int]] = container.rebuild_transformed(
+            lambda cell: list(cell.values())  # type: ignore
+        )
         self.assertEqual(transformed.shape, container.shape)
         self.assertEqual(transformed.offset, container.offset)
-        self.assertEqual(list(transformed), [list(cell.values()) for cell in container])
+        self.assertEqual(list(transformed.keys()), list(container.keys()))
+        self.assertEqual(list(transformed.values()), [list(v.values()) for v in container.values()])
         emptied = GridContainer[dict[str, int]](container.shape, container.offset)
         self._fill(emptied)
         self.assertEqual(emptied.shape, container.shape)
@@ -132,7 +135,8 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertEqual(subset_container_full.offset, full_container.offset)
         self.assertEqual(list(subset_container_full), list(full_container))
         subset_container_full[Index2D(x=2, y=2)] = {"x": -1, "y": -1}
-        self.assertNotEqual(list(subset_container_full), list(full_container))
+        self.assertEqual(list(subset_container_full.keys()), list(full_container.keys()))
+        self.assertNotEqual(list(subset_container_full.values()), list(full_container.values()))
 
         # Subset the full container with a nontrivial bbox.
         bbox_1 = Box2I(Point2I(x=6, y=4), Point2I(x=10, y=7))
