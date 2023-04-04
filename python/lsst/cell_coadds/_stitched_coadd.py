@@ -28,10 +28,11 @@ from typing import TYPE_CHECKING, AbstractSet, Iterator
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
 
-from ._cell_coadds import StitchedPsf, UniformGrid
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._image_planes import ImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
+from ._stitched_psf import StitchedPsf
+from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
@@ -87,7 +88,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
-        for cell in self._cell_coadd.cells:
+        for cell in self._cell_coadd.cells.values():
             yield cell.inner
 
     @property
@@ -105,7 +106,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         """The piecewise PSF of this image."""
         if self._psf is None:
             self._psf = StitchedPsf(
-                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()).finish(),
+                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()),
                 self._cell_coadd.grid,
             )
         return self._psf

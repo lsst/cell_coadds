@@ -29,8 +29,8 @@ from typing import AbstractSet, Callable, Iterator, Mapping, Sequence, TypeVar
 from lsst.afw.image import ImageF, Mask
 
 from . import typing_helpers
-from ._cell_coadds import UniformGrid
 from ._image_planes import ImagePlanes
+from ._uniform_grid import UniformGrid
 
 _T = TypeVar("_T", bound=typing_helpers.ImageLike)
 

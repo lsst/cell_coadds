@@ -193,7 +193,7 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 )
 
         grid_bbox = geom.Box2I(geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size, ny * cls.inner_size))
-        grid = UniformGrid(grid_bbox, Index2D(x=nx, y=ny))
+        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=nx, y=ny))
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
@@ -326,8 +326,7 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
 
     def test_computeApetureFlux(self):
         """Test the computeApertureFlux method for a StitchedPsf object."""
-        stitched_coadd = self.multiple_cell_coadd.stitch()
-        stitched_psf = stitched_coadd.psf
+        stitched_psf = self.stitched_coadd.psf
         for position, cell_index in self.test_positions:
             flux1sigma = stitched_psf.computeApertureFlux(self.psf_sigmas[cell_index], position=position)
             self.assertAlmostEqual(flux1sigma, 0.39, delta=5e-2)

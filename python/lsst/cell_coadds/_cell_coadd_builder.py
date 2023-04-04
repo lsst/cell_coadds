@@ -35,11 +35,11 @@ from lsst.daf.butler import DataCoordinate, DeferredDatasetHandle
 from lsst.pipe.tasks.coaddBase import makeSkyInfo
 from lsst.skymap import CellInfo, PatchInfo
 
-from ._cell_coadds import UniformGrid
 from ._common_components import CoaddUnits, CommonComponents
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._multiple_cell_coadd import MultipleCellCoadd
 from ._single_cell_coadd import SingleCellCoadd
+from ._uniform_grid import UniformGrid
 
 __all__ = (
     "MultipleCellCoaddBuilderConfig",
@@ -259,7 +259,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         """
 
         cellCoadds: list[SingleCellCoadd] = []
-        patchInfo: PatchInfo = skyInfo.patchInfo  # type: ignore[attr-defined]
+        patchInfo: PatchInfo = skyInfo.patchInfo
         common = CommonComponents(
             units=CoaddUnits.nJy,
             wcs=patchInfo.wcs,
@@ -298,10 +298,10 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             )
             # TODO: singleCellCoaddBuilder.run should return a SingleCellCoadd
             cellCoadd = SingleCellCoadd(
-                outer=result.image_planes,  # type: ignore[attr-defined]
-                psf=result.psf,  # type: ignore[attr-defined]
+                outer=result.image_planes,
+                psf=result.psf,
                 inner_bbox=cellInfo.inner_bbox,
-                inputs=result.inputs,  # type: ignore[attr-defined]
+                inputs=result.inputs,
                 common=common,
                 identifiers=identifiers,
             )
@@ -310,7 +310,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         # grid has no notion about border or inner/outer boundaries.
         # So we have to clip the outermost border when constructing the grid.
         grid_bbox = patchInfo.outer_bbox.erodedBy(patchInfo.getCellBorder())
-        grid = UniformGrid(grid_bbox, patchInfo.getCellInnerDimensions())
+        grid = UniformGrid.from_bbox_cell_size(grid_bbox, patchInfo.getCellInnerDimensions())
 
         multipleCellCoadd = MultipleCellCoadd(
             cellCoadds,
@@ -364,7 +364,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             skyCalexp = lsst.sphgeom.ConvexPolygon([corner.getVector() for corner in calexp_corners])
 
             if skyInfo:
-                if skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):  # type: ignore[attr-defined]
+                if skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):
                     pass
             if skyCell.isWithin(skyCalexp):
                 tiny_bbox_min_corner = calexp_wcs.skyToPixel(
