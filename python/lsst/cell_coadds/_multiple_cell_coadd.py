@@ -85,7 +85,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
                 )
             if cell.psf_image.getDimensions() != self._psf_image_size:
                 raise ValueError(
-                    f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions}, "
+                    f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions()}, "
                     f"but coadd expects {self._psf_image_size}."
                 )
             self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
