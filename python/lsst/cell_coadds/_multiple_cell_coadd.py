@@ -35,7 +35,8 @@ from ._stitched_coadd import StitchedCoadd
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
-    from lsst.geom import Extent2I  # pragma: no cover
+    from lsst.daf.base import PropertySet
+    from lsst.geom import Extent2I
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
@@ -200,3 +201,65 @@ class MultipleCellCoadd(CommonComponentsProperties):
             Exploded version of the coadd.
         """
         return ExplodedCoadd(self, pad_psfs_with=pad_psfs_with)
+
+    @classmethod
+    def read_fits(cls, filename: str) -> MultipleCellCoadd:
+        """Read a MultipleCellCoadd from a FITS file.
+
+        Parameters
+        ----------
+        filename: `str`
+            The path to the FITS file to read.
+
+        Returns
+        -------
+        cell_coadd: `MultipleCellCoadd`
+            The MultipleCellCoadd object read from the FITS file.
+        """
+        from ._fits import CellCoaddFitsReader  # Avoid circular import.
+
+        reader = CellCoaddFitsReader(filename)
+        return reader.readAsMultipleCellCoadd()
+
+    @classmethod
+    def readFits(cls, *args, **kwargs) -> MultipleCellCoadd:  # type: ignore[no-untyped-def]
+        """Alias to `read_fits` method.
+
+        Notes
+        -----
+        This method exists for compatability with the rest of the codebase.
+        The presence of this method allows for reading in via
+        `lsst.obs.base.formatters.FitsGenericFormatter`.
+        Whenever possible, use `read_fits` instead, since this method may be
+        deprecated in the near future.
+        """
+        return cls.read_fits(*args, **kwargs)
+
+    def write_fits(self, filename: str, overwrite: bool = False, metadata: PropertySet | None = None) -> None:
+        """Write the coadd as a FITS file.
+
+        Parameters
+        ----------
+        filename: `str`
+            The path to the FITS file to write.
+        overwrite: `bool`, optional
+            Whether to overwrite an existing file?
+        metadata : `~lsst.daf.base.PropertySet`, optional
+            Additional metadata to write to the FITS header.
+        """
+        from ._fits import writeMultipleCellCoaddAsFits  # Avoid circular import.
+
+        writeMultipleCellCoaddAsFits(self, filename, overwrite=overwrite, metadata=metadata)
+
+    def writeFits(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        """Alias to `write_fits` method.
+
+        Notes
+        -----
+        This method exists for compatability with the rest of the codebase.
+        The presence of this method allows for persistence via
+        `lsst.obs.base.formatters.FitsGenericFormatter`.
+        Whenever possible, use `write_fits` instead, since this method may be
+        deprecated in the near future.
+        """
+        self.write_fits(*args, **kwargs)
