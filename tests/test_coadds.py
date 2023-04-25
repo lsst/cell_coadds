@@ -66,7 +66,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         common = CommonComponents(
             units=CoaddUnits.nJy,
             wcs=test_utils.generate_wcs(),
-            band=data_id["band"].name,
+            band=data_id["band"],
             identifiers=PatchIdentifiers.from_data_id(data_id),
         )
 

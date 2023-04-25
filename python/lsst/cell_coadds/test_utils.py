@@ -75,7 +75,7 @@ def generate_data_id(
     skymap_record = skymap.RecordClass(name="test_skymap")
 
     band_element = universe["band"]
-    band_record = band_element.RecordClass(name=band_element)
+    band_record = band_element.RecordClass(name=band)
 
     visit = universe["visit"]
     visit_record = visit.RecordClass(id=visit_id, instrument="test")
@@ -98,8 +98,8 @@ def generate_data_id(
         detector=detector_record,
         patch=patch_record,
         tract=9813,
-        band=band_record,
-        skymap=skymap_record,
+        band=band_record.name,
+        skymap=skymap_record.name,
         physical_filter=physical_filter_record,
     )
 
