@@ -33,7 +33,7 @@ from typing import Any, Mapping
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 import numpy as np
-from astropy.io import fits  # type: ignore[import]
+from astropy.io import fits
 from lsst.afw.image import ImageD, ImageF
 from lsst.daf.base import PropertySet
 from lsst.geom import Box2I, Extent2I, Point2I

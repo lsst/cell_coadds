@@ -33,8 +33,8 @@ from ._image_planes import ViewImagePlanes
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
-    from ._identifiers import CellIdentifiers, ObservationIdentifiers  # pragma: no cover
-    from ._image_planes import ImagePlanes, OwnedImagePlanes  # pragma: no cover
+    from ._identifiers import CellIdentifiers, ObservationIdentifiers
+    from ._image_planes import ImagePlanes, OwnedImagePlanes
 
 
 class SingleCellCoadd(CommonComponentsProperties):
