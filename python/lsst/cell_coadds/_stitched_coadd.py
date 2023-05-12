@@ -55,6 +55,11 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     This class simply inserts subimages from each cell into the full image,
     doing so when an attribute is first accessed to avoid stitching together
     planes that may never be accessed.
+
+    An `StitchedCoadd` cannot be serialized in FITS format directly.  Instead,
+    the recommended way is to serialize the `MultipleCellCoadd` instance that
+    was used to construct the object and reconstruct the `StitchedCoadd` by
+    calling the `stitch` method on it.
     """
 
     def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Box2I | None = None):
