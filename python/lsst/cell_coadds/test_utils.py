@@ -106,12 +106,12 @@ def generate_data_id(
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
     for key in ("visit", "detector"):
-        record_id[key] = record_id[key].id  # type: ignore [attr-defined]
+        record_id[key] = record_id[key].id
 
     # TODO: Catching mypy failures on Github Actions should be made easier,
     # perhaps in DM-36873. Igroring these for now.
-    data_id = DataCoordinate.standardize(record_id, universe=universe)  # type: ignore [arg-type]
-    return data_id.expanded(record)  # type: ignore [arg-type]
+    data_id = DataCoordinate.standardize(record_id, universe=universe)
+    return data_id.expanded(record)
 
 
 def generate_wcs(*, scale: float = 0.168, flipX: bool = True) -> afwGeom.SkyWcs:
