@@ -29,11 +29,12 @@ from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
-from ._image_planes import ImagePlanes, OwnedImagePlanes, ViewImagePlanes
+from ._image_planes import ViewImagePlanes
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
-    from ._identifiers import CellIdentifiers, ObservationIdentifiers  # pragma: no cover
+    from ._identifiers import CellIdentifiers, ObservationIdentifiers
+    from ._image_planes import ImagePlanes, OwnedImagePlanes
 
 
 class SingleCellCoadd(CommonComponentsProperties):

@@ -7,3 +7,13 @@ line_length = 110
 
 [tool.lsst_versions]
 write_to = "python/lsst/cell_coadds/version.py"
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

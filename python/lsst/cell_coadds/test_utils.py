@@ -75,7 +75,7 @@ def generate_data_id(
     skymap_record = skymap.RecordClass(name="test_skymap")
 
     band_element = universe["band"]
-    band_record = band_element.RecordClass(name=band_element)
+    band_record = band_element.RecordClass(name=band)
 
     visit = universe["visit"]
     visit_record = visit.RecordClass(id=visit_id, instrument="test")
@@ -98,20 +98,20 @@ def generate_data_id(
         detector=detector_record,
         patch=patch_record,
         tract=9813,
-        band=band_record,
-        skymap=skymap_record,
+        band=band_record.name,
+        skymap=skymap_record.name,
         physical_filter=physical_filter_record,
     )
 
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
     for key in ("visit", "detector"):
-        record_id[key] = record_id[key].id  # type: ignore [attr-defined]
+        record_id[key] = record_id[key].id
 
     # TODO: Catching mypy failures on Github Actions should be made easier,
     # perhaps in DM-36873. Igroring these for now.
-    data_id = DataCoordinate.standardize(record_id, universe=universe)  # type: ignore [arg-type]
-    return data_id.expanded(record)  # type: ignore [arg-type]
+    data_id = DataCoordinate.standardize(record_id, universe=universe)
+    return data_id.expanded(record)
 
 
 def generate_wcs(*, scale: float = 0.168, flipX: bool = True) -> afwGeom.SkyWcs:

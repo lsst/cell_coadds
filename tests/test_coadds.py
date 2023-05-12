@@ -28,8 +28,9 @@ import lsst.meas.base.tests
 import lsst.utils.tests
 import numpy as np
 from lsst.afw.geom import Quadrupole
-from lsst.afw.image import ImageD
+from lsst.afw.image import ImageF
 from lsst.cell_coadds import (
+    CellCoaddFitsReader,
     CellIdentifiers,
     CoaddUnits,
     CommonComponents,
@@ -45,8 +46,8 @@ from lsst.meas.algorithms import SingleGaussianPsf
 from lsst.skymap import Index2D
 
 
-class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
-    """Test the construction and interfaces of MultipleCellCoadd."""
+class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
+    """A base class that provides a common set of methods."""
 
     psf_size: int
     psf_sigmas: Mapping[Index2D, float]
@@ -65,7 +66,7 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         common = CommonComponents(
             units=CoaddUnits.nJy,
             wcs=test_utils.generate_wcs(),
-            band="i",
+            band=data_id["band"],
             identifiers=PatchIdentifiers.from_data_id(data_id),
         )
 
@@ -79,49 +80,52 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             Index2D(x=2, y=1): 0.8,
         }
 
-        cls.psf_size = 21
         cls.border_size = 5
-        cls.inner_size = 15
-        cls.outer_size = cls.inner_size + 2 * cls.border_size
+        # In practice, we expect this to be squares.
+        # To check for any possible x, y swap, we use different values.
+        cls.psf_size_x, cls.psf_size_y = 21, 23
+        cls.inner_size_x, cls.inner_size_y = 17, 15
+        cls.outer_size_x = cls.inner_size_x + 2 * cls.border_size
+        cls.outer_size_y = cls.inner_size_y + 2 * cls.border_size
 
         patch_outer_bbox = geom.Box2I(
-            geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size, ny * cls.inner_size)
+            geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size_x, ny * cls.inner_size_y)
         )
         patch_outer_bbox.grow(cls.border_size)
 
         # Add one star and one galaxy per quadrant.
-        # The mapping of positions to cell indices assume inner_size = 15 and
-        # outer_size = 25. If that is changed, these values need to be updated.
+        # The mapping of positions to cell indices assume inner_size = (17, 15)
+        # and border_size = 5. If that is changed, these values need an update.
         sources = (
             # flux, centroid, shape
             (1000.0, geom.Point2D(6.3, 7.2), None),
-            (2500.0, geom.Point2D(14.8, 18.3), None),
-            (1500.0, geom.Point2D(19.2, 5.1), None),
-            (3200.0, geom.Point2D(14.1, 23.9), None),
-            (1800.0, geom.Point2D(42.7, 8.9), None),
-            (2100.0, geom.Point2D(32.1, 19.2), None),
+            (2500.0, geom.Point2D(16.8, 18.3), None),
+            (1500.0, geom.Point2D(21.2, 5.1), None),
+            (3200.0, geom.Point2D(16.1, 23.9), None),
+            (1800.0, geom.Point2D(44.7, 8.9), None),
+            (2100.0, geom.Point2D(34.1, 19.2), None),
             (900.0, geom.Point2D(9.1, 13.9), Quadrupole(2.5, 1.5, 0.8)),
-            (1250.0, geom.Point2D(17.3, 11.2), Quadrupole(1.5, 2.5, 0.75)),
+            (1250.0, geom.Point2D(19.3, 11.2), Quadrupole(1.5, 2.5, 0.75)),
             (2100.0, geom.Point2D(5.1, 21.2), Quadrupole(1.7, 1.9, 0.05)),
-            (2800.0, geom.Point2D(22.1, 19.2), Quadrupole(1.9, 1.7, 0.1)),
-            (2350.0, geom.Point2D(38.3, 13.9), Quadrupole(1.8, 1.8, -0.4)),
-            (4999.0, geom.Point2D(43.8, 22.0), Quadrupole(1.6, 1.2, 0.2)),
+            (2800.0, geom.Point2D(24.1, 19.2), Quadrupole(1.9, 1.7, 0.1)),
+            (2350.0, geom.Point2D(40.3, 13.9), Quadrupole(1.8, 1.8, -0.4)),
+            (4999.0, geom.Point2D(45.8, 22.0), Quadrupole(1.6, 1.2, 0.2)),
         )
 
-        # The mapping of positions to cell indices assume inner_size = 15 and
-        # outer_size = 25. If that is changed, these values need to be updated.
+        # The mapping of positions to cell indices assume inner_size = (17, 15)
+        # and border_size = 5. If that is changed, these values need an update.
         cls.test_positions = (
             (geom.Point2D(5, 4), Index2D(x=0, y=0)),  # inner point in lower left
             (geom.Point2D(6, 24), Index2D(x=0, y=1)),  # inner point in upper left
-            (geom.Point2D(23.2, 7.8), Index2D(x=1, y=0)),  # inner point in lower middle
-            (geom.Point2D(21, 22), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(37, 9.4), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(42, 24), Index2D(x=2, y=1)),  # inner point in upper right
+            (geom.Point2D(25.2, 7.8), Index2D(x=1, y=0)),  # inner point in lower middle
+            (geom.Point2D(23, 22), Index2D(x=1, y=1)),  # inner point in upper middle
+            (geom.Point2D(39, 9.4), Index2D(x=2, y=0)),  # inner point in lower right
+            (geom.Point2D(44, 24), Index2D(x=2, y=1)),  # inner point in upper right
             # Some points that lie on the border
-            (geom.Point2D(31, 24), Index2D(x=2, y=1)),  # inner point in upper right
-            (geom.Point2D(44, 0), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(17, 16), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(15, 8), Index2D(x=1, y=0)),  # inner point in lower middle
+            (geom.Point2D(33, 24), Index2D(x=1, y=1)),  # inner point in upper right
+            (geom.Point2D(46, 0), Index2D(x=2, y=0)),  # inner point in lower right
+            (geom.Point2D(19, 16), Index2D(x=1, y=1)),  # inner point in upper middle
+            (geom.Point2D(17, 8), Index2D(x=1, y=0)),  # inner point in lower middle
             (geom.Point2D(0, 29), Index2D(x=0, y=1)),  # inner point in upper left
             (geom.Point2D(0, 0), Index2D(x=0, y=0)),  # inner point in lower left
         )
@@ -142,8 +146,8 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 )
 
                 outer_bbox = geom.Box2I(
-                    geom.Point2I(x * cls.inner_size, y * cls.inner_size),
-                    geom.Extent2I(cls.inner_size, cls.inner_size),
+                    geom.Point2I(x * cls.inner_size_x, y * cls.inner_size_y),
+                    geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                 )
                 outer_bbox.grow(cls.border_size)
 
@@ -155,16 +159,16 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     dataset.addSource(inst_flux, position, shape)
 
                 # Create a spatially varying variance plane.
-                variance = ImageD(
+                variance = ImageF(
                     # np.random.uniform returns an array with x-y flipped.
                     np.random.uniform(
                         0.8,
                         1.2,
                         (
-                            ny * cls.inner_size + 2 * cls.border_size,
-                            nx * cls.inner_size + 2 * cls.border_size,
+                            ny * cls.inner_size_y + 2 * cls.border_size,
+                            nx * cls.inner_size_x + 2 * cls.border_size,
                         ),
-                    ),
+                    ).astype(np.float32),
                     xy0=outer_bbox.getMin(),
                 )
                 exposure, _ = dataset.realize(variance.getArray() ** 0.5, schema, randomSeed=123456789)
@@ -178,11 +182,11 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     SingleCellCoadd(
                         outer=image_plane,
                         psf=SingleGaussianPsf(
-                            cls.psf_size, cls.psf_size, cls.psf_sigmas[Index2D(x=x, y=y)]
+                            cls.psf_size_x, cls.psf_size_y, cls.psf_sigmas[Index2D(x=x, y=y)]
                         ).computeKernelImage(outer_bbox.getCenter()),
                         inner_bbox=geom.Box2I(
-                            geom.Point2I(x * cls.inner_size, y * cls.inner_size),
-                            geom.Extent2I(cls.inner_size, cls.inner_size),
+                            geom.Point2I(x * cls.inner_size_x, y * cls.inner_size_y),
+                            geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
                         inputs={
                             None,  # type: ignore [arg-type]
@@ -192,16 +196,18 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     )
                 )
 
-        grid_bbox = geom.Box2I(geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size, ny * cls.inner_size))
+        grid_bbox = geom.Box2I(
+            geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size_x, ny * cls.inner_size_y)
+        )
         grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=nx, y=ny))
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
             grid=grid,
-            outer_cell_size=geom.Extent2I(cls.outer_size, cls.outer_size),
+            outer_cell_size=geom.Extent2I(cls.outer_size_x, cls.outer_size_y),
             inner_bbox=None,
             common=common,
-            psf_image_size=geom.Extent2I(cls.psf_size, cls.psf_size),
+            psf_image_size=geom.Extent2I(cls.psf_size_x, cls.psf_size_y),
         )
 
     @classmethod
@@ -210,8 +216,71 @@ class MultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         del cls.exposures
         super().tearDownClass()
 
+    def assertMultipleCellCoaddsEqual(self, mcc1: MultipleCellCoadd, mcc2: MultipleCellCoadd) -> None:
+        """Check the equality of two instances of `MultipleCellCoadd`.
 
-class ExplodedCoaddTestCase(MultipleCellCoaddTestCase):
+        Parameters
+        ----------
+        mcc1 : `MultipleCellCoadd`
+            The MultipleCellCoadd created by reading a FITS file.
+        mcc2 : `MultipleCellCoadd`
+            The reference MultipleCellCoadd for comparison.
+        """
+        self.assertEqual(mcc1.band, mcc2.band)
+        self.assertEqual(mcc1.identifiers, mcc2.identifiers)
+        self.assertEqual(mcc1.inner_bbox, mcc2.inner_bbox)
+        self.assertEqual(mcc1.outer_bbox, mcc2.outer_bbox)
+        self.assertEqual(mcc1.outer_cell_size, mcc2.outer_cell_size)
+        self.assertEqual(mcc1.mask_fraction_names, mcc2.mask_fraction_names)
+        self.assertEqual(mcc1.n_noise_realizations, mcc2.n_noise_realizations)
+        self.assertEqual(mcc1.psf_image_size, mcc2.psf_image_size)
+        self.assertEqual(mcc1.units, mcc2.units)
+        self.assertEqual(mcc1.wcs.getFitsMetadata().toString(), mcc2.wcs.getFitsMetadata().toString())
+
+        # Check that the individual cells are identical.
+        self.assertEqual(mcc1.cells.keys(), mcc2.cells.keys())
+        for idx in mcc1.cells.keys():
+            self.assertImagesEqual(mcc1.cells[idx].outer.image, mcc2.cells[idx].outer.image)
+            self.assertMasksEqual(mcc1.cells[idx].outer.mask, mcc2.cells[idx].outer.mask)
+            self.assertImagesEqual(mcc1.cells[idx].outer.variance, mcc2.cells[idx].outer.variance)
+            self.assertImagesEqual(mcc1.cells[idx].psf_image, mcc2.cells[idx].psf_image)
+
+            self.assertEqual(mcc1.cells[idx].band, mcc1.band)
+            self.assertEqual(mcc1.cells[idx].common, mcc1.common)
+            self.assertEqual(mcc1.cells[idx].units, mcc2.units)
+            self.assertEqual(mcc1.cells[idx].wcs, mcc1.wcs)
+            # Identifiers differ because of the ``cell`` component.
+            # Check the other attributes within the identifiers.
+            for attr in ("skymap", "tract", "patch", "band"):
+                self.assertEqual(getattr(mcc1.cells[idx].identifiers, attr), getattr(mcc1.identifiers, attr))
+
+
+class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
+    """Test the construction and interfaces of MultipleCellCoadd."""
+
+    def test_fits(self):
+        """Test that we can write a coadd to a FITS file and read it."""
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            self.multiple_cell_coadd.write_fits(filename)
+            mcc1 = MultipleCellCoadd.read_fits(filename)  # Test the readFits method.
+
+            # Test the reader class.
+            reader = CellCoaddFitsReader(filename)
+            mcc2 = reader.readAsMultipleCellCoadd()
+
+            wcs = reader.readWcs()
+
+        self.assertMultipleCellCoaddsEqual(mcc1, self.multiple_cell_coadd)
+        self.assertMultipleCellCoaddsEqual(mcc2, self.multiple_cell_coadd)
+        # By transititve property of equality, mcc1 == mcc2.
+
+        self.assertEqual(self.multiple_cell_coadd.band, self.multiple_cell_coadd.common.band)
+        self.assertEqual(
+            wcs.getFitsMetadata().toString(), self.multiple_cell_coadd.wcs.getFitsMetadata().toString()
+        )
+
+
+class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     """Test the construction and methods of an ExplodedCoadd instance."""
 
     exploded_coadd: ExplodedCoadd
@@ -230,17 +299,17 @@ class ExplodedCoaddTestCase(MultipleCellCoaddTestCase):
         """Show that psf_image sizes are absurd."""
         self.assertEqual(
             self.exploded_coadd.psf_image.getBBox().getDimensions(),
-            geom.Extent2I(3 * self.psf_size, 2 * self.psf_size),
+            geom.Extent2I(3 * self.psf_size_x, 2 * self.psf_size_y),
         )
         for pad_psfs_with in (-999, -4, 0, 4, 8, 21, 40, 100):
             exploded_coadd = self.multiple_cell_coadd.explode(pad_psfs_with=pad_psfs_with)
             self.assertEqual(
                 exploded_coadd.psf_image.getBBox().getDimensions(),
-                geom.Extent2I(3 * self.outer_size, 2 * self.outer_size),
+                geom.Extent2I(3 * self.outer_size_x, 2 * self.outer_size_y),
             )
 
 
-class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
+class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     """Test the construction and methods of a StitchedCoadd instance."""
 
     stitched_coadd: StitchedCoadd
@@ -260,8 +329,8 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         stitched_psf = self.stitched_coadd.psf
 
         psf_bbox = geom.Box2I(
-            geom.Point2I(-(self.psf_size // 2), -(self.psf_size // 2)),
-            geom.Extent2I(self.psf_size, self.psf_size),
+            geom.Point2I(-(self.psf_size_x // 2), -(self.psf_size_y // 2)),
+            geom.Extent2I(self.psf_size_x, self.psf_size_y),
         )
 
         for position, _ in self.test_positions:
@@ -288,14 +357,14 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         """Test the computeKernelImage method for a StitchedPsf object."""
         stitched_psf = self.stitched_coadd.psf
         psf_bbox = geom.Box2I(
-            geom.Point2I(-(self.psf_size // 2), -(self.psf_size // 2)),
-            geom.Extent2I(self.psf_size, self.psf_size),
+            geom.Point2I(-(self.psf_size_x // 2), -(self.psf_size_y // 2)),
+            geom.Extent2I(self.psf_size_x, self.psf_size_y),
         )
 
         for position, cell_index in self.test_positions:
             image1 = stitched_psf.computeKernelImage(position)
             image2 = SingleGaussianPsf(
-                self.psf_size, self.psf_size, self.psf_sigmas[cell_index]
+                self.psf_size_x, self.psf_size_y, self.psf_sigmas[cell_index]
             ).computeKernelImage(position)
             self.assertImagesEqual(image1, image2)
             self.assertEqual(image1.getBBox(), psf_bbox)
@@ -303,12 +372,12 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
     def test_computeImage(self):
         """Test the computeImage method for a StitchedPsf object."""
         stitched_psf = self.stitched_coadd.psf
-        psf_extent = geom.Extent2I(self.psf_size, self.psf_size)
+        psf_extent = geom.Extent2I(self.psf_size_x, self.psf_size_y)
 
         for position, cell_index in self.test_positions:
             image1 = stitched_psf.computeImage(position)
             image2 = SingleGaussianPsf(
-                self.psf_size, self.psf_size, self.psf_sigmas[cell_index]
+                self.psf_size_x, self.psf_size_y, self.psf_sigmas[cell_index]
             ).computeImage(position)
             self.assertImagesEqual(image1, image2)
             self.assertEqual(image1.getBBox().getDimensions(), psf_extent)
@@ -343,8 +412,8 @@ class StitchedCoaddTestCase(MultipleCellCoaddTestCase):
         for y in range(2):
             for x in range(3):
                 bbox = geom.Box2I(
-                    geom.Point2I(x * self.inner_size, y * self.inner_size),
-                    geom.Extent2I(self.inner_size, self.inner_size),
+                    geom.Point2I(x * self.inner_size_x, y * self.inner_size_y),
+                    geom.Extent2I(self.inner_size_x, self.inner_size_y),
                 )
                 index = Index2D(x=x, y=y)
                 self.assertImagesEqual(exposure.image[bbox], self.exposures[index].image[bbox])

@@ -50,6 +50,13 @@ class ExplodedCoadd(StitchedImagePlanes):
         has the same dimensions as the image (outer) cell it corresponds to.
         If `None`, PSF images will not be padded and the full PSF image will
         generally be smaller than the exploded image it corresponds to.
+
+    Notes
+    -----
+    An `ExplodedCoadd` cannot be serialized in FITS format directly.  Instead,
+    the recommended way is to serialize the `MultipleCellCoadd` instance that
+    was used to construct the object and reconstruct the `ExplodedCoadd` by
+    calling the `explode` method on it.
     """
 
     def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: float | None = None):
