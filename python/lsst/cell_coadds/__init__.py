@@ -23,6 +23,7 @@ from . import typing_helpers
 from ._cell_coadd_builder import *
 from ._common_components import *
 from ._exploded_coadd import *
+from ._fits import *
 from ._grid_container import *
 from ._identifiers import *
 from ._image_planes import *
