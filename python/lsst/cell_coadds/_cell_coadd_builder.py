@@ -144,7 +144,7 @@ class MultipleCellCoaddBuilderConnections(
 
     skymap = cT.Input(
         doc="Input definition of geometry/box and projection/wcs for coadded exposures",
-        name="skymap",
+        name="skyMap",
         storageClass="SkyMap",
         dimensions=("skymap",),
     )
