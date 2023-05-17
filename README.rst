@@ -46,11 +46,6 @@ They include:
 
         $ mypy python/ tests/
 
-    This package includes a typing stub file (``python/lsst/cell_coadds/_cell_coadds.pyi``).
-    This should be updated whenever changes are made to the Python bindings.
-    Major changes (especially new code) can be mostly handled by the
-    ``stubgen`` tool included with ``mypy``, but generally require some hand-editing afterwards (the existing type stubs should certainly not be blindly replaced by ``stubgen`` output).
-
 The best way to use all of these tools is via editor integrations, which should be possible for all major editors.
 All necessary configuration files for these tools are included in the repository (``pyproject.toml``, ``mypy.ini`` etc.), and these configurations should be allowed to take precedence over any others to ensure the CI checks that use those configurations are satisfied.
 Additionally, you may `install a pre-commit <https://pre-commit.com/#installation>`_ hook to ensure that the staged changes are in accordance with these conventions.
