@@ -36,7 +36,7 @@ from lsst.pipe.tasks.coaddBase import makeSkyInfo
 from lsst.skymap import CellInfo, PatchInfo
 
 from ._common_components import CoaddUnits, CommonComponents
-from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
+from ._identifiers import ObservationIdentifiers, PatchIdentifiers
 from ._multiple_cell_coadd import MultipleCellCoadd
 from ._single_cell_coadd import SingleCellCoadd
 from ._uniform_grid import UniformGrid
@@ -87,7 +87,8 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
         self,
         inputs: Mapping[ObservationIdentifiers, tuple[DeferredDatasetHandle, lsst.geom.Box2I]],
         cellInfo: CellInfo,
-    ) -> pipeBase.Struct:
+        common: CommonComponents,
+    ) -> SingleCellCoadd:
         """Build a single-cell coadd
 
         The images passed in from `MultipleCellCoaddBuilderTask` are guaranteed
@@ -104,16 +105,17 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
             image (calexp or warps) and a minimal bounding box that can be read
             without loading the entire image.
         cellInfo: `lsst.skymap.CellInfo`
-            An `lsst.skymap.CellInfo` object with the following
-            attributes:
+            An object with the following attributes:
             - wcs: `lsst.afw.geom.SkyWcs`
             - outer_bbox: `lsst.geom.Box2I`
+        common : `~lsst.cell_coadds.CommonComponents`
+            A dataclass object with properties that are common to the entire
+            `MultipleCellCoadd` object that the cell produced is a part of.
 
         Returns
         -------
-        ret_struct: `pipeBase.Struct`
-            A pipeBase.Struct object with the following fields:
-            image_planes, psf and inputs.
+        single_cell_coadd: `~lsst.cell_coadds.SingleCellCoadd`
+            A single cell coadd.
         """
         raise NotImplementedError()
 
@@ -142,7 +144,7 @@ class MultipleCellCoaddBuilderConnections(
 
     skymap = cT.Input(
         doc="Input definition of geometry/box and projection/wcs for coadded exposures",
-        name="skymap",
+        name="skyMap",
         storageClass="SkyMap",
         dimensions=("skymap",),
     )
@@ -285,26 +287,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             if len(scc_inputs) == 0:
                 continue
 
-            result = self.singleCellCoaddBuilder.run(scc_inputs, cellInfo)
-            if not result:
-                continue
-
-            identifiers = CellIdentifiers(
-                cell=cellInfo.index,
-                skymap=common.identifiers.skymap,
-                tract=common.identifiers.tract,
-                patch=common.identifiers.patch,
-                band=common.identifiers.band,
-            )
-            # TODO: singleCellCoaddBuilder.run should return a SingleCellCoadd
-            cellCoadd = SingleCellCoadd(
-                outer=result.image_planes,
-                psf=result.psf,
-                inner_bbox=cellInfo.inner_bbox,
-                inputs=result.inputs,
-                common=common,
-                identifiers=identifiers,
-            )
+            cellCoadd = self.singleCellCoaddBuilder.run(scc_inputs, cellInfo, common)
             cellCoadds.append(cellCoadd)
 
         # grid has no notion about border or inner/outer boundaries.
