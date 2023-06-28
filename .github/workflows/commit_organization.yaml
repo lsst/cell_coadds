@@ -5,4 +5,4 @@ on:
 
 jobs:
   call-workflow:
-    uses: lsst/rubin_workflows/.github/workflows/mypy.yaml@tickets/DM-39820
+    uses: lsst/rubin_workflows/.github/workflows/merge_commit.yaml@tickets/DM-39820
