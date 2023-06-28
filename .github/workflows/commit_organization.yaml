@@ -1,4 +1,4 @@
-name: Check commits
+name: Check commit messages
 
 on:
   pull_request:
