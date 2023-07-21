@@ -88,7 +88,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         cls.outer_size_x = cls.inner_size_x + 2 * cls.border_size
         cls.outer_size_y = cls.inner_size_y + 2 * cls.border_size
         # The origin should not be at (0, 0) for robust testing.
-        cls.x0, cls.y0 = 0, 0
+        cls.x0, cls.y0 = 5, 2
 
         patch_outer_bbox = geom.Box2I(
             geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
