@@ -87,9 +87,11 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         cls.inner_size_x, cls.inner_size_y = 17, 15
         cls.outer_size_x = cls.inner_size_x + 2 * cls.border_size
         cls.outer_size_y = cls.inner_size_y + 2 * cls.border_size
+        # The origin should not be at (0, 0) for robust testing.
+        cls.x0, cls.y0 = 0, 0
 
         patch_outer_bbox = geom.Box2I(
-            geom.Point2I(0, 0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
+            geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
         patch_outer_bbox.grow(cls.border_size)
 
@@ -98,36 +100,36 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         # and border_size = 5. If that is changed, these values need an update.
         sources = (
             # flux, centroid, shape
-            (1000.0, geom.Point2D(6.3, 7.2), None),
-            (2500.0, geom.Point2D(16.8, 18.3), None),
-            (1500.0, geom.Point2D(21.2, 5.1), None),
-            (3200.0, geom.Point2D(16.1, 23.9), None),
-            (1800.0, geom.Point2D(44.7, 8.9), None),
-            (2100.0, geom.Point2D(34.1, 19.2), None),
-            (900.0, geom.Point2D(9.1, 13.9), Quadrupole(2.5, 1.5, 0.8)),
-            (1250.0, geom.Point2D(19.3, 11.2), Quadrupole(1.5, 2.5, 0.75)),
-            (2100.0, geom.Point2D(5.1, 21.2), Quadrupole(1.7, 1.9, 0.05)),
-            (2800.0, geom.Point2D(24.1, 19.2), Quadrupole(1.9, 1.7, 0.1)),
-            (2350.0, geom.Point2D(40.3, 13.9), Quadrupole(1.8, 1.8, -0.4)),
-            (4999.0, geom.Point2D(45.8, 22.0), Quadrupole(1.6, 1.2, 0.2)),
+            (1000.0, geom.Point2D(cls.x0 + 6.3, cls.y0 + 7.2), None),
+            (2500.0, geom.Point2D(cls.x0 + 16.8, cls.y0 + 18.3), None),
+            (1500.0, geom.Point2D(cls.x0 + 21.2, cls.y0 + 5.1), None),
+            (3200.0, geom.Point2D(cls.x0 + 16.1, cls.y0 + 23.9), None),
+            (1800.0, geom.Point2D(cls.x0 + 44.7, cls.y0 + 8.9), None),
+            (2100.0, geom.Point2D(cls.x0 + 34.1, cls.y0 + 19.2), None),
+            (900.0, geom.Point2D(cls.x0 + 9.1, cls.y0 + 13.9), Quadrupole(2.5, 1.5, 0.8)),
+            (1250.0, geom.Point2D(cls.x0 + 19.3, cls.y0 + 11.2), Quadrupole(1.5, 2.5, 0.75)),
+            (2100.0, geom.Point2D(cls.x0 + 5.1, cls.y0 + 21.2), Quadrupole(1.7, 1.9, 0.05)),
+            (2800.0, geom.Point2D(cls.x0 + 24.1, cls.y0 + 19.2), Quadrupole(1.9, 1.7, 0.1)),
+            (2350.0, geom.Point2D(cls.x0 + 40.3, cls.y0 + 13.9), Quadrupole(1.8, 1.8, -0.4)),
+            (4999.0, geom.Point2D(cls.x0 + 45.8, cls.y0 + 22.0), Quadrupole(1.6, 1.2, 0.2)),
         )
 
         # The mapping of positions to cell indices assume inner_size = (17, 15)
         # and border_size = 5. If that is changed, these values need an update.
         cls.test_positions = (
-            (geom.Point2D(5, 4), Index2D(x=0, y=0)),  # inner point in lower left
-            (geom.Point2D(6, 24), Index2D(x=0, y=1)),  # inner point in upper left
-            (geom.Point2D(25.2, 7.8), Index2D(x=1, y=0)),  # inner point in lower middle
-            (geom.Point2D(23, 22), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(39, 9.4), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(44, 24), Index2D(x=2, y=1)),  # inner point in upper right
+            (geom.Point2D(cls.x0 + 5, cls.y0 + 4), Index2D(x=0, y=0)),  # inner point in lower left
+            (geom.Point2D(cls.x0 + 6, cls.y0 + 24), Index2D(x=0, y=1)),  # inner point in upper left
+            (geom.Point2D(cls.x0 + 25.2, cls.y0 + 7.8), Index2D(x=1, y=0)),  # inner point in lower middle
+            (geom.Point2D(cls.x0 + 23, cls.y0 + 22), Index2D(x=1, y=1)),  # inner point in upper middle
+            (geom.Point2D(cls.x0 + 39, cls.y0 + 9.4), Index2D(x=2, y=0)),  # inner point in lower right
+            (geom.Point2D(cls.x0 + 44, cls.y0 + 24), Index2D(x=2, y=1)),  # inner point in upper right
             # Some points that lie on the border
-            (geom.Point2D(33, 24), Index2D(x=1, y=1)),  # inner point in upper right
-            (geom.Point2D(46, 0), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(19, 16), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(17, 8), Index2D(x=1, y=0)),  # inner point in lower middle
-            (geom.Point2D(0, 29), Index2D(x=0, y=1)),  # inner point in upper left
-            (geom.Point2D(0, 0), Index2D(x=0, y=0)),  # inner point in lower left
+            (geom.Point2D(cls.x0 + 33, cls.y0 + 24), Index2D(x=1, y=1)),  # inner point in upper right
+            (geom.Point2D(cls.x0 + 46, cls.y0 + 0), Index2D(x=2, y=0)),  # inner point in lower right
+            (geom.Point2D(cls.x0 + 19, cls.y0 + 16), Index2D(x=1, y=1)),  # inner point in upper middle
+            (geom.Point2D(cls.x0 + 17, cls.y0 + 8), Index2D(x=1, y=0)),  # inner point in lower middle
+            (geom.Point2D(cls.x0 + 0, cls.y0 + 29), Index2D(x=0, y=1)),  # inner point in upper left
+            (geom.Point2D(cls.x0 + 0, cls.y0 + 0), Index2D(x=0, y=0)),  # inner point in lower left
         )
 
         schema = lsst.meas.base.tests.TestDataset.makeMinimalSchema()
@@ -146,7 +148,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 )
 
                 outer_bbox = geom.Box2I(
-                    geom.Point2I(x * cls.inner_size_x, y * cls.inner_size_y),
+                    geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                     geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                 )
                 outer_bbox.grow(cls.border_size)
@@ -185,7 +187,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             cls.psf_size_x, cls.psf_size_y, cls.psf_sigmas[Index2D(x=x, y=y)]
                         ).computeKernelImage(outer_bbox.getCenter()),
                         inner_bbox=geom.Box2I(
-                            geom.Point2I(x * cls.inner_size_x, y * cls.inner_size_y),
+                            geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
                         inputs={
@@ -197,7 +199,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 )
 
         grid_bbox = geom.Box2I(
-            geom.Point2I(0, 0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
+            geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
         grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny))
 
@@ -412,7 +414,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
         for y in range(2):
             for x in range(3):
                 bbox = geom.Box2I(
-                    geom.Point2I(x * self.inner_size_x, y * self.inner_size_y),
+                    geom.Point2I(self.x0 + x * self.inner_size_x, self.y0 + y * self.inner_size_y),
                     geom.Extent2I(self.inner_size_x, self.inner_size_y),
                 )
                 index = Index2D(x=x, y=y)
