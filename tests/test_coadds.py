@@ -70,7 +70,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             identifiers=PatchIdentifiers.from_data_id(data_id),
         )
 
-        nx, ny = 3, 2
+        cls.nx, cls.ny = 3, 2
         cls.psf_sigmas = {
             Index2D(x=0, y=0): 1.2,
             Index2D(x=0, y=1): 0.7,
@@ -89,7 +89,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         cls.outer_size_y = cls.inner_size_y + 2 * cls.border_size
 
         patch_outer_bbox = geom.Box2I(
-            geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size_x, ny * cls.inner_size_y)
+            geom.Point2I(0, 0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
         patch_outer_bbox.grow(cls.border_size)
 
@@ -135,8 +135,8 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         single_cell_coadds = []
         cls.exposures = dict.fromkeys(cls.psf_sigmas.keys())
 
-        for x in range(nx):
-            for y in range(ny):
+        for x in range(cls.nx):
+            for y in range(cls.ny):
                 identifiers = CellIdentifiers(
                     cell=Index2D(x=x, y=y),
                     skymap=common.identifiers.skymap,
@@ -165,8 +165,8 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                         0.8,
                         1.2,
                         (
-                            ny * cls.inner_size_y + 2 * cls.border_size,
-                            nx * cls.inner_size_x + 2 * cls.border_size,
+                            cls.ny * cls.inner_size_y + 2 * cls.border_size,
+                            cls.nx * cls.inner_size_x + 2 * cls.border_size,
                         ),
                     ).astype(np.float32),
                     xy0=outer_bbox.getMin(),
@@ -197,9 +197,9 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 )
 
         grid_bbox = geom.Box2I(
-            geom.Point2I(0, 0), geom.Extent2I(nx * cls.inner_size_x, ny * cls.inner_size_y)
+            geom.Point2I(0, 0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
-        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=nx, y=ny))
+        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny))
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
@@ -299,13 +299,13 @@ class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
         """Show that psf_image sizes are absurd."""
         self.assertEqual(
             self.exploded_coadd.psf_image.getBBox().getDimensions(),
-            geom.Extent2I(3 * self.psf_size_x, 2 * self.psf_size_y),
+            geom.Extent2I(self.nx * self.psf_size_x, self.ny * self.psf_size_y),
         )
         for pad_psfs_with in (-999, -4, 0, 4, 8, 21, 40, 100):
             exploded_coadd = self.multiple_cell_coadd.explode(pad_psfs_with=pad_psfs_with)
             self.assertEqual(
                 exploded_coadd.psf_image.getBBox().getDimensions(),
-                geom.Extent2I(3 * self.outer_size_x, 2 * self.outer_size_y),
+                geom.Extent2I(self.nx * self.outer_size_x, self.ny * self.outer_size_y),
             )
 
 
