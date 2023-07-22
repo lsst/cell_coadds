@@ -114,22 +114,35 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             (4999.0, geom.Point2D(cls.x0 + 45.8, cls.y0 + 22.0), Quadrupole(1.6, 1.2, 0.2)),
         )
 
-        # The mapping of positions to cell indices assume inner_size = (17, 15)
-        # and border_size = 5. If that is changed, these values need an update.
-        cls.test_positions = (
-            (geom.Point2D(cls.x0 + 5, cls.y0 + 4), Index2D(x=0, y=0)),  # inner point in lower left
-            (geom.Point2D(cls.x0 + 6, cls.y0 + 24), Index2D(x=0, y=1)),  # inner point in upper left
-            (geom.Point2D(cls.x0 + 25.2, cls.y0 + 7.8), Index2D(x=1, y=0)),  # inner point in lower middle
-            (geom.Point2D(cls.x0 + 23, cls.y0 + 22), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(cls.x0 + 39, cls.y0 + 9.4), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(cls.x0 + 44, cls.y0 + 24), Index2D(x=2, y=1)),  # inner point in upper right
+        # The test points are chosen to cover various corner cases assuming
+        # inner_size = (17, 15) and border_size = 5. If that is changed, the
+        # test points should be updated to not fall outside the coadd and still
+        # cover the description in the inline comments.
+        test_points = (
+            geom.Point2D(cls.x0 + 5, cls.y0 + 4),  # inner point in lower left
+            geom.Point2D(cls.x0 + 6, cls.y0 + 24),  # inner point in upper left
+            geom.Point2D(cls.x0 + 25.2, cls.y0 + 7.8),  # inner point in lower middle
+            geom.Point2D(cls.x0 + 23, cls.y0 + 22),  # inner point in upper middle
+            geom.Point2D(cls.x0 + 39, cls.y0 + 9.4),  # inner point in lower right
+            geom.Point2D(cls.x0 + 44, cls.y0 + 24),  # inner point in upper right
             # Some points that lie on the border
-            (geom.Point2D(cls.x0 + 33, cls.y0 + 24), Index2D(x=1, y=1)),  # inner point in upper right
-            (geom.Point2D(cls.x0 + 46, cls.y0 + 0), Index2D(x=2, y=0)),  # inner point in lower right
-            (geom.Point2D(cls.x0 + 19, cls.y0 + 16), Index2D(x=1, y=1)),  # inner point in upper middle
-            (geom.Point2D(cls.x0 + 17, cls.y0 + 8), Index2D(x=1, y=0)),  # inner point in lower middle
-            (geom.Point2D(cls.x0 + 0, cls.y0 + 29), Index2D(x=0, y=1)),  # inner point in upper left
-            (geom.Point2D(cls.x0 + 0, cls.y0 + 0), Index2D(x=0, y=0)),  # inner point in lower left
+            geom.Point2D(cls.x0 + 33, cls.y0 + 24),  # inner point in upper right
+            geom.Point2D(cls.x0 + 46, cls.y0 + 0),  # inner point in lower right
+            geom.Point2D(cls.x0 + 19, cls.y0 + 16),  # inner point in upper middle
+            geom.Point2D(cls.x0 + 17, cls.y0 + 8),  # inner point in lower middle
+            geom.Point2D(cls.x0 + 0, cls.y0 + 29),  # inner point in upper left
+            geom.Point2D(cls.x0 + 0, cls.y0 + 0),  # inner point in lower left
+        )
+        # A tuple of (point, cell_index) pairs.
+        cls.test_positions = (
+            (
+                point,
+                Index2D(
+                    x=int((point.getX() - cls.x0) // cls.inner_size_x),
+                    y=int((point.getY() - cls.y0) // cls.inner_size_y),
+                ),
+            )
+            for point in test_points
         )
 
         schema = lsst.meas.base.tests.TestDataset.makeMinimalSchema()
