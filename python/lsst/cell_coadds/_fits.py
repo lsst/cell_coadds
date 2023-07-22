@@ -116,6 +116,7 @@ class CellCoaddFitsReader:
                 (
                     self._readSingleCellCoadd(
                         data=row,
+                        header=header,
                         common=common,
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
@@ -136,6 +137,7 @@ class CellCoaddFitsReader:
     def _readSingleCellCoadd(
         data: Mapping[str, Any],
         common: CommonComponents,
+        header: Mapping[str, Any],
         *,
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
@@ -169,8 +171,8 @@ class CellCoaddFitsReader:
             xy0=(-(psf_image_size // 2)).asPoint(),  # integer division and negation do not commute.
         )  # use the variable
         xy0 = Point2I(
-            inner_cell_size.x * data["cell_id"][0] - buffer.x,
-            inner_cell_size.y * data["cell_id"][1] - buffer.y,
+            inner_cell_size.x * data["cell_id"][0] - buffer.x + header["GRMIN1"],
+            inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
         )
         mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
         image_planes = OwnedImagePlanes(
@@ -197,8 +199,8 @@ class CellCoaddFitsReader:
             psf=psf,
             inner_bbox=Box2I(
                 corner=Point2I(
-                    inner_cell_size.x * data["cell_id"][0],
-                    inner_cell_size.y * data["cell_id"][1],
+                    inner_cell_size.x * data["cell_id"][0] + header["GRMIN1"],
+                    inner_cell_size.y * data["cell_id"][1] + header["GRMIN2"],
                 ),
                 dimensions=inner_cell_size,
             ),
