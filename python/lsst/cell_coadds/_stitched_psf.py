@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import pickle
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar, Dict
 
@@ -158,6 +159,13 @@ class StitchedPsf(ImagePsf):
 
     def __setstate__(self, state: dict) -> None:
         StitchedPsf.__init__(self, state["images"], state["grid"])
+
+    def _write(self) -> bytes:
+        return pickle.dumps((self._images, self._grid))
+
+    @staticmethod
+    def _read(pkl: bytes) -> StitchedPsf:
+        return StitchedPsf(*pickle.loads(pkl))
 
     def writeFits(self, name: str) -> None:
         """Persist the PSF as a FITS file."""
