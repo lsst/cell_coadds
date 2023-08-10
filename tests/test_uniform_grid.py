@@ -34,9 +34,18 @@ class UniformGridTestCase(unittest.TestCase):
     translation."""
 
     def setUp(self) -> None:
-        self.bbox = Box2I(Point2I(x=1, y=2), Extent2I(x=15, y=12))
-        self.cell_size = Extent2I(x=3, y=2)
-        self.shape = Index2D(x=5, y=6)
+        self.x0 = 1
+        self.y0 = 2
+        self.bw = 15
+        self.bh = 12
+        self.nx = 5
+        self.ny = 6
+        self.cw = 3
+        self.ch = 2
+
+        self.bbox = Box2I(Point2I(x=self.x0, y=self.y0), Extent2I(x=self.bw, y=self.bh))
+        self.cell_size = Extent2I(x=self.cw, y=self.ch)
+        self.shape = Index2D(x=self.nx, y=self.ny)
 
     def test_ctor_bbox_cell_size(self) -> None:
         """Test UniformGrid after construction with (bbox, cell_size)."""
@@ -50,7 +59,7 @@ class UniformGridTestCase(unittest.TestCase):
 
     def test_ctor_cell_size_shape_min(self) -> None:
         """Test UniformGrid after construction with (cell_size, shape, min)."""
-        grid = UniformGrid(self.cell_size, self.shape, self.bbox.getMin())
+        grid = UniformGrid(self.cell_size, self.shape, min=self.bbox.getMin())
         self._check(grid)
 
     def _check(self, grid: UniformGrid) -> None:
