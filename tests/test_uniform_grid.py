@@ -92,35 +92,6 @@ class UniformGridTestCase(unittest.TestCase):
         # TODO: Add more test cases, especially with non-zero min if this
         # is a good test.
 
-    def test_index_overloads(self):
-        """Test methods that accept either a single (x, y) object argument or
-        kw-only x and y args.
-        """
-        return
-        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
-        self.assertEqual(grid.index(Point2I(x=9, y=5)), grid.index(x=9, y=5))
-        self.assertEqual(grid.min_of(Index2D(x=1, y=3)), grid.min_of(x=1, y=3))
-        self.assertEqual(grid.bbox_of(Index2D(x=1, y=3)), grid.bbox_of(x=1, y=3))
-        with self.assertRaises(TypeError):
-            grid.index(9, 5)
-        with self.assertRaises(TypeError):
-            grid.min_of(1, 3)
-        with self.assertRaises(TypeError):
-            grid.bbox_of(1, 3)
-        # Unlike C++, Python does not allow overloading methods with different
-        # signatures. Therefore, explicitly test that invalid calls to the
-        # methods raise the error that we expect.
-        with self.assertRaises(TypeError):
-            grid.index(position=Point2I(x=9, y=5), x=9, y=5)
-        with self.assertRaises(TypeError):
-            grid.min_of(index=Index2D(x=1, y=3), x=1)
-        with self.assertRaises(TypeError, msg="sdfs"):
-            grid.bbox_of(x=1)
-        with self.assertRaises(TypeError):
-            grid.min_of(Index2D(x=1, y=3), x=1, y=3)
-        with self.assertRaises(TypeError):
-            grid.bbox_of(Index2D(x=1, y=3), 1, 3)
-
     def test_pickle(self):
         """Test that UniformGrid objects are pickleable."""
         grid1 = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
