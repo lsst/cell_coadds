@@ -33,33 +33,43 @@ class UniformGrid:
     Parameters
     ----------
     cell_size : `lsst.geom.Extent2I`
-        The size of each grid cell.
+        The size of each interior grid cell.
     shape : `lsst.skymap.Index2D`
         The number of cells in the grid in each dimension.
+    padding : `int`, optional
+        The number of pixels to pad the grid in each dimension.
     min : `lsst.geom.Point2I` or None, optional
-        The minimum (lower left) corner of the grid. If `None`, the minimum
-        corner is set to be (0, 0).
+        The minimum (lower left) corner of the interior grid, excluding
+        ``padding``. If `None`, the minimum corner is set to be (0, 0).
     """
 
-    def __init__(self, cell_size: geom.Extent2I, shape: Index2D, min: geom.Point2I | None = None) -> None:
+    def __init__(
+        self, cell_size: geom.Extent2I, shape: Index2D, *, padding: int = 0, min: geom.Point2I | None = None
+    ) -> None:
         self._cell_size = cell_size
         self._shape = shape
+        self._padding = padding
         if min is None:
             min = geom.Point2I(0, 0)
-        self._bbox = geom.Box2I(min, geom.Extent2I(cell_size.getX() * shape.x, cell_size.getY() * shape.y))
+        self._bbox = geom.Box2I(
+            geom.Point2I(min.x, min.y),
+            geom.Extent2I(cell_size.getX() * shape.x, cell_size.getY() * shape.y),
+        )
 
     # Factory methods for constructing a UniformGrid
     @classmethod
-    def from_bbox_shape(cls, bbox: geom.Box2I, shape: Index2D) -> UniformGrid:
+    def from_bbox_shape(cls, bbox: geom.Box2I, shape: Index2D, padding: int = 0) -> UniformGrid:
         """Factory method to construct from a bounding box and a shape.
 
         Parameters
         ----------
         bbox : `lsst.geom.Box2I`
-            Bounding box of the full grid.
+            Bounding box of the full grid (without including ``padding``).
         shape : `lsst.skymap.Index2D`
             Number of cells in the grid in each dimension.
             Must divide the ``bbox`` width and height evenly.
+        padding : `int`, optional
+            The number of pixels to pad the grid in each dimension.
 
         Returns
         -------
@@ -75,19 +85,21 @@ class UniformGrid:
         cls._validate_bbox_shape(bbox, shape)
 
         cell_size = geom.Extent2I(bbox.getWidth() // shape.x, bbox.getHeight() // shape.y)
-        return cls(cell_size, shape, bbox.getMin())
+        return cls(cell_size, shape, min=bbox.getMin(), padding=padding)
 
     @classmethod
-    def from_bbox_cell_size(cls, bbox: geom.Box2I, cell_size: geom.Extent2I) -> UniformGrid:
+    def from_bbox_cell_size(cls, bbox: geom.Box2I, cell_size: geom.Extent2I, padding: int = 0) -> UniformGrid:
         """Factor method to construct from a bounding box and a cell size.
 
         Parameters
         ----------
         bbox : `lsst.geom.Box2I`
-            Bounding box of the full grid.
+            Bounding box of the full grid (without including ``padding``).
         cell_size : `lsst.geom.Extent2I`
-            Size of each grid cell.
+            Size of each interior grid cell.
             Must divide the ``bbox`` width and height evenly.
+        padding : `int`, optional
+            The number of pixels to pad the grid in each dimension.
 
         Returns
         -------
@@ -102,7 +114,7 @@ class UniformGrid:
         """
         cls._validate_bbox_cell_size(bbox, cell_size)
         shape = Index2D(bbox.getWidth() // cell_size.x, bbox.getHeight() // cell_size.y)
-        return cls(cell_size, shape, bbox.getMin())
+        return cls(cell_size, shape, padding=padding, min=bbox.getMin())
 
     # Methods to validate the input parameters
     @staticmethod
@@ -136,6 +148,10 @@ class UniformGrid:
         return self._bbox
 
     @property
+    def bbox_with_padding(self) -> geom.Box2I:
+        return self._bbox.dilatedBy(self._padding)
+
+    @property
     def cell_size(self) -> geom.Extent2I:
         return self._cell_size
 
@@ -143,15 +159,25 @@ class UniformGrid:
     def shape(self) -> Index2D:
         return self._shape
 
+    @property
+    def padding(self) -> int:
+        return self._padding
+
     # Implement C++ like getters
     def get_bbox(self) -> geom.Box2I:
         return self._bbox
+
+    def get_bbox_with_padding(self) -> geom.Box2I:
+        return self.bbox_with_padding
 
     def get_cell_size(self) -> geom.Extent2I:
         return self._cell_size
 
     def get_shape(self) -> Index2D:
         return self._shape
+
+    def get_padding(self) -> int:
+        return self._padding
 
     # Dunder methods
     def __eq__(self, other: object) -> bool:
@@ -182,13 +208,31 @@ class UniformGrid:
         Raises
         ------
         ValueError
-            Raised if ``position`` is not within the grid's bounding box.
+            Raised if ``position`` is not within the grid's bounding box
+            including the padding.
         """
-        if not self.bbox.contains(position):
-            raise ValueError(f"Position {position} is not within bounding box {self.bbox}.s")
+        if not self.bbox_with_padding.contains(position):
+            raise ValueError(
+                f"Position {position} is not within outer bounding box {self.bbox_with_padding}.s"
+            )
 
         offset = position - self.bbox.getBegin()
-        return Index2D(offset.x // self._cell_size.x, offset.y // self._cell_size.y)
+
+        if offset.x < 0:
+            x = 0
+        elif offset.x >= self.shape.x * self.cell_size.x:
+            x = self.shape.x - 1
+        else:
+            x = offset.x // self.cell_size.x
+
+        if offset.y < 0:
+            y = 0
+        elif offset.y >= self.shape.y * self.cell_size.y:
+            y = self.shape.y - 1
+        else:
+            y = offset.y // self.cell_size.y
+
+        return Index2D(x, y)
 
     def min_of(self, index: Index2D) -> geom.Point2I:
         """Minimum point of a single cell's bounding box.
@@ -203,10 +247,16 @@ class UniformGrid:
         point : `lsst.geom.Point2I`
             The minimum point of the cell's bounding box.
         """
-        # TODO: Need a check to see if the index is a valid one.
+        if not (0 <= index.x < self._shape.x and 0 <= index.y < self._shape.y):
+            raise ValueError(f"{index} is not within the grid's shape {self._shape}.")
+
+        offset = geom.Point2I(
+            -self._padding if index.x == 0 else 0,
+            -self._padding if index.y == 0 else 0,
+        )
         return geom.Point2I(
-            index.x * self.cell_size.x + self.bbox.getBeginX(),
-            index.y * self.cell_size.y + self.bbox.getBeginY(),
+            index.x * self.cell_size.x + self.bbox.getBeginX() + offset.x,
+            index.y * self.cell_size.y + self.bbox.getBeginY() + offset.y,
         )
 
     def bbox_of(self, index: Index2D) -> geom.Box2I:
@@ -222,4 +272,10 @@ class UniformGrid:
         bbox : `lsst.geom.Box2I`
             The bounding box of the cell.
         """
-        return geom.Box2I(self.min_of(index), self.cell_size)
+        # Compute the buffer to add if ``index`` corresponds to the leftmost or
+        # the rightmost cell or the topmost or the bottommost cell.
+        buffer = geom.Extent2I(
+            self.padding if index.x in {0, self.shape.x - 1} else 0,
+            self.padding if index.y in {0, self.shape.y - 1} else 0,
+        )
+        return geom.Box2I(self.min_of(index), self.cell_size + buffer)
