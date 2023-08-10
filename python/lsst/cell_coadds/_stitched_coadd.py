@@ -67,10 +67,10 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Box2I | None = None):
         super().__init__()
         if bbox is None:
-            bbox = cell_coadd.inner_bbox
-        elif not cell_coadd.inner_bbox.contains(bbox):
+            bbox = cell_coadd.outer_bbox
+        elif not cell_coadd.outer_bbox.contains(bbox):
             raise ValueError(
-                f"Cell coadd inner bounding box {cell_coadd.inner_bbox} does not "
+                f"Cell coadd inner bounding box {cell_coadd.outer_bbox} does not "
                 f"contain stitch target area {bbox}."
             )
         self._bbox = bbox
