@@ -43,9 +43,9 @@ class GridContainer(MutableMapping[Index2D, T]):
 
     Parameters
     ----------
-    shape : `lsst.skymap.Index2D`
+    shape : `~lsst.skymap.Index2D`
         The number of cells in the grid in each dimension.
-    offset : `lsst.skymap.Index2D` or None, optional
+    offset : `~lsst.skymap.Index2D` or None, optional
         The integer offset of the grid in each dimension. If `None`, the offset
         is Index2D(0, 0).
     """
@@ -182,7 +182,7 @@ class GridContainer(MutableMapping[Index2D, T]):
 
         Parameters
         ----------
-        transform: Callable[[T], T]
+        transform : Callable[[T], T]
             A callable function that takes a cell value and returns a new
         """
         gc = GridContainer[T](self.shape, self.offset)

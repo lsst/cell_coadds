@@ -211,12 +211,12 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Parameters
         ----------
-        filename: `str`
+        filename : `str`
             The path to the FITS file to read.
 
         Returns
         -------
-        cell_coadd: `MultipleCellCoadd`
+        cell_coadd : `MultipleCellCoadd`
             The MultipleCellCoadd object read from the FITS file.
         """
         from ._fits import CellCoaddFitsReader  # Avoid circular import.
@@ -243,9 +243,9 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Parameters
         ----------
-        filename: `str`
+        filename : `str`
             The path to the FITS file to write.
-        overwrite: `bool`, optional
+        overwrite : `bool`, optional
             Whether to overwrite an existing file?
         metadata : `~lsst.daf.base.PropertySet`, optional
             Additional metadata to write to the FITS header.
