@@ -28,7 +28,7 @@ import lsst.meas.base.tests
 import lsst.utils.tests
 import numpy as np
 from lsst.afw.geom import Quadrupole
-from lsst.afw.image import ImageF
+from lsst.afw.image import ExposureF, ImageF
 from lsst.cell_coadds import (
     CellCoaddFitsReader,
     CellIdentifiers,
@@ -434,6 +434,29 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 self.assertImagesEqual(exposure.image[bbox], self.exposures[index].image[bbox])
                 self.assertImagesEqual(exposure.variance[bbox], self.exposures[index].variance[bbox])
                 self.assertImagesEqual(exposure.mask[bbox], self.exposures[index].mask[bbox])
+
+    def test_fits(self):
+        """Test that we can write an Exposure with StitchedPsf to a FITS file
+        and read it."""
+        write_exposure = self.stitched_coadd.asExposure()
+        with lsst.utils.tests.getTempFilePath(".fits") as filename:
+            write_exposure.writeFits(filename)
+            read_exposure = ExposureF.readFits(filename)  # Test the readFits method.
+
+        # Test that the image planes are identical.
+        self.assertImagesEqual(read_exposure.image, write_exposure.image)
+        self.assertImagesEqual(read_exposure.variance, write_exposure.variance)
+        self.assertImagesEqual(read_exposure.mask, write_exposure.mask)
+
+        # Test the PSF images in the StitchedPsf.
+        for index in write_exposure.psf.images.indices():
+            self.assertImagesEqual(read_exposure.psf.images[index], write_exposure.psf.images[index])
+
+        # Test that the WCSs are equal.
+        self.assertEqual(
+            read_exposure.wcs.getFitsMetadata().toString(),
+            write_exposure.wcs.getFitsMetadata().toString(),
+        )
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

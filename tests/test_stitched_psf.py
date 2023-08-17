@@ -220,6 +220,7 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
             self.assertImagesEqual(image1, image2)
 
     def test_pickle(self):
+        """Test that StitchedPsf objects can be pickled and unpickled."""
         self.assertTrue(self.psf.isPersistable())
         stream = pickle.dumps(self.psf)
         psf = pickle.loads(stream)

@@ -56,10 +56,12 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
     doing so when an attribute is first accessed to avoid stitching together
     planes that may never be accessed.
 
-    An `StitchedCoadd` cannot be serialized in FITS format directly.  Instead,
+    A `StitchedCoadd` cannot be serialized in FITS format directly.  Instead,
     the recommended way is to serialize the `MultipleCellCoadd` instance that
     was used to construct the object and reconstruct the `StitchedCoadd` by
-    calling the `stitch` method on it.
+    calling the `stitch` method on it. A less recommended way is to call the
+    `asExposure` method to get an `lsst.afw.image.Exposure` object and persist
+    that to the disk.
     """
 
     def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Box2I | None = None):
