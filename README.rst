@@ -18,6 +18,12 @@ cell_coadds
 It includes the data structures for defining coadds of astronomical images in small (few arcsecond) cells, in which only input images that fully contain a cell are included.
 This helps mitigate problems with PSF discontinuities that are present in traditional coadds.
 
+To import this package, setup the package in your environment and then run:
+
+.. code-block:: python
+
+    >>> import lsst.cell_coadds
+
 Development workflow
 ====================
 
