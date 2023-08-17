@@ -24,6 +24,7 @@ from __future__ import annotations
 import pickle
 import unittest
 
+import lsst.utils.tests
 from lsst.cell_coadds import UniformGrid
 from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.skymap import Index2D
@@ -34,9 +35,18 @@ class UniformGridTestCase(unittest.TestCase):
     translation."""
 
     def setUp(self) -> None:
-        self.bbox = Box2I(Point2I(x=1, y=2), Extent2I(x=15, y=12))
-        self.cell_size = Extent2I(x=3, y=2)
-        self.shape = Index2D(x=5, y=6)
+        self.x0 = 1
+        self.y0 = 2
+        self.bw = 15
+        self.bh = 12
+        self.nx = 5
+        self.ny = 6
+        self.cw = 3
+        self.ch = 2
+
+        self.bbox = Box2I(Point2I(x=self.x0, y=self.y0), Extent2I(x=self.bw, y=self.bh))
+        self.cell_size = Extent2I(x=self.cw, y=self.ch)
+        self.shape = Index2D(x=self.nx, y=self.ny)
 
     def test_ctor_bbox_cell_size(self) -> None:
         """Test UniformGrid after construction with (bbox, cell_size)."""
@@ -50,7 +60,7 @@ class UniformGridTestCase(unittest.TestCase):
 
     def test_ctor_cell_size_shape_min(self) -> None:
         """Test UniformGrid after construction with (cell_size, shape, min)."""
-        grid = UniformGrid(self.cell_size, self.shape, self.bbox.getMin())
+        grid = UniformGrid(self.cell_size, self.shape, min=self.bbox.getMin())
         self._check(grid)
 
     def _check(self, grid: UniformGrid) -> None:
@@ -87,46 +97,127 @@ class UniformGridTestCase(unittest.TestCase):
 
     def test_repr(self):
         """Test that UniformGrid.__repr__ round-trips through eval."""
-        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
-        self.assertEqual(eval(repr(grid)), grid, msg=repr(grid))
-        # TODO: Add more test cases, especially with non-zero min if this
-        # is a good test.
+        for grid in (
+            UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size),
+            UniformGrid.from_bbox_shape(self.bbox, self.shape, padding=1),
+            UniformGrid(self.cell_size, self.shape, min=self.bbox.getMin(), padding=3),
+        ):
+            self.assertEqual(eval(repr(grid)), grid, msg=repr(grid))
 
-    def test_index_overloads(self):
-        """Test methods that accept either a single (x, y) object argument or
-        kw-only x and y args.
-        """
-        return
-        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
-        self.assertEqual(grid.index(Point2I(x=9, y=5)), grid.index(x=9, y=5))
-        self.assertEqual(grid.min_of(Index2D(x=1, y=3)), grid.min_of(x=1, y=3))
-        self.assertEqual(grid.bbox_of(Index2D(x=1, y=3)), grid.bbox_of(x=1, y=3))
-        with self.assertRaises(TypeError):
-            grid.index(9, 5)
-        with self.assertRaises(TypeError):
-            grid.min_of(1, 3)
-        with self.assertRaises(TypeError):
-            grid.bbox_of(1, 3)
-        # Unlike C++, Python does not allow overloading methods with different
-        # signatures. Therefore, explicitly test that invalid calls to the
-        # methods raise the error that we expect.
-        with self.assertRaises(TypeError):
-            grid.index(position=Point2I(x=9, y=5), x=9, y=5)
-        with self.assertRaises(TypeError):
-            grid.min_of(index=Index2D(x=1, y=3), x=1)
-        with self.assertRaises(TypeError, msg="sdfs"):
-            grid.bbox_of(x=1)
-        with self.assertRaises(TypeError):
-            grid.min_of(Index2D(x=1, y=3), x=1, y=3)
-        with self.assertRaises(TypeError):
-            grid.bbox_of(Index2D(x=1, y=3), 1, 3)
-
-    def test_pickle(self):
+    @lsst.utils.tests.methodParameters(padding=[0, 3])
+    def test_pickle(self, padding: int):
         """Test that UniformGrid objects are pickleable."""
-        grid1 = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size)
+        grid1 = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size, padding=padding)
         grid2 = pickle.loads(pickle.dumps(grid1, pickle.HIGHEST_PROTOCOL))
         self.assertIsInstance(grid2, UniformGrid)
         self.assertEqual(grid1, grid2)
+
+    @lsst.utils.tests.methodParameters(padding=(1, 2, 3, 4, 7, 10))
+    def test_padding(self, padding: int):
+        """Test that bbox_of and index methods work with padding > 0."""
+        grid = UniformGrid.from_bbox_cell_size(self.bbox, self.cell_size, padding=padding)
+
+        # Test all interior cells
+        for x in range(1, self.nx - 1):
+            for y in range(1, self.ny - 1):
+                bbox = grid.bbox_of(Index2D(x=x, y=y))
+                self.assertEqual(bbox.getDimensions(), self.cell_size)
+                self.assertEqual(bbox.getMin(), Point2I(x=x * self.cw + self.x0, y=y * self.ch + self.y0))
+
+        # Test the four corners
+        for x in (0, self.nx - 1):
+            for y in (0, self.ny - 1):
+                bbox = grid.bbox_of(Index2D(x=x, y=y))
+                self.assertEqual(
+                    bbox.getDimensions(),
+                    self.cell_size + Extent2I(padding, padding),
+                )
+                self.assertEqual(
+                    bbox.getMin(),
+                    Point2I(
+                        x=x * self.cw + self.x0 - padding * (x == 0),
+                        y=y * self.ch + self.y0 - padding * (y == 0),
+                    ),
+                )
+
+        # Test along the two horizontal edges
+        for x in (0, self.nx - 1):
+            for y in range(1, self.ny - 1):
+                bbox = grid.bbox_of(Index2D(x=x, y=y))
+                self.assertEqual(bbox.getDimensions(), self.cell_size + Extent2I(padding, 0))
+                self.assertEqual(
+                    bbox.getMin(),
+                    Point2I(x=x * self.cw + self.x0 - padding * (x == 0), y=y * self.ch + self.y0),
+                )
+
+        # Test along the two vertical edges
+        for x in range(1, self.nx - 1):
+            for y in (0, self.ny - 1):
+                bbox = grid.bbox_of(Index2D(x=x, y=y))
+                self.assertEqual(bbox.getDimensions(), self.cell_size + Extent2I(0, padding))
+                self.assertEqual(
+                    bbox.getMin(),
+                    Point2I(x=x * self.cw + self.x0, y=y * self.ch + self.y0 - padding * (y == 0)),
+                )
+
+        # Check the mapping between positions and indices
+        positions_index = (
+            # Check the four interior corners
+            (Point2I(x=self.x0, y=self.y0), Index2D(x=0, y=0)),  # Lower-left corner, in the x and y buffer
+            (
+                Point2I(x=self.x0 + self.bw - 1, y=self.y0),
+                Index2D(x=self.nx - 1, y=0),
+            ),  # Lower-right corner, in the x buffer
+            (
+                Point2I(x=self.x0, y=self.y0 + self.bh - 1),
+                Index2D(x=0, y=self.ny - 1),
+            ),  # Upper-left corner, in the y buffer
+            (
+                Point2I(x=self.x0 + self.bw - 1, y=self.y0 + self.bh - 1),
+                Index2D(x=self.nx - 1, y=self.ny - 1),
+            ),  # Upper-right corner, in the x and y buffer
+            # Check for one cell from the origin in either directions
+            (Point2I(x=self.x0, y=self.y0 + self.ch), Index2D(x=0, y=1)),  # Left edge, in the x buffer
+            (Point2I(x=self.x0 + self.cw, y=self.y0), Index2D(x=1, y=0)),
+            # Check the four corners of the lower left buffer region
+            (Point2I(x=self.x0 - padding, y=self.y0), Index2D(0, 0)),
+            (Point2I(x=self.x0, y=self.y0 - padding), Index2D(0, 0)),
+            (Point2I(x=self.x0 - padding, y=self.y0), Index2D(0, 0)),
+            (Point2I(x=self.x0 - padding, y=self.y0 - padding), Index2D(0, 0)),
+            # Check the four corners of the lower right buffer region
+            (Point2I(x=self.x0 + self.bw, y=self.y0), Index2D(self.nx - 1, 0)),
+            (Point2I(x=self.x0 + self.bw + padding - 1, y=self.y0), Index2D(self.nx - 1, 0)),
+            (Point2I(x=self.x0 + self.bw + padding - 1, y=self.y0 - padding), Index2D(self.nx - 1, 0)),
+            (Point2I(x=self.x0 + self.bw, y=self.y0 - padding), Index2D(self.nx - 1, 0)),
+            # Check the four corners of the upper left buffer region
+            (Point2I(x=self.x0, y=self.y0 + self.bh), Index2D(0, self.ny - 1)),
+            (Point2I(x=self.x0, y=self.y0 + self.bh + padding - 1), Index2D(0, self.ny - 1)),
+            (Point2I(x=self.x0 - padding, y=self.y0 + self.bh + padding - 1), Index2D(0, self.ny - 1)),
+            (Point2I(x=self.x0 - padding, y=self.y0 + self.bh), Index2D(0, self.ny - 1)),
+            # Check the four corners of the upper right buffer region
+            (Point2I(x=self.x0 + self.bw, y=self.y0 + self.bh), Index2D(self.nx - 1, self.ny - 1)),
+            (
+                Point2I(x=self.x0 + self.bw, y=self.y0 + self.bh + padding - 1),
+                Index2D(self.nx - 1, self.ny - 1),
+            ),
+            (
+                Point2I(x=self.x0 + self.bw + padding - 1, y=self.y0 + self.bh),
+                Index2D(self.nx - 1, self.ny - 1),
+            ),
+            (
+                Point2I(x=self.x0 + self.bw + padding - 1, y=self.y0 + self.bh + padding - 1),
+                Index2D(self.nx - 1, self.ny - 1),
+            ),
+        )
+
+        for position, index in positions_index:
+            self.assertEqual(grid.index(position), index, msg=f"{position} does not map to {index}")
+
+        # Check that positions outside the grid raise an exception
+        self.assertRaises(ValueError, grid.index, Point2I(x=self.x0 - padding - 1, y=self.y0))
+        self.assertRaises(ValueError, grid.index, Point2I(x=self.x0 + self.bw + padding, y=self.y0))
+        self.assertRaises(ValueError, grid.index, Point2I(x=self.x0, y=self.y0 - padding - 1))
+        self.assertRaises(ValueError, grid.index, Point2I(x=self.x0, y=self.y0 + self.bh + padding))
 
 
 if __name__ == "__main__":

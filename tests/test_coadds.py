@@ -424,8 +424,13 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
         """Test the asExposure method for a StitchedCoadd object."""
         exposure = self.stitched_coadd.asExposure()
 
-        for y in range(2):
-            for x in range(3):
+        # Check that the bounding box is correct.
+        bbox = exposure.getBBox()
+        self.assertEqual(bbox.getWidth(), self.inner_size_x * self.nx + 2 * self.border_size)
+        self.assertEqual(bbox.getHeight(), self.inner_size_y * self.ny + 2 * self.border_size)
+
+        for y in range(self.ny):
+            for x in range(self.nx):
                 bbox = geom.Box2I(
                     geom.Point2I(self.x0 + x * self.inner_size_x, self.y0 + y * self.inner_size_y),
                     geom.Extent2I(self.inner_size_x, self.inner_size_y),
