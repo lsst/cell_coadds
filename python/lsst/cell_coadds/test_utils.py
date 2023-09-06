@@ -97,16 +97,16 @@ def generate_data_id(
     )
 
     # A dictionary with all the relevant records.
-    record = dict(
-        instrument=instrument_record,
-        visit=visit_record,
-        detector=detector_record,
-        patch=patch_record,
-        tract=9813,
-        band=band_record.name,
-        skymap=skymap_record.name,
-        physical_filter=physical_filter_record,
-    )
+    record = {
+        "instrument": instrument_record,
+        "visit": visit_record,
+        "detector": detector_record,
+        "patch": patch_record,
+        "tract": 9813,
+        "band": band_record.name,
+        "skymap": skymap_record.name,
+        "physical_filter": physical_filter_record,
+    }
 
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
