@@ -35,7 +35,7 @@ class UniformGridTestCase(unittest.TestCase):
     translation.
     """
 
-    def setUp(self) -> None:
+    def setUp(self) -> None:  # noqa: D102
         self.x0 = 1
         self.y0 = 2
         self.bw = 15

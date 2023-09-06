@@ -42,14 +42,14 @@ class ImageLike(Protocol):
     def __getitem__(self, bbox: Box2I) -> Self:
         pass
 
-    def __setitem__(self, bbox: Box2I, other: Self | int) -> None:
+    def __setitem__(self, bbox: Box2I, other: Self | int) -> None:  # noqa: D105
         pass
 
-    def getBBox(self) -> Box2I:
+    def getBBox(self) -> Box2I:  # noqa: D102
         pass
 
-    def getXY0(self) -> Point2I:
+    def getXY0(self) -> Point2I:  # noqa: D102
         pass
 
-    def setXY0(self, xy0: Point2I) -> None:
+    def setXY0(self, xy0: Point2I) -> None:  # noqa: D102
         pass

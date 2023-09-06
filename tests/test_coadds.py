@@ -255,7 +255,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
 
         # Check that the individual cells are identical.
         self.assertEqual(mcc1.cells.keys(), mcc2.cells.keys())
-        for idx in mcc1.cells.keys():
+        for idx in mcc1.cells.keys():  # noqa: SIM118
             self.assertImagesEqual(mcc1.cells[idx].outer.image, mcc2.cells[idx].outer.image)
             self.assertMasksEqual(mcc1.cells[idx].outer.mask, mcc2.cells[idx].outer.mask)
             self.assertImagesEqual(mcc1.cells[idx].outer.variance, mcc2.cells[idx].outer.variance)

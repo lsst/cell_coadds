@@ -37,7 +37,7 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
     """Test the methods of StitchedPsf class."""
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls) -> None:  # noqa: D102
         super().setUpClass()
 
         shape = Index2D(x=3, y=2)
@@ -246,7 +246,7 @@ class TestMemory(lsst.utils.tests.MemoryTestCase):
     """Test for memory/resource leaks."""
 
 
-def setup_module(module):
+def setup_module(module):  # noqa: D103
     lsst.utils.tests.init()
 
 

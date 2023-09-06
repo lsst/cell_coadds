@@ -186,6 +186,6 @@ class GridContainer(MutableMapping[Index2D, T]):
             A callable function that takes a cell value and returns a new
         """
         gc = GridContainer[T](self.shape, self.offset)
-        for key in self.keys():
+        for key in self.keys():  # noqa: SIM118
             gc[key] = transform(self[key])
         return gc

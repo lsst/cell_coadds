@@ -32,7 +32,7 @@ class IdentifiersTestCase(unittest.TestCase):
     """
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls) -> None:  # noqa: D102
         cls.data_id = generate_data_id()  # type: ignore
 
     def test_cell_identifiers(self) -> None:

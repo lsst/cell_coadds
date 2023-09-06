@@ -147,7 +147,7 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertEqual(subset_container_1.offset, Index2D(x=1, y=1))
         self.assertEqual(subset_container_1.shape, Index2D(x=3, y=2))
         union_bbox_1 = Box2I()
-        for v in subset_container_1.keys():
+        for v in subset_container_1.keys():  # noqa: SIM118
             cell_bbox = grid.bbox_of(v)
             self.assertTrue(cell_bbox.overlaps(bbox_1))
             union_bbox_1.include(cell_bbox)
@@ -161,7 +161,7 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertEqual(subset_container_2.offset, Index2D(x=1, y=1))
         self.assertEqual(subset_container_2.shape, Index2D(x=2, y=1))
         union_bbox_2 = Box2I()
-        for v in subset_container_2.keys():
+        for v in subset_container_2.keys():  # noqa: SIM118
             cell_bbox = grid.bbox_of(v)
             self.assertTrue(cell_bbox.overlaps(bbox_1))
             union_bbox_2.include(cell_bbox)
