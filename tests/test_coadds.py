@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom

@@ -21,9 +21,9 @@
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from itertools import product
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from lsst.skymap import Index2D
 

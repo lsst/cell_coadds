@@ -24,7 +24,8 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from typing import AbstractSet, Callable, Iterator, Mapping, Sequence, TypeVar
+from collections.abc import Callable, Iterator, Mapping, Sequence, Set
+from typing import TypeVar
 
 from lsst.afw.image import ImageF, Mask
 
@@ -77,7 +78,7 @@ class StitchedImagePlanes(ImagePlanes):
 
     @property
     @abstractmethod
-    def mask_fraction_names(self) -> AbstractSet[str]:
+    def mask_fraction_names(self) -> Set[str]:
         """The names of all mask planes whose fractions were propagated in any
         cell.
 
