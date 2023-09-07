@@ -76,7 +76,10 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertEqual(copied.offset, container.offset)
         self.assertEqual(list(copied), list(container))
         self.assertTrue(
-            all(copied_cell is original_cell for copied_cell, original_cell in zip(copied, container))
+            all(
+                copied_cell is original_cell
+                for copied_cell, original_cell in zip(copied, container, strict=True)
+            )
         )
         deep_copied = copy.deepcopy(container)
         self.assertEqual(deep_copied.shape, container.shape)

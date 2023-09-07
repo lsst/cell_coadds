@@ -282,7 +282,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
 
             scc_inputs = {
                 ObservationIdentifiers.from_data_id(handle.ref.dataId): (handle, bbox)
-                for handle, bbox in zip(expList, bbox_list)
+                for handle, bbox in zip(expList, bbox_list, strict=True)
             }
             if len(scc_inputs) == 0:
                 continue
