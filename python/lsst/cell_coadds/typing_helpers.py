@@ -24,11 +24,9 @@
 
 from __future__ import annotations
 
-from typing import Protocol, TypeVar, overload
+from typing import Protocol, Self, overload
 
 from lsst.geom import Box2I, Point2I
-
-_S = TypeVar("_S")
 
 
 class ImageLike(Protocol):
@@ -37,14 +35,14 @@ class ImageLike(Protocol):
     """
 
     @overload
-    def __getitem__(self: _S, slices: tuple[slice, slice]) -> _S:
+    def __getitem__(self, slices: tuple[slice, slice]) -> Self:
         pass
 
     @overload
-    def __getitem__(self: _S, bbox: Box2I) -> _S:
+    def __getitem__(self, bbox: Box2I) -> Self:
         pass
 
-    def __setitem__(self: _S, bbox: Box2I, other: _S | int) -> None:
+    def __setitem__(self, bbox: Box2I, other: Self | int) -> None:
         pass
 
     def getBBox(self) -> Box2I:
