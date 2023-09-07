@@ -112,9 +112,10 @@ class StitchedPsf(ImagePsf):
             return False
 
         for index in self.images.indices():
-            if not (self.images[index].array.shape == other.images[index].array.shape):
-                return False
-            elif not np.equal(self.images[index].array, other.images[index].array).all():
+            if (
+                not (self.images[index].array.shape == other.images[index].array.shape)
+                or not np.equal(self.images[index].array, other.images[index].array).all()
+            ):
                 return False
 
         return True

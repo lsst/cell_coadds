@@ -346,9 +346,9 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             skyCell = lsst.sphgeom.ConvexPolygon([corner.getVector() for corner in cell_corners])
             skyCalexp = lsst.sphgeom.ConvexPolygon([corner.getVector() for corner in calexp_corners])
 
-            if skyInfo:
-                if skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):
-                    pass
+            if skyInfo and skyInfo.tractInfo.outer_sky_polygon.contains(skyCalexp):
+                pass
+
             if skyCell.isWithin(skyCalexp):
                 tiny_bbox_min_corner = calexp_wcs.skyToPixel(
                     cell_wcs.pixelToSky(cell_bbox.minX, cell_bbox.minY)
