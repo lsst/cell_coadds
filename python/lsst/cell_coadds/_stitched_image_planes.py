@@ -65,7 +65,8 @@ class StitchedImagePlanes(ImagePlanes):
         together.
 
         This may include cells outside the region covered by these image
-        planes."""
+        planes.
+        """
         raise NotImplementedError()
 
     @property
@@ -157,8 +158,8 @@ class StitchedImagePlanes(ImagePlanes):
 
         Parameters
         ----------
-        result : image-like
-            The out `lsst.afw.image.Image` or `lsst.afw.image.Mask` instance
+        result : ImageLike
+            The out `~lsst.afw.image.Image` or `~lsst.afw.image.Mask` instance
             covering the full area, to be assigned to.
         getter : `Callable`
             Callable that obtains the appropriate image-like object to assign

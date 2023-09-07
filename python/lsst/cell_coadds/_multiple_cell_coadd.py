@@ -146,13 +146,15 @@ class MultipleCellCoadd(CommonComponentsProperties):
     @property
     def outer_bbox(self) -> Box2I:
         """The rectangular region fully covered by all cell outer bounding
-        boxes."""
+        boxes.
+        """
         return Box2I(self.cells.first.outer.bbox.getMin(), self.cells.last.outer.bbox.getMax())
 
     @property
     def inner_bbox(self) -> Box2I:
         """The rectangular region fully covered by all cell inner bounding
-        boxes."""
+        boxes.
+        """
         return self._inner_bbox
 
     @property

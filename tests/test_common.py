@@ -29,7 +29,7 @@ from lsst.cell_coadds import CoaddUnits, CommonComponents, PatchIdentifiers
 class CommonComponentsTestCase(lsst.utils.tests.TestCase):
     """Test the construction and interfaces of CommonComponents."""
 
-    def setUp(self) -> None:
+    def setUp(self) -> None:  # noqa: D102
         self.units = CoaddUnits.nJy
         quantum_data_id = test_utils.generate_data_id()
         self.wcs = test_utils.generate_wcs()
@@ -40,6 +40,7 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
         )
 
     def test_commonComponentsProperties(self):
+        """Test the common properties equal those in the common attribute."""
         self.assertEqual(self.common.units, self.units)
         self.assertEqual(self.common.wcs, self.wcs)
         self.assertEqual(self.common.band, self.band)
@@ -47,10 +48,10 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
-    pass
+    """Check for resource/memory leaks."""
 
 
-def setup_module(module):
+def setup_module(module):  # noqa: D103
     lsst.utils.tests.init()
 
 

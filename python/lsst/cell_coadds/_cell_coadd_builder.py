@@ -72,7 +72,7 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
     `singleCellCoaddBuilderTaskRegistry`, say using ``@registerConfigurable``
     decorator.
 
-    See also
+    See Also
     --------
     MultipleCellCoaddBuilderTask
     """
@@ -89,7 +89,7 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
         cellInfo: CellInfo,
         common: CommonComponents,
     ) -> SingleCellCoadd:
-        """Build a single-cell coadd
+        """Build a single-cell coadd.
 
         The images passed in from `MultipleCellCoaddBuilderTask` are guaranteed
         to completely overlap the outer bounding box of the cells. Any further
@@ -98,11 +98,12 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
 
         Parameters
         ----------
-        inputs: `Mapping[ObservationIdentifiers, tuple[DeferredDatasetHandle,
-                                                       lsst.geom.Box2I]]`
-            A mapping from `lsst.cell_coadds.ObservationIdentifiers`` to a
-            tuple containing a `DeferredDatasetHandle` pointing to the input
-            image (calexp or warps) and a minimal bounding box that can be read
+        inputs: `~collections.abc.Mapping` [`ObservationIdentifiers`, `tuple` \
+                [`~lsst.daf.butler.DeferredDatasetHandle`, `~lsst.geom.Box2I`]]
+
+            A mapping from `ObservationIdentifiers` to a tuple containing a
+            `DeferredDatasetHandle` pointing to the input image
+            (calexp or warps) and a minimal bounding box that can be read
             without loading the entire image.
         cellInfo: `lsst.skymap.CellInfo`
             An object with the following attributes:
@@ -187,7 +188,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
     outer bounding box and passed them to the ``run`` method of the
     ``singleCellCoaddBuilder``.
 
-    See also
+    See Also
     --------
     SingleCellCoaddBuilderTask
     """
@@ -259,7 +260,6 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         multipleCellCoadd: `MultipleCellCoadd`
             Cell-based coadded image.
         """
-
         cellCoadds: list[SingleCellCoadd] = []
         patchInfo: PatchInfo = skyInfo.patchInfo
         common = CommonComponents(

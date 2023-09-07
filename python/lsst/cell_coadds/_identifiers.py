@@ -119,7 +119,8 @@ class CellIdentifiers(PatchIdentifiers):
 @dataclass(frozen=True)
 class ObservationIdentifiers:
     """Struct of identifiers for an observation that contributed to a coadd
-    cell."""
+    cell.
+    """
 
     instrument: str
     """Name of the instrument that this observation was taken with.

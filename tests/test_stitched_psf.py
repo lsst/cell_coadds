@@ -79,6 +79,7 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
         )
 
     def test_resized(self):
+        """Test that the resized method works as it should."""
         original_bbox = self.psf.computeBBox(self.psf.getAveragePosition())
         # Resizing to original size should leave everything unchanged.
         psf = self.psf.resized(self.psf_size, self.psf_size)
@@ -168,7 +169,9 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
             self.assertEqual(bbox, psf_bbox)
 
     def test_computeShape(self):
-        """Test the computeShape method for a StitchedPsf object."""
+        """Test the results from the computeShape method on a StitchedPsf
+        object matches the true input.
+        """
         stitched_psf = self.psf
         for position, cell_index in self.test_positions:
             psf_shape = stitched_psf.computeShape(position)  # check we can compute shape
@@ -184,7 +187,9 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
                 self.assertAlmostEqual(psf_shape.getIxy(), 0.0)
 
     def test_computeApertureFlux(self):
-        """Test the computeApertureFlux method for a StitchedPsf object."""
+        """Test that the results from the computeApertureFlux method on a
+        StitchedPsf object returns the analytical results for a Gaussian PSF.
+        """
         stitched_psf = self.psf
         for position, cell_index in self.test_positions:
             flux1sigma = stitched_psf.computeApertureFlux(self.psf_sigmas[cell_index], position=position)
@@ -196,7 +201,9 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
             self.assertAlmostEqual(flux3sigma, 0.97, delta=2e-2)
 
     def test_computeImage(self):
-        """Test the computeImage method for a StitchedPsf object."""
+        """Test the computeImage method for a StitchedPsf object produces
+        the same result as that on GaussianPsf for Gaussian PSFs.
+        """
         stitched_psf = self.psf
         psf_extent = geom.Extent2I(self.psf_size, self.psf_size)
 
@@ -236,7 +243,7 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
-    pass
+    """Test for memory/resource leaks."""
 
 
 def setup_module(module):

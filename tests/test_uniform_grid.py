@@ -32,7 +32,8 @@ from lsst.skymap import Index2D
 
 class UniformGridTestCase(unittest.TestCase):
     """Tests for UniformGrid and GridIndex/Index2D's C++/Python
-    translation."""
+    translation.
+    """
 
     def setUp(self) -> None:
         self.x0 = 1

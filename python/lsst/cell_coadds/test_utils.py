@@ -19,11 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Collection of utility functions to be used for unit tests."""
+
 import lsst.afw.geom as afwGeom
 import lsst.geom as geom
 from lsst.daf.butler import DataCoordinate, DimensionUniverse
-
-"""Collection of utility functions to be used for unit tests."""
 
 
 def generate_data_id(

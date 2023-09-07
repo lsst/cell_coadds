@@ -73,7 +73,8 @@ class ImagePlanes(ABC):
     @abstractmethod
     def mask_fractions(self) -> Mapping[str, ImageF]:
         """A mapping from mask plane name to an image of the weighted fraction
-        of input pixels with that mask bit set."""
+        of input pixels with that mask bit set.
+        """
         raise NotImplementedError()
 
     @property
@@ -85,7 +86,7 @@ class ImagePlanes(ABC):
         raise NotImplementedError()
 
     def asMaskedImage(self) -> MaskedImageF:
-        """An `lsst.afw.image.MaskedImage` view of the image, mask, and
+        """Return an `lsst.afw.image.MaskedImage` view of the image, mask, and
         variance planes.
         """
         return MaskedImageF(self.image, self.mask, self.variance)

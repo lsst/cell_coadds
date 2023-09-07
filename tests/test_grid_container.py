@@ -33,7 +33,8 @@ from lsst.utils.tests import methodParameters
 
 class GridContainerTestCase(unittest.TestCase):
     """Tests for GridContainer and GridIndex/Index2D's C++/Python
-    translation."""
+    translation.
+    """
 
     def _fill(self, container: GridContainer[dict[str, int]]) -> None:
         """Populate a GridContainer with dicts that map "x" or "y" to
@@ -84,13 +85,14 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertTrue(
             all(
                 deep_copied_cell is not original_cell
-                for deep_copied_cell, original_cell in zip(deep_copied, container)
+                for deep_copied_cell, original_cell in zip(deep_copied, container, strict=True)
             )
         )
 
     def test_simple_ctor(self) -> None:
         """Test a GridContainer built with the shape-only GridContainer
-        constructor."""
+        constructor.
+        """
         shape = Index2D(x=3, y=2)
         gc = GridContainer(shape)
         self.assertEqual(gc.shape, shape)
@@ -105,7 +107,8 @@ class GridContainerTestCase(unittest.TestCase):
 
     def test_complex_ctor(self) -> None:
         """Test a GridContainer built with the shape-and-offset GridContainer
-        constructor."""
+        constructor.
+        """
         shape = Index2D(x=3, y=2)
         offset = Index2D(x=1, y=2)
         gc = GridContainer(shape, offset)
@@ -171,6 +174,9 @@ class GridContainerTestCase(unittest.TestCase):
             subset_container_1.subset_overlapping(grid, full_bbox)
 
     def test_rebuild_transformed(self) -> None:
+        """Test that rebuild_transformed method works by squaring
+        transformation.
+        """
         container = GridContainer(shape=Index2D(x=3, y=2))
         self._fill(container)
         container = container.rebuild_transformed(
