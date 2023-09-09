@@ -29,12 +29,12 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from lsst.skymap import Index2D
 
 if TYPE_CHECKING:
-    from lsst.daf.butler import DataCoordinate
+    from lsst.daf.butler import DataCoordinate, DimensionRecord
 
 
 @dataclass(frozen=True)
@@ -72,14 +72,11 @@ class PatchIdentifiers:
         identifiers : `PatchIdentifiers`
             Struct of identifiers for this patch.
         """
-        # The 'type: ignore' directives below are present because we require a
-        # a fully-expanded data ID, but this isn't embedded in the types.
+        patch_record = cast(DimensionRecord, data_id.records["patch"])
         return cls(
-            skymap=data_id["skymap"],  # type: ignore
-            tract=data_id["tract"],  # type: ignore
-            patch=Index2D(
-                x=data_id.records["patch"].cell_x, y=data_id.records["patch"].cell_y  # type: ignore
-            ),
+            skymap=cast(str, data_id["skymap"]),
+            tract=cast(int, data_id["tract"]),
+            patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
             band=data_id.get("band"),
         )
 
@@ -110,12 +107,11 @@ class CellIdentifiers(PatchIdentifiers):
         identifiers : `CellIdentifiers`
             Struct of identifiers for this cell within a patch.
         """
+        patch_record = cast(DimensionRecord, data_id.records["patch"])
         return cls(
-            skymap=data_id["skymap"],  # type: ignore
-            tract=data_id["tract"],  # type: ignore
-            patch=Index2D(
-                x=data_id.records["patch"].cell_x, y=data_id.records["patch"].cell_y  # type: ignore
-            ),
+            skymap=cast(str, data_id["skymap"]),
+            tract=cast(int, data_id["tract"]),
+            patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
             band=data_id.get("band"),
             cell=cell,
         )
@@ -163,11 +159,9 @@ class ObservationIdentifiers:
         identifiers : `ObservationIdentifiers`
             Struct of identifiers for this observation.
         """
-        # The 'type: ignore' directives below are present because we require a
-        # a fully-expanded data ID, but this isn't embedded in the types.
         return cls(
-            instrument=data_id["instrument"],  # type: ignore
-            packed=data_id.pack("visit_detector"),  # type: ignore
-            visit=data_id["visit"],  # type: ignore
-            detector=data_id["detector"],  # type: ignore
+            instrument=cast(str, data_id["instrument"]),
+            packed=data_id.pack("visit_detector", returnMaxBits=False),
+            visit=cast(int, data_id["visit"]),
+            detector=cast(int, data_id["detector"]),
         )
