@@ -29,12 +29,11 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
+from lsst.daf.butler import DataCoordinate, DimensionRecord
+from lsst.pipe.base import Instrument
 from lsst.skymap import Index2D
-
-if TYPE_CHECKING:
-    from lsst.daf.butler import DataCoordinate, DimensionRecord
 
 
 @dataclass(frozen=True)
@@ -159,9 +158,10 @@ class ObservationIdentifiers:
         identifiers : `ObservationIdentifiers`
             Struct of identifiers for this observation.
         """
+        packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
         return cls(
             instrument=cast(str, data_id["instrument"]),
-            packed=data_id.pack("visit_detector", returnMaxBits=False),
+            packed=cast(int, packer.pack(data_id, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
             detector=cast(int, data_id["detector"]),
         )
