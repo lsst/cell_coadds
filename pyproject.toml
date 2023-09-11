@@ -17,3 +17,42 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
+
+[tool.ruff]
+exclude = [
+    "__init__.py",
+]
+ignore = [
+    "D100",  # Missing docstring in public module
+    "D205",  # 1 blank line required between summary line and description
+    "N802",
+    "N803",
+    "N806",
+    "N812",
+    "N813",
+    "N815",
+    "N816",
+]
+line-length = 110
+select = [
+    "D",  # pydocstyle
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "N",  # pep8-naming
+    "W",  # pycodestyle
+    "UP",  # pyupgrade
+    "C4",  # comprehensions
+    "B",  # bugbear
+    "SIM",  # simplify
+]
+target-version = "py311"
+extend-select = [
+    # TODO: Enable these after retiring the tests on GitHub Actions
+    # "RUF100", # Warn about unused noqa
+]
+
+[tool.ruff.pycodestyle]
+max-doc-length = 79
+
+[tool.ruff.pydocstyle]
+convention = "numpy"

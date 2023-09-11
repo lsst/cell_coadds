@@ -19,13 +19,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Collection of type hint stubs for use in type checking."""
+
+
 from __future__ import annotations
 
-from typing import Protocol, Tuple, TypeVar, Union, overload
+from typing import Protocol, Self, overload
 
 from lsst.geom import Box2I, Point2I
-
-_S = TypeVar("_S")
 
 
 class ImageLike(Protocol):
@@ -34,21 +35,21 @@ class ImageLike(Protocol):
     """
 
     @overload
-    def __getitem__(self: _S, slices: Tuple[slice, slice]) -> _S:
+    def __getitem__(self, slices: tuple[slice, slice]) -> Self:
         pass
 
     @overload
-    def __getitem__(self: _S, bbox: Box2I) -> _S:
+    def __getitem__(self, bbox: Box2I) -> Self:
         pass
 
-    def __setitem__(self: _S, bbox: Box2I, other: Union[_S, int]) -> None:
+    def __setitem__(self, bbox: Box2I, other: Self | int) -> None:  # noqa: D105
         pass
 
-    def getBBox(self) -> Box2I:
+    def getBBox(self) -> Box2I:  # noqa: D102
         pass
 
-    def getXY0(self) -> Point2I:
+    def getXY0(self) -> Point2I:  # noqa: D102
         pass
 
-    def setXY0(self, xy0: Point2I) -> None:
+    def setXY0(self, xy0: Point2I) -> None:  # noqa: D102
         pass

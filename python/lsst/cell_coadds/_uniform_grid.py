@@ -59,7 +59,7 @@ class UniformGrid:
     # Factory methods for constructing a UniformGrid
     @classmethod
     def from_bbox_shape(cls, bbox: geom.Box2I, shape: Index2D, padding: int = 0) -> UniformGrid:
-        """Factory method to construct from a bounding box and a shape.
+        """Generate a UniformGrid instance from a bounding box and a shape.
 
         Parameters
         ----------
@@ -89,7 +89,7 @@ class UniformGrid:
 
     @classmethod
     def from_bbox_cell_size(cls, bbox: geom.Box2I, cell_size: geom.Extent2I, padding: int = 0) -> UniformGrid:
-        """Factor method to construct from a bounding box and a cell size.
+        """Generate a UniformGrid instance from a bounding box and a cell size.
 
         Parameters
         ----------

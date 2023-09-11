@@ -21,9 +21,9 @@
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from itertools import product
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from lsst.skymap import Index2D
 
@@ -107,7 +107,7 @@ class GridContainer(MutableMapping[Index2D, T]):
         Unlike `keys`, this method returns an iterator over all valid indices,
         whether the corresponding value is set or not.
 
-        See also
+        See Also
         --------
         keys
         """
@@ -186,6 +186,6 @@ class GridContainer(MutableMapping[Index2D, T]):
             A callable function that takes a cell value and returns a new
         """
         gc = GridContainer[T](self.shape, self.offset)
-        for key in self.keys():
+        for key in self.keys():  # noqa: SIM118
             gc[key] = transform(self[key])
         return gc

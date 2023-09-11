@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import pickle
 from functools import partial
-from typing import TYPE_CHECKING, Any, ClassVar, Dict
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import lsst.geom as geom
 import numpy as np
@@ -100,7 +100,7 @@ class StitchedPsf(ImagePsf):
         """Return a deep copy of this object."""
         return StitchedPsf(self.images, self.grid)
 
-    def __deepcopy__(self, memo: Dict[int, Any] | None = None) -> StitchedPsf:
+    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> StitchedPsf:
         """Return a deep copy of this object."""
         return StitchedPsf(self.images, self.grid)
 
@@ -112,9 +112,10 @@ class StitchedPsf(ImagePsf):
             return False
 
         for index in self.images.indices():
-            if not (self.images[index].array.shape == other.images[index].array.shape):
-                return False
-            elif not np.equal(self.images[index].array, other.images[index].array).all():
+            if (
+                not (self.images[index].array.shape == other.images[index].array.shape)
+                or not np.equal(self.images[index].array, other.images[index].array).all()
+            ):
                 return False
 
         return True

@@ -24,7 +24,9 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from typing import AbstractSet, Callable, Iterator, Mapping, Sequence, TypeVar
+from collections.abc import Callable, Iterator, Mapping, Sequence, Set
+from functools import partial
+from typing import TypeVar
 
 from lsst.afw.image import ImageF, Mask
 
@@ -65,7 +67,8 @@ class StitchedImagePlanes(ImagePlanes):
         together.
 
         This may include cells outside the region covered by these image
-        planes."""
+        planes.
+        """
         raise NotImplementedError()
 
     @property
@@ -76,7 +79,7 @@ class StitchedImagePlanes(ImagePlanes):
 
     @property
     @abstractmethod
-    def mask_fraction_names(self) -> AbstractSet[str]:
+    def mask_fraction_names(self) -> Set[str]:
         """The names of all mask planes whose fractions were propagated in any
         cell.
 
@@ -118,6 +121,10 @@ class StitchedImagePlanes(ImagePlanes):
         """Remove any cached `variance` plane."""
         self._variance = None
 
+    @staticmethod
+    def _mask_getter(planes: ImagePlanes, name: str) -> Mask:
+        return planes.mask.get(name, None)
+
     @property
     def mask_fractions(self) -> ImageF:
         # Docstring inherited.
@@ -126,7 +133,7 @@ class StitchedImagePlanes(ImagePlanes):
             # mask fraction plane if that plane is requested), but not clear
             # it's worth the effort.
             self._mask_fractions = {
-                name: self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions.get(name))
+                name: self._make_plane(ImageF(self.bbox), partial(self._mask_getter, name=name))
                 for name in self.mask_fraction_names
             }
         return self._mask_fractions
@@ -134,6 +141,10 @@ class StitchedImagePlanes(ImagePlanes):
     def uncache_mask_fraction(self) -> None:
         """Remove any cached `mask_fraction` planes."""
         self._mask_fractions = None
+
+    @staticmethod
+    def _noise_plane_getter(planes: ImagePlanes, i: int) -> ImageF:
+        return planes.noise_realizations[i]
 
     @property
     def noise_realizations(self) -> Sequence[ImageF]:
@@ -143,7 +154,7 @@ class StitchedImagePlanes(ImagePlanes):
             # a noise plane if that plane is requested), but not clear it's
             # worth the effort.
             self._noise_realizations = tuple(
-                self._make_plane(ImageF(self.bbox), lambda planes: planes.noise_realizations[i])
+                self._make_plane(ImageF(self.bbox), partial(self._noise_plane_getter, i=i))
                 for i in range(self.n_noise_realizations)
             )
         return self._noise_realizations
@@ -157,8 +168,8 @@ class StitchedImagePlanes(ImagePlanes):
 
         Parameters
         ----------
-        result : image-like
-            The out `lsst.afw.image.Image` or `lsst.afw.image.Mask` instance
+        result : ImageLike
+            The out `~lsst.afw.image.Image` or `~lsst.afw.image.Mask` instance
             covering the full area, to be assigned to.
         getter : `Callable`
             Callable that obtains the appropriate image-like object to assign

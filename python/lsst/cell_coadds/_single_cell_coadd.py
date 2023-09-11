@@ -23,7 +23,7 @@ from __future__ import annotations
 
 __all__ = ("SingleCellCoadd",)
 
-from typing import TYPE_CHECKING, FrozenSet
+from typing import TYPE_CHECKING
 
 from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
@@ -70,7 +70,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         *,
         psf: ImageD,
         inner_bbox: Box2I,
-        inputs: FrozenSet[ObservationIdentifiers],
+        inputs: frozenset[ObservationIdentifiers],
         common: CommonComponents,
         identifiers: CellIdentifiers,
     ):
@@ -103,7 +103,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         return self._psf
 
     @property
-    def inputs(self) -> FrozenSet[ObservationIdentifiers]:
+    def inputs(self) -> frozenset[ObservationIdentifiers]:
         """Identifiers for the input images that contributed to this cell."""
         return self._inputs
 

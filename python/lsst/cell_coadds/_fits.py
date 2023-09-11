@@ -28,7 +28,8 @@ __all__ = (
 )
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage

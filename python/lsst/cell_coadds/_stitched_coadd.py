@@ -23,7 +23,8 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator
+from collections.abc import Iterator, Set
+from typing import TYPE_CHECKING
 
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I
@@ -104,7 +105,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         return self._cell_coadd.n_noise_realizations
 
     @property
-    def mask_fraction_names(self) -> AbstractSet[str]:
+    def mask_fraction_names(self) -> Set[str]:
         # Docstring inherited.
         return self._cell_coadd.mask_fraction_names
 

@@ -23,10 +23,11 @@ from __future__ import annotations
 
 __all__ = ("ExplodedCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterator
+from collections.abc import Iterator, Set
+from functools import partial
+from typing import TYPE_CHECKING
 
 from lsst.afw.image import ImageF
-from lsst.geom import Box2I
 
 from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
@@ -34,6 +35,8 @@ from ._uniform_grid import UniformGrid
 from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
+    from lsst.geom import Box2I, Point2I
+
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
@@ -107,21 +110,23 @@ class ExplodedCoadd(StitchedImagePlanes):
         return self._cell_coadd.n_noise_realizations
 
     @property
-    def mask_fraction_names(self) -> AbstractSet[str]:
+    def mask_fraction_names(self) -> Set[str]:
         # Docstring inherited.
         return self._cell_coadd.mask_fraction_names
+
+    @staticmethod
+    def _make_view_with_xy0(original: ImageLike, xy0: Point2I) -> ImageLike:
+        result = original[:, :]  # copy bbox, share pixel data.
+        result.setXY0(xy0)
+        return result
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
         for cell in self._cell_coadd.cells.values():
             new_bbox = self._grid.bbox_of(cell.identifiers.cell.index)
+            make_view = partial(self._make_view_with_xy0, xy0=new_bbox.getMin())
 
-            def _make_view(original: ImageLike) -> ImageLike:
-                result = original[:, :]  # copy bbox, share pixel data.
-                result.setXY0(new_bbox.getMin())
-                return result
-
-            yield ViewImagePlanes(cell.outer, _make_view, bbox=new_bbox)
+            yield ViewImagePlanes(cell.outer, make_view, bbox=new_bbox)
 
     @property
     def psf_image(self) -> ImageF:

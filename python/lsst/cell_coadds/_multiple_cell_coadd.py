@@ -23,7 +23,8 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from typing import TYPE_CHECKING, AbstractSet, Iterable, Set
+from collections.abc import Iterable, Set
+from typing import TYPE_CHECKING
 
 from lsst.geom import Box2I
 
@@ -70,7 +71,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         self._psf_image_size = psf_image_size
         self._common = common
         cells_builder = GridContainer[SingleCellCoadd](self._grid.shape)
-        self._mask_fraction_names: Set[str] = set()
+        self._mask_fraction_names: set[str] = set()
         for cell in cells:
             index = cell.identifiers.cell
             cells_builder[index] = cell
@@ -119,7 +120,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         return self._n_noise_realizations
 
     @property
-    def mask_fraction_names(self) -> AbstractSet[str]:
+    def mask_fraction_names(self) -> Set[str]:
         """The names of all mask planes whose fractions were propagated in any
         cell.
 
@@ -146,13 +147,15 @@ class MultipleCellCoadd(CommonComponentsProperties):
     @property
     def outer_bbox(self) -> Box2I:
         """The rectangular region fully covered by all cell outer bounding
-        boxes."""
+        boxes.
+        """
         return Box2I(self.cells.first.outer.bbox.getMin(), self.cells.last.outer.bbox.getMax())
 
     @property
     def inner_bbox(self) -> Box2I:
         """The rectangular region fully covered by all cell inner bounding
-        boxes."""
+        boxes.
+        """
         return self._inner_bbox
 
     @property

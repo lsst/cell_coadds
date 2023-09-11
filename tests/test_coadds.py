@@ -20,7 +20,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import unittest
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
@@ -60,7 +60,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Setup a multiple cell coadd with 2x2 cells."""
+        """Set up a multiple cell coadd with 2x2 cells."""
         np.random.seed(42)
         data_id = test_utils.generate_data_id()
         common = CommonComponents(
@@ -226,7 +226,8 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         )
 
     @classmethod
-    def tearDownClass(cls) -> None:
+    def tearDownClass(cls) -> None:  # noqa: D102
+        # Docstring inherited
         del cls.multiple_cell_coadd
         del cls.exposures
         super().tearDownClass()
@@ -254,7 +255,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
 
         # Check that the individual cells are identical.
         self.assertEqual(mcc1.cells.keys(), mcc2.cells.keys())
-        for idx in mcc1.cells.keys():
+        for idx in mcc1.cells.keys():  # noqa: SIM118
             self.assertImagesEqual(mcc1.cells[idx].outer.image, mcc2.cells[idx].outer.image)
             self.assertMasksEqual(mcc1.cells[idx].outer.mask, mcc2.cells[idx].outer.mask)
             self.assertImagesEqual(mcc1.cells[idx].outer.variance, mcc2.cells[idx].outer.variance)
@@ -301,12 +302,14 @@ class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     exploded_coadd: ExplodedCoadd
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls) -> None:  # noqa: D102
+        # Docstring inherited
         super().setUpClass()
         cls.exploded_coadd = cls.multiple_cell_coadd.explode()
 
     @classmethod
-    def tearDownClass(cls) -> None:
+    def tearDownClass(cls) -> None:  # noqa: D102
+        # Docstring inherited
         del cls.exploded_coadd
         super().tearDownClass()
 
@@ -330,12 +333,14 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     stitched_coadd: StitchedCoadd
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls) -> None:  # noqa: D102
+        # Docstring inherited
         super().setUpClass()
         cls.stitched_coadd = cls.multiple_cell_coadd.stitch()
 
     @classmethod
-    def tearDownClass(cls) -> None:
+    def tearDownClass(cls) -> None:  # noqa: D102
+        # Docstring inherited
         del cls.stitched_coadd
         super().tearDownClass()
 
@@ -402,7 +407,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
         result as calling computeKernelImage.
         """
         stitched_psf = self.stitched_coadd.psf
-        for position, cell_index in self.test_positions:
+        for position, _cell_index in self.test_positions:
             pos = geom.Point2D(geom.Point2I(position))  # round to integer
             image1 = stitched_psf.computeKernelImage(pos)
             image2 = stitched_psf.computeImage(pos)
@@ -442,7 +447,8 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
 
     def test_fits(self):
         """Test that we can write an Exposure with StitchedPsf to a FITS file
-        and read it."""
+        and read it.
+        """
         write_exposure = self.stitched_coadd.asExposure()
         with lsst.utils.tests.getTempFilePath(".fits") as filename:
             write_exposure.writeFits(filename)
@@ -465,10 +471,10 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
-    pass
+    """Check for resource/memory leaks."""
 
 
-def setup_module(module):
+def setup_module(module):  # noqa: D103
     lsst.utils.tests.init()
 
 

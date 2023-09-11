@@ -24,3 +24,6 @@ pytest_session.txt
 .vscode/
 .env
 *.code-workspace
+
+# Ruff
+.ruff_cache/
