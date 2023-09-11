@@ -220,7 +220,7 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
         result as calling computeKernelImage.
         """
         stitched_psf = self.psf
-        for position, cell_index in self.test_positions:
+        for position, _cell_index in self.test_positions:
             pos = geom.Point2D(geom.Point2I(position))  # round to integer
             image1 = stitched_psf.computeKernelImage(pos)
             image2 = stitched_psf.computeImage(pos)
