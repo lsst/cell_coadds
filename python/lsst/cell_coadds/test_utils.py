@@ -34,7 +34,7 @@ def generate_data_id(
     cell_y: int = 2,
     band: str = "r",
     detector_id: int = 9,
-    visit_id: int = 12345,
+    visit_id: int = 1234,
     detector_max: int = 109,
     visit_max: int = 10000
 ) -> DataCoordinate:
@@ -69,7 +69,12 @@ def generate_data_id(
     universe = DimensionUniverse()
 
     instrument = universe["instrument"]
-    instrument_record = instrument.RecordClass(name="test", detector_max=detector_max, visit_max=visit_max)
+    instrument_record = instrument.RecordClass(
+        name="DummyCam",
+        class_name="lsst.obs.base.instrument_tests.DummyCam",
+        detector_max=detector_max,
+        visit_max=visit_max,
+    )
 
     skymap = universe["skymap"]
     skymap_record = skymap.RecordClass(name="test_skymap")
