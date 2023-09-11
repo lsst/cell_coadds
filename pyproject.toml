@@ -47,7 +47,8 @@ select = [
 ]
 target-version = "py311"
 extend-select = [
-    "RUF100", # Warn about unused noqa
+    # TODO: Enable these after retiring the tests on GitHub Actions
+    # "RUF100", # Warn about unused noqa
 ]
 
 [tool.ruff.pycodestyle]
