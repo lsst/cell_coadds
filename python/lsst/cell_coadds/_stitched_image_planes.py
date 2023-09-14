@@ -24,7 +24,7 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from collections.abc import Callable, Iterator, Mapping, Sequence, Set
+from collections.abc import Callable, Iterator, Sequence, Set
 from functools import partial
 from typing import TYPE_CHECKING, TypeVar
 
@@ -61,7 +61,7 @@ class StitchedImagePlanes(ImagePlanes):
         self._image: ImageLike | None = None
         self._mask: Mask | None = None
         self._variance: ImageLike | None = None
-        self._mask_fractions: Mapping[str, ImageLike] | None = None
+        self._mask_fractions: ImageLike | None = None
         self._noise_realizations: Sequence[ImageLike] | None = None
 
     @property
@@ -125,21 +125,12 @@ class StitchedImagePlanes(ImagePlanes):
         """Remove any cached `variance` plane."""
         self._variance = None
 
-    @staticmethod
-    def _mask_getter(planes: ImagePlanes, name: str) -> Mask:
-        return planes.mask.get(name, None)
-
     @property
-    def mask_fractions(self) -> Mapping[str, ImageLike]:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
         if self._mask_fractions is None:
-            # Could make this lazier with a custom Mapping class (only stitch a
-            # mask fraction plane if that plane is requested), but not clear
-            # it's worth the effort.
-            self._mask_fractions = {
-                name: self._make_plane(ImageF(self.bbox), partial(self._mask_getter, name=name))
-                for name in self.mask_fraction_names
-            }
+            self._mask_fractions = self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions)
+
         return self._mask_fractions
 
     def uncache_mask_fraction(self) -> None:

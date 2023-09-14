@@ -28,7 +28,7 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
 from lsst.afw.image import MaskedImageF
@@ -75,9 +75,9 @@ class ImagePlanes(ABC):
 
     @property
     @abstractmethod
-    def mask_fractions(self) -> Mapping[str, ImageLike]:
-        """A mapping from mask plane name to an image of the weighted fraction
-        of input pixels with that mask bit set.
+    def mask_fractions(self) -> ImageLike | None:
+        """The (weighted) fraction of masked pixels that contribute to each
+        pixel.
         """
         raise NotImplementedError()
 
@@ -107,7 +107,7 @@ class OwnedImagePlanes(ImagePlanes):
         image: ImageLike,
         mask: Mask,
         variance: ImageLike,
-        mask_fractions: Mapping[str, ImageLike] | None = None,
+        mask_fractions: ImageLike | None = None,
         noise_realizations: Sequence[ImageLike] = (),
     ):
         self._image = image
@@ -137,7 +137,7 @@ class OwnedImagePlanes(ImagePlanes):
         return self._variance
 
     @property
-    def mask_fractions(self) -> Mapping[str, ImageLike] | None:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
         return self._mask_fractions
 
@@ -189,11 +189,12 @@ class ViewImagePlanes(ImagePlanes):
         return self._make_view(self._target.variance)
 
     @property
-    def mask_fractions(self) -> Mapping[str, ImageLike]:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
-        # We could make this even lazier with a custom Mapping class, but it
-        # doesn't seem worthwhile.
-        return {name: self._make_view(image) for name, image in self._target.mask_fractions.items()}
+        if self._target.mask_fractions is not None:
+            return self._make_view(self._target.mask_fractions)
+
+        return None
 
     @property
     def noise_realizations(self) -> Sequence[ImageLike]:

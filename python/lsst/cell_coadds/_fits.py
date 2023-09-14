@@ -184,7 +184,7 @@ class CellCoaddFitsReader:
             mask=mask,
             variance=ImageF(data["variance"].astype(np.float32), xy0=xy0),
             noise_realizations=[],
-            mask_fractions={},
+            mask_fractions=None,
         )
 
         identifiers = CellIdentifiers(

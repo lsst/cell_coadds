@@ -90,7 +90,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
                     f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions()}, "
                     f"but coadd expects {self._psf_image_size}."
                 )
-            self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
+
         self._cells = cells_builder
         n_noise_realizations = {len(cell.outer.noise_realizations) for cell in self._cells.values()}
         self._n_noise_realizations = n_noise_realizations.pop()
