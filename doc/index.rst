@@ -9,4 +9,4 @@ cell_coadds documentation preview
 .. toctree::
    :maxdepth: 1
 
-   lsst.cell.coadds/index
+   lsst.cell_coadds/index

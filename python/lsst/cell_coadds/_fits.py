@@ -88,7 +88,7 @@ class CellCoaddFitsReader:
 
             # Build the quantities needed to construct a MultipleCellCoadd.
             common = CommonComponents(
-                units=CoaddUnits(1),  # TODO: read from FITS TUNIT1
+                units=CoaddUnits(1),  # TODO: read from FITS TUNIT1 (DM-40562)
                 wcs=wcs,
                 band=header["BAND"],
                 identifiers=PatchIdentifiers(
@@ -184,7 +184,7 @@ class CellCoaddFitsReader:
             mask=mask,
             variance=ImageF(data["variance"].astype(np.float32), xy0=xy0),
             noise_realizations=[],
-            mask_fractions={},
+            mask_fractions=None,
         )
 
         identifiers = CellIdentifiers(
@@ -207,10 +207,9 @@ class CellCoaddFitsReader:
             ),
             common=common,
             identifiers=identifiers,
-            inputs=None,  # type: ignore[arg-type]  # TODO: Pass a sensible value here.
+            # TODO: Pass a sensible value here in DM-40563.
+            inputs=None,  # type: ignore[arg-type]
         )
-
-    # TODO: Make this reader a context manager that handles file closures.
 
     def readWcs(self) -> afwGeom.SkyWcs:
         """Read the WCS information from the FITS file.

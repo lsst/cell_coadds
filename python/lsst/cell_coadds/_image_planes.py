@@ -28,12 +28,16 @@ __all__ = (
 )
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING
 
-from lsst.afw.image import ImageF, Mask, MaskedImageF
-from lsst.geom import Box2I
+from lsst.afw.image import MaskedImageF
 
-from .typing_helpers import ImageLike
+if TYPE_CHECKING:
+    from lsst.afw.image import Mask
+    from lsst.geom import Box2I
+
+    from .typing_helpers import ImageLike
 
 
 class ImagePlanes(ABC):
@@ -53,7 +57,7 @@ class ImagePlanes(ABC):
 
     @property
     @abstractmethod
-    def image(self) -> ImageF:
+    def image(self) -> ImageLike:
         """The data image itself."""
         raise NotImplementedError()
 
@@ -65,21 +69,21 @@ class ImagePlanes(ABC):
 
     @property
     @abstractmethod
-    def variance(self) -> ImageF:
+    def variance(self) -> ImageLike:
         """Per-pixel variances for the image."""
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def mask_fractions(self) -> Mapping[str, ImageF]:
-        """A mapping from mask plane name to an image of the weighted fraction
-        of input pixels with that mask bit set.
+    def mask_fractions(self) -> ImageLike | None:
+        """The (weighted) fraction of masked pixels that contribute to each
+        pixel.
         """
         raise NotImplementedError()
 
     @property
     @abstractmethod
-    def noise_realizations(self) -> Sequence[ImageF]:
+    def noise_realizations(self) -> Sequence[ImageLike]:
         """A sequence of noise realizations that were coadded with the same
         operations that were appled to the data image.
         """
@@ -100,14 +104,12 @@ class OwnedImagePlanes(ImagePlanes):
     def __init__(
         self,
         *,
-        image: ImageF,
+        image: ImageLike,
         mask: Mask,
-        variance: ImageF,
-        mask_fractions: Mapping[str, ImageF] | None = None,
-        noise_realizations: Sequence[ImageF] = (),
+        variance: ImageLike,
+        mask_fractions: ImageLike | None = None,
+        noise_realizations: Sequence[ImageLike] = (),
     ):
-        if mask_fractions is None:
-            mask_fractions = {}
         self._image = image
         self._mask = mask
         self._variance = variance
@@ -120,7 +122,7 @@ class OwnedImagePlanes(ImagePlanes):
         return self._image.getBBox()
 
     @property
-    def image(self) -> ImageF:
+    def image(self) -> ImageLike:
         # Docstring inherited.
         return self._image
 
@@ -130,17 +132,17 @@ class OwnedImagePlanes(ImagePlanes):
         return self._mask
 
     @property
-    def variance(self) -> ImageF:
+    def variance(self) -> ImageLike:
         # Docstring inherited.
         return self._variance
 
     @property
-    def mask_fractions(self) -> Mapping[str, ImageF]:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
         return self._mask_fractions
 
     @property
-    def noise_realizations(self) -> Sequence[ImageF]:
+    def noise_realizations(self) -> Sequence[ImageLike]:
         # Docstring inherited.
         return self._noise_realizations
 
@@ -172,7 +174,7 @@ class ViewImagePlanes(ImagePlanes):
         return self._bbox
 
     @property
-    def image(self) -> ImageF:
+    def image(self) -> ImageLike:
         # Docstring inherited.
         return self._make_view(self._target.image)
 
@@ -182,19 +184,20 @@ class ViewImagePlanes(ImagePlanes):
         return self._make_view(self._target.mask)
 
     @property
-    def variance(self) -> ImageF:
+    def variance(self) -> ImageLike:
         # Docstring inherited.
         return self._make_view(self._target.variance)
 
     @property
-    def mask_fractions(self) -> Mapping[str, ImageF]:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
-        # We could make this even lazier with a custom Mapping class, but it
-        # doesn't seem worthwhile.
-        return {name: self._make_view(image) for name, image in self._target.mask_fractions.items()}
+        if self._target.mask_fractions is not None:
+            return self._make_view(self._target.mask_fractions)
+
+        return None
 
     @property
-    def noise_realizations(self) -> Sequence[ImageF]:
+    def noise_realizations(self) -> Sequence[ImageLike]:
         # Docstring inherited.
         # We could make this even lazier with a custom Sequence class, but it
         # doesn't seem worthwhile.

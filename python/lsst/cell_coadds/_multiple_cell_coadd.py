@@ -90,7 +90,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
                     f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions()}, "
                     f"but coadd expects {self._psf_image_size}."
                 )
-            self._mask_fraction_names.update(cell.outer.mask_fractions.keys())
+
         self._cells = cells_builder
         n_noise_realizations = {len(cell.outer.noise_realizations) for cell in self._cells.values()}
         self._n_noise_realizations = n_noise_realizations.pop()
@@ -211,12 +211,12 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Parameters
         ----------
-        filename: `str`
+        filename : `str`
             The path to the FITS file to read.
 
         Returns
         -------
-        cell_coadd: `MultipleCellCoadd`
+        cell_coadd : `MultipleCellCoadd`
             The MultipleCellCoadd object read from the FITS file.
         """
         from ._fits import CellCoaddFitsReader  # Avoid circular import.
@@ -243,9 +243,9 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Parameters
         ----------
-        filename: `str`
+        filename : `str`
             The path to the FITS file to write.
-        overwrite: `bool`, optional
+        overwrite : `bool`, optional
             Whether to overwrite an existing file?
         metadata : `~lsst.daf.base.PropertySet`, optional
             Additional metadata to write to the FITS header.

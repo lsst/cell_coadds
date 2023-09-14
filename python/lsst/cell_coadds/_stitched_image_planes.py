@@ -24,9 +24,9 @@ from __future__ import annotations
 __all__ = ("StitchedImagePlanes",)
 
 from abc import abstractmethod
-from collections.abc import Callable, Iterator, Mapping, Sequence, Set
+from collections.abc import Callable, Iterator, Sequence, Set
 from functools import partial
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from lsst.afw.image import ImageF, Mask
 
@@ -35,6 +35,10 @@ from ._image_planes import ImagePlanes
 from ._uniform_grid import UniformGrid
 
 _T = TypeVar("_T", bound=typing_helpers.ImageLike)
+
+
+if TYPE_CHECKING:
+    from .typing_helpers import ImageLike
 
 
 class StitchedImagePlanes(ImagePlanes):
@@ -54,11 +58,11 @@ class StitchedImagePlanes(ImagePlanes):
     """
 
     def __init__(self) -> None:
-        self._image: ImageF | None = None
+        self._image: ImageLike | None = None
         self._mask: Mask | None = None
-        self._variance: ImageF | None = None
-        self._mask_fractions: Mapping[str, ImageF] | None = None
-        self._noise_realizations: Sequence[ImageF] | None = None
+        self._variance: ImageLike | None = None
+        self._mask_fractions: ImageLike | None = None
+        self._noise_realizations: Sequence[ImageLike] | None = None
 
     @property
     @abstractmethod
@@ -89,7 +93,7 @@ class StitchedImagePlanes(ImagePlanes):
         raise NotImplementedError()
 
     @property
-    def image(self) -> ImageF:
+    def image(self) -> ImageLike:
         # Docstring inherited.
         if self._image is None:
             self._image = self._make_plane(ImageF(self.bbox), lambda planes: planes.image)
@@ -111,7 +115,7 @@ class StitchedImagePlanes(ImagePlanes):
         self._mask = None
 
     @property
-    def variance(self) -> ImageF:
+    def variance(self) -> ImageLike:
         # Docstring inherited.
         if self._variance is None:
             self._variance = self._make_plane(ImageF(self.bbox), lambda planes: planes.variance)
@@ -121,21 +125,12 @@ class StitchedImagePlanes(ImagePlanes):
         """Remove any cached `variance` plane."""
         self._variance = None
 
-    @staticmethod
-    def _mask_getter(planes: ImagePlanes, name: str) -> Mask:
-        return planes.mask.get(name, None)
-
     @property
-    def mask_fractions(self) -> ImageF:
+    def mask_fractions(self) -> ImageLike | None:
         # Docstring inherited.
         if self._mask_fractions is None:
-            # Could make this lazier with a custom Mapping class (only stitch a
-            # mask fraction plane if that plane is requested), but not clear
-            # it's worth the effort.
-            self._mask_fractions = {
-                name: self._make_plane(ImageF(self.bbox), partial(self._mask_getter, name=name))
-                for name in self.mask_fraction_names
-            }
+            self._mask_fractions = self._make_plane(ImageF(self.bbox), lambda planes: planes.mask_fractions)
+
         return self._mask_fractions
 
     def uncache_mask_fraction(self) -> None:

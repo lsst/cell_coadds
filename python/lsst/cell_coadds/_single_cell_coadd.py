@@ -43,18 +43,18 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     Parameters
     ----------
-    outer: `OwnedImagePlanes`
+    outer : `OwnedImagePlanes`
         The actual coadded images.
     psf : `ImageD`
         The coadded PSF image.
-    inner_bbox: `Box2I`
+    inner_bbox : `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
         with but adjacent to all other cell inner regions.
     inputs : `frozenset` of `ObservationIdentifiers`
         Identifiers of observations that contributed to this cell.
-    common: `CommonComponents`
+    common : `CommonComponents`
         Image attributes common to all cells in a patch.
-    identifiers: `CellIdentifiers`
+    identifiers : `CellIdentifiers`
         Struct of identifiers for this cell.
 
     Notes

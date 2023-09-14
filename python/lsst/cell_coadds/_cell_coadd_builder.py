@@ -98,14 +98,14 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
 
         Parameters
         ----------
-        inputs: `~collections.abc.Mapping` [`ObservationIdentifiers`, `tuple` \
+        inputs : `~collections.abc.Mapping` [`ObservationIdentifiers`, `tuple`\
                 [`~lsst.daf.butler.DeferredDatasetHandle`, `~lsst.geom.Box2I`]]
 
             A mapping from `ObservationIdentifiers` to a tuple containing a
             `DeferredDatasetHandle` pointing to the input image
             (calexp or warps) and a minimal bounding box that can be read
             without loading the entire image.
-        cellInfo: `lsst.skymap.CellInfo`
+        cellInfo : `~lsst.skymap.CellInfo`
             An object with the following attributes:
             - wcs: `lsst.afw.geom.SkyWcs`
             - outer_bbox: `lsst.geom.Box2I`
@@ -115,7 +115,7 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
 
         Returns
         -------
-        single_cell_coadd: `~lsst.cell_coadds.SingleCellCoadd`
+        single_cell_coadd : `~lsst.cell_coadds.SingleCellCoadd`
             A single cell coadd.
         """
         raise NotImplementedError()
@@ -247,17 +247,17 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
 
         Parameters
         ----------
-        expList: `list` of `lsst.daf.butler.DeferredDatasetHandle`
-            An iterable of `lsst.daf.butler.DeferredDatasetHandle` objects,
+        expList : `list` [`lsst.daf.butler.DeferredDatasetHandle`]
+            An iterable of `~lsst.daf.butler.DeferredDatasetHandle` objects,
             where the objects can be either calexp or warp images.
-        skyInfo: `pipeBase.Struct`
+        skyInfo : `~lsst.pipe.base.Struct`
             Struct with geometric information about the patches and cells.
-        quantumDataId: `DataCoordinate`
+        quantumDataId : `~lsst.daf.butler.DataCoordinate`
             An immutable dataID dictionary that uniquely refers to the dataset.
 
         Returns
         -------
-        multipleCellCoadd: `MultipleCellCoadd`
+        multipleCellCoadd : `MultipleCellCoadd`
             Cell-based coadded image.
         """
         cellCoadds: list[SingleCellCoadd] = []
@@ -318,18 +318,18 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
 
         Parameters
         ----------
-        explist: `list` [`~lsst.daf.butler.DeferredDatasetHandle`]
+        explist : `list` [`~lsst.daf.butler.DeferredDatasetHandle`]
             List of handles for exposures to be coadded
-        cellInfo: `pipeBase.Struct` or `collections.namedtuple`
+        cellInfo : `~lsst.pipe.base.Struct` or `collections.namedtuple`
             The cellInfo dict, must have .wcs and .outerBBox.
-        skyInfo: `pipeBase.Struct`
+        skyInfo : `~lsst.pipe.base.Struct`
             Struct with geometric information about the patches and cells.
 
 
         Returns
         -------
-        overlapping_bbox: `list` [`lsst.geom.Box2I`]
-            List of bounding boxes for each image in `explist` that overlaps
+        overlapping_bbox : `list` [`lsst.geom.Box2I`]
+            List of bounding boxes for each image in ``explist`` that overlaps
             the given cell.
         """
         cell_bbox = cellInfo.outer_bbox
