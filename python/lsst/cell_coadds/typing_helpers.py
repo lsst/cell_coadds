@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from typing import Protocol, Self, overload
 
+import numpy as np
 from lsst.geom import Box2I, Point2I
 
 
@@ -52,4 +53,8 @@ class ImageLike(Protocol):
         pass
 
     def setXY0(self, xy0: Point2I) -> None:  # noqa: D102
+        pass
+
+    @property
+    def array(self) -> np.ndarray:  # noqa: D102
         pass

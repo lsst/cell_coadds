@@ -181,7 +181,7 @@ class ViewImagePlanes(ImagePlanes):
     @property
     def mask(self) -> Mask:
         # Docstring inherited.
-        return self._make_view(self._target.mask)  # type: ignore
+        return self._make_view(self._target.mask)
 
     @property
     def variance(self) -> ImageLike:
