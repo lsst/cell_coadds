@@ -97,7 +97,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         if n_noise_realizations:
             n_noise_realizations.add(self._n_noise_realizations)
             raise ValueError(
-                f"Inconsistent number of noise realizations ({n_noise_realizations}) betwen cells."
+                f"Inconsistent number of noise realizations ({n_noise_realizations}) between cells."
             )
         max_inner_bbox = Box2I(self._cells.first.inner.bbox.getMin(), self._cells.last.inner.bbox.getMax())
         if inner_bbox is None:
