@@ -64,7 +64,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         np.random.seed(42)
         data_id = test_utils.generate_data_id()
         common = CommonComponents(
-            units=CoaddUnits.nJy,
+            units=CoaddUnits.legacy,  # units here are arbitrary.
             wcs=test_utils.generate_wcs(),
             band=data_id["band"],
             identifiers=PatchIdentifiers.from_data_id(data_id),
