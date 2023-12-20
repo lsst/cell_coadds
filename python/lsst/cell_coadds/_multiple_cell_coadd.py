@@ -72,6 +72,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         self._common = common
         cells_builder = GridContainer[SingleCellCoadd](self._grid.shape)
         self._mask_fraction_names: set[str] = set()
+
         for cell in cells:
             index = cell.identifiers.cell
             cells_builder[index] = cell
@@ -97,9 +98,17 @@ class MultipleCellCoadd(CommonComponentsProperties):
         if n_noise_realizations:
             n_noise_realizations.add(self._n_noise_realizations)
             raise ValueError(
-                f"Inconsistent number of noise realizations ({n_noise_realizations}) betwen cells."
+                f"Inconsistent number of noise realizations ({n_noise_realizations}) between cells."
             )
-        max_inner_bbox = Box2I(self._cells.first.inner.bbox.getMin(), self._cells.last.inner.bbox.getMax())
+
+        # Finish the construction without relying on the first and last of
+        # self._cells so we can construct an instance with partial list.
+        indices = list(cells_builder.indices())
+        max_inner_bbox = Box2I(
+            grid.bbox_of(indices[0]).getMin(),
+            grid.bbox_of(indices[-1]).getMax(),
+        )
+
         if inner_bbox is None:
             inner_bbox = max_inner_bbox
         elif not max_inner_bbox.contains(inner_bbox):

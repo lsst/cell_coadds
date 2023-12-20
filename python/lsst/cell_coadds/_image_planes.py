@@ -29,12 +29,12 @@ __all__ = (
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from lsst.afw.image import MaskedImageF
 
 if TYPE_CHECKING:
-    from lsst.afw.image import Mask
+    from lsst.afw.image import Mask, MaskedImage
     from lsst.geom import Box2I
 
     from .typing_helpers import ImageLike
@@ -115,6 +115,39 @@ class OwnedImagePlanes(ImagePlanes):
         self._variance = variance
         self._mask_fractions = mask_fractions
         self._noise_realizations = tuple(noise_realizations)
+
+    @classmethod
+    def from_masked_image(
+        cls,
+        masked_image: MaskedImage,
+        mask_fractions: ImageLike | None = None,
+        noise_realizations: Sequence[ImageLike] = (),
+    ) -> Self:
+        """Construct from an `lsst.afw.image.MaskedImage`.
+
+        Parameters
+        ----------
+        masked_image : `~lsst.afw.image.MaskedImage`
+            The image to construct from. The image, mask and variance planes
+            of ``masked_image`` will be used as the image, mask and variance
+            planes of the constructed object.
+        mask_fractions : `ImageLike`, optional
+            The mask fractions image.
+        noise_realizations : `Sequence` [`ImageLike`], optional
+            The noise realizations.
+
+        Returns
+        -------
+        self : `OwnedImagePlanes`
+            An instance of OwnedImagePlanes.
+        """
+        return cls(
+            image=masked_image.image,
+            mask=masked_image.mask,
+            variance=masked_image.variance,
+            mask_fractions=mask_fractions,
+            noise_realizations=noise_realizations,
+        )
 
     @property
     def bbox(self) -> Box2I:
