@@ -76,7 +76,7 @@ class PatchIdentifiers:
             skymap=cast(str, data_id["skymap"]),
             tract=cast(int, data_id["tract"]),
             patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
-            band=data_id.get("band"),
+            band=cast(str, data_id.get("band")),
         )
 
 
@@ -111,7 +111,7 @@ class CellIdentifiers(PatchIdentifiers):
             skymap=cast(str, data_id["skymap"]),
             tract=cast(int, data_id["tract"]),
             patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
-            band=data_id.get("band"),
+            band=cast(str, data_id.get("band")),
             cell=cell,
         )
 

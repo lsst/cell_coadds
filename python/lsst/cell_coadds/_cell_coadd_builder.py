@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Mapping
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import lsst.geom
 import lsst.pex.config as pexConfig
@@ -265,7 +265,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         common = CommonComponents(
             units=CoaddUnits.nJy,
             wcs=patchInfo.wcs,
-            band=quantumDataId.get("band", None),
+            band=cast(str, quantumDataId.get("band", "")),
             identifiers=PatchIdentifiers.from_data_id(quantumDataId),
         )
 
