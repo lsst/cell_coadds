@@ -203,7 +203,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
 
     def runQuantum(  # type: ignore[override]
         self,
-        butlerQC: pipeBase.ButlerQuantumContext,
+        butlerQC: pipeBase.QuantumContext,
         inputRefs: pipeBase.InputQuantizedConnection,
         outputRefs: pipeBase.OutputQuantizedConnection,
     ) -> MultipleCellCoadd:
