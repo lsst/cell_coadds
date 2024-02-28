@@ -96,6 +96,12 @@ def generate_data_id(
         skymap="test_skymap", tract=tract, patch=patch, cell_x=cell_x, cell_y=cell_y
     )
 
+    if "day_obs" in universe:
+        day_obs_element = universe["day_obs"]
+        day_obs_record = day_obs_element.RecordClass(id=20240201, instrument="test")
+    else:
+        day_obs_record = None
+
     # A dictionary with all the relevant records.
     record = {
         "instrument": instrument_record,
@@ -107,6 +113,9 @@ def generate_data_id(
         "skymap": skymap_record.name,
         "physical_filter": physical_filter_record,
     }
+
+    if day_obs_record:
+        record["day_obs"] = day_obs_record
 
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
