@@ -145,7 +145,7 @@ class ObservationIdentifiers:
     """
 
     @classmethod
-    def from_data_id(cls, data_id: DataCoordinate) -> ObservationIdentifiers:
+    def from_data_id(cls, data_id: DataCoordinate, detector: int | None = None) -> ObservationIdentifiers:
         """Construct from a data ID.
 
         Parameters
@@ -160,9 +160,11 @@ class ObservationIdentifiers:
             Struct of identifiers for this observation.
         """
         packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
+        detector = data_id.get("detector", detector)
         return cls(
             instrument=cast(str, data_id["instrument"]),
-            packed=cast(int, packer.pack(data_id, returnMaxBits=False)),
+            # Passing detector twice does not crash the packer.
+            packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
-            detector=cast(int, data_id["detector"]),
+            detector=cast(int, detector),
         )

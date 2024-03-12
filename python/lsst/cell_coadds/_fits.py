@@ -42,7 +42,7 @@ from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
 
 from ._common_components import CoaddUnits, CommonComponents
-from ._identifiers import CellIdentifiers, PatchIdentifiers
+from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
@@ -195,6 +195,16 @@ class CellCoaddFitsReader:
             band=common.identifiers.band,
         )
 
+        inputs = []
+        for visit, detector, packed in zip(data["visits"][0], data["detectors"][0], data["packed"][0], strict=True):
+            observation_identifier = ObservationIdentifiers(
+                visit=visit,
+                detector=detector,
+                packed=packed,
+                instrument=header["INSTRUMENT"],
+            )
+            inputs.append(observation_identifier)
+
         return SingleCellCoadd(
             outer=image_planes,
             psf=psf,
@@ -207,8 +217,7 @@ class CellCoaddFitsReader:
             ),
             common=common,
             identifiers=identifiers,
-            # TODO: Pass a sensible value here in DM-40563.
-            inputs=None,  # type: ignore[arg-type]
+            inputs=frozenset(inputs),
         )
 
     def readWcs(self) -> afwGeom.SkyWcs:
@@ -252,6 +261,38 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.identifiers.cell for cell in multiple_cell_coadd.cells.values()],
     )
 
+    visit_array, detector_array, packed_array, instrument_array = [], [], [], []
+    maximum_observation_identifier_count = 0
+    for _, single_cell_coadd in multiple_cell_coadd.cells.items():
+        visits, detectors, packeds, instrument = zip(*[(observation_identifier.visit, observation_identifier.detector, observation_identifier.packed, observation_identifier.instrument) for observation_identifier in single_cell_coadd.inputs])
+        visit_array.append(visits)
+        detector_array.append(detectors)
+        packed_array.append(packeds)
+        instrument_array.append(instrument)
+        maximum_observation_identifier_count = max(maximum_observation_identifier_count, len(visits))
+
+    assert len(set(instrument_array)) == 1, "All cells must have the same instrument"
+    instrument = instrument_array[0]
+
+    visits = fits.Column(
+        name="visits",
+        format="K",
+        dim=f"({maximum_observation_identifier_count}, 1)",
+        array=visit_array,
+    )
+    detectors = fits.Column(
+        name="detectors",
+        format="K",
+        dim=f"({maximum_observation_identifier_count}, 1)",
+        array=detector_array,
+    )
+    packed = fits.Column(
+        name="packed",
+        format="K",
+        dim=f"({maximum_observation_identifier_count}, 1)",
+        array=packed_array,
+    )
+
     image_array = [cell.outer.image.array for cell in multiple_cell_coadd.cells.values()]
     unit_array = [cell.common.units.name for cell in multiple_cell_coadd.cells.values()]
     image = fits.Column(
@@ -286,7 +327,7 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
+    col_defs = fits.ColDefs([cell_id, visits, detectors, packed, image, mask, variance, psf])
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
@@ -330,6 +371,7 @@ def writeMultipleCellCoaddAsFits(
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
+    hdu.header["INSTRUMENT"] = instrument
     hdu.header["BAND"] = multiple_cell_coadd.common.band
     hdu.header["SKYMAP"] = multiple_cell_coadd.common.identifiers.skymap
     hdu.header["TRACT"] = multiple_cell_coadd.common.identifiers.tract
