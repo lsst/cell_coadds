@@ -196,7 +196,7 @@ class CellCoaddFitsReader:
         )
 
         inputs = []
-        for visit, detector, packed in zip(data["visits"][0], data["detectors"][0], data["packed"][0], strict=True):
+        for visit, detector, packed in zip(data["visits"], data["detectors"], data["packed"], strict=True):
             observation_identifier = ObservationIdentifiers(
                 visit=visit,
                 detector=detector,
