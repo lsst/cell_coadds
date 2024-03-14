@@ -280,20 +280,17 @@ def writeMultipleCellCoaddAsFits(
 
     visits = fits.Column(
         name="visits",
-        format="K",
-        dim=f"({maximum_observation_identifier_count}, 1)",
+        format=f"PI(maximum_observation_identifier_count)",
         array=visit_array,
     )
     detectors = fits.Column(
         name="detectors",
-        format="K",
-        dim=f"({maximum_observation_identifier_count}, 1)",
+        format=f"PI(maximum_observation_identifier_count)",
         array=detector_array,
     )
     packed = fits.Column(
         name="packed",
-        format="K",
-        dim=f"({maximum_observation_identifier_count}, 1)",
+        format=f"PI(maximum_observation_identifier_count)",
         array=packed_array,
     )
 
