@@ -261,18 +261,22 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.identifiers.cell for cell in multiple_cell_coadd.cells.values()],
     )
 
-    visit_array, detector_array, packed_array, instrument_array = [], [], [], []
+    visit_array, detector_array, packed_array, instrument_set = [], [], [], set()
     maximum_observation_identifier_count = 0
     for _, single_cell_coadd in multiple_cell_coadd.cells.items():
-        visits, detectors, packeds, instrument = zip(*[(observation_identifier.visit, observation_identifier.detector, observation_identifier.packed, observation_identifier.instrument) for observation_identifier in single_cell_coadd.inputs])
-        visit_array.append(visits)
-        detector_array.append(detectors)
-        packed_array.append(packeds)
-        instrument_array.append(instrument)
-        maximum_observation_identifier_count = max(maximum_observation_identifier_count, len(visits))
+        try:
+            visits, detectors, packeds, instrument = zip(*[(observation_identifier.visit, observation_identifier.detector, observation_identifier.packed, observation_identifier.instrument) for observation_identifier in single_cell_coadd.inputs])
+            visit_array.append(visits)
+            detector_array.append(detectors)
+            packed_array.append(packeds)
+            instrument_set.update(instrument)
+            maximum_observation_identifier_count = max(maximum_observation_identifier_count, len(visits))
+        except ValueError:
+            #self.log.warn("No inputs found for cell %s", single_cell_coadd.identifiers.cell)
+            pass
 
-    assert len(set(instrument_array)) == 1, "All cells must have the same instrument"
-    instrument = instrument_array[0]
+    assert len(instrument_set) == 1, "All cells must have the same instrument"
+    instrument = instrument_set.pop()
 
     visits = fits.Column(
         name="visits",
