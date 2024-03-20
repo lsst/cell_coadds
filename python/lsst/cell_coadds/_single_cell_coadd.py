@@ -108,6 +108,11 @@ class SingleCellCoadd(CommonComponentsProperties):
         return self._inputs
 
     @property
+    def visit_count(self) -> int:
+        """Number of visits that contributed to this cell."""
+        return len(self.inputs)
+
+    @property
     def identifiers(self) -> CellIdentifiers:
         """Struct of unique identifiers for this cell."""
         # This overrides the patch-level property from
