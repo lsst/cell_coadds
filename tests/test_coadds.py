@@ -21,6 +21,7 @@
 
 import unittest
 from collections.abc import Iterable, Mapping
+from itertools import product
 
 import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
@@ -325,6 +326,19 @@ class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 exploded_coadd.psf_image.getBBox().getDimensions(),
                 geom.Extent2I(self.nx * self.outer_size_x, self.ny * self.outer_size_y),
             )
+
+    def test_asMaskedImage(self):
+        """Test the asMaskedImage method for an ExplodedCoadd object."""
+        masked_image = self.exploded_coadd.asMaskedImage()
+        masked_image.setXY0(self.multiple_cell_coadd.outer_bbox.getMin())
+        base_bbox = self.multiple_cell_coadd.grid.bbox_of(Index2D(0, 0)).dilatedBy(self.border_size)
+        for cell_x, cell_y in product(range(self.nx), range(self.ny)):
+            bbox = base_bbox.shiftedBy(geom.Extent2I(cell_x * self.outer_size_x, cell_y * self.outer_size_y))
+            with self.subTest(cell_x=cell_x, cell_y=cell_y):
+                self.assertMaskedImagesEqual(
+                    masked_image[bbox],
+                    self.multiple_cell_coadd.cells[Index2D(cell_x, cell_y)].outer.asMaskedImage(),
+                )
 
 
 class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
