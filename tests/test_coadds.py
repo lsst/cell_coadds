@@ -37,6 +37,7 @@ from lsst.cell_coadds import (
     CommonComponents,
     ExplodedCoadd,
     MultipleCellCoadd,
+    ObservationIdentifiers,
     OwnedImagePlanes,
     PatchIdentifiers,
     SingleCellCoadd,
@@ -146,6 +147,16 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             for point in test_points
         )
 
+        observation_identifiers = np.array([
+            ObservationIdentifiers(visit=1234, detector=0, instrument="HSC", packed=56789),
+            ObservationIdentifiers(visit=6789, detector=1, instrument="HSC", packed=12345),
+            ObservationIdentifiers(visit=1358, detector=2, instrument="HSC", packed=98765),
+            ObservationIdentifiers(visit=2468, detector=3, instrument="HSC", packed=54321),
+            ObservationIdentifiers(visit=3579, detector=4, instrument="HSC", packed=24680),
+            ObservationIdentifiers(visit=4689, detector=5, instrument="HSC", packed=13579),
+            ObservationIdentifiers(visit=5790, detector=6, instrument="HSC", packed=80246),
+        ])
+
         schema = lsst.meas.base.tests.TestDataset.makeMinimalSchema()
 
         single_cell_coadds = []
@@ -194,6 +205,15 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     image=exposure.image, variance=exposure.variance, mask=exposure.mask
                 )
 
+                # Pick a random subset (of random size) of the observation ids.
+                inputs = observation_identifiers[
+                    np.random.randint(
+                        low=0,
+                        high=len(observation_identifiers),
+                        size=np.random.randint(low=1, high=len(observation_identifiers) + 1),
+                    )
+                ]
+
                 single_cell_coadds.append(
                     SingleCellCoadd(
                         outer=image_plane,
@@ -204,9 +224,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs={
-                            None,  # type: ignore [arg-type]
-                        },
+                        inputs=frozenset(inputs),
                         common=common,
                         identifiers=identifiers,
                     )

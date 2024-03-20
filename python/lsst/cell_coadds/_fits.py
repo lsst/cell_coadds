@@ -35,6 +35,7 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 from lsst.afw.image import ImageD, ImageF
 from lsst.daf.base import PropertySet
 from lsst.geom import Box2I, Extent2I, Point2I
@@ -77,6 +78,7 @@ class CellCoaddFitsReader:
 
     def readAsMultipleCellCoadd(self) -> MultipleCellCoadd:
         """Read the FITS file as a MultipleCellCoadd object."""
+        import pdb; pdb.set_trace()
         with fits.open(self.filename) as hdu_list:
             data = hdu_list[1].data
             header = hdu_list[1].header
@@ -113,17 +115,35 @@ class CellCoaddFitsReader:
             outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
             psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
+            # Do one pass of the link table to build the inputs for each cell.
+            vdp_table = hdu_list[2].data
+            vdp_dict = {}
+            for row in vdp_table:
+                vdp_dict[row["packed"]] = (row["visit"], row["detector"])
+
+            link_table = hdu_list[3].data
+            inputs = {cell_id: set() for cell_id in range(len(data))}
+            for cell_id, packed in link_table:
+                obs_id = ObservationIdentifiers(
+                    packed=packed,
+                    visit=vdp_dict[packed][0],
+                    detector=vdp_dict[packed][1],
+                    instrument=header.get("INSTRUMENT", ""),
+                )
+                inputs[cell_id].add(obs_id)
+
             coadd = MultipleCellCoadd(
                 (
                     self._readSingleCellCoadd(
                         data=row,
                         header=header,
                         common=common,
+                        inputs=inputs[idx],
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
                     )
-                    for row in data
+                    for idx, row in enumerate(data)
                 ),
                 grid=grid,
                 outer_cell_size=outer_cell_size,
@@ -140,6 +160,7 @@ class CellCoaddFitsReader:
         common: CommonComponents,
         header: Mapping[str, Any],
         *,
+        inputs: set[ObservationIdentifiers],
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
@@ -165,6 +186,7 @@ class CellCoaddFitsReader:
         coadd : `SingleCellCoadd`
             The coadd read from the file.
         """
+        # import pdb; pdb.set_trace()
         buffer = (outer_cell_size - inner_cell_size) // 2
 
         psf = ImageD(
@@ -195,15 +217,15 @@ class CellCoaddFitsReader:
             band=common.identifiers.band,
         )
 
-        inputs = []
-        for visit, detector, packed in zip(data["visits"], data["detectors"], data["packed"], strict=True):
-            observation_identifier = ObservationIdentifiers(
-                visit=visit,
-                detector=detector,
-                packed=packed,
-                instrument=header["INSTRUMENT"],
-            )
-            inputs.append(observation_identifier)
+        # inputs = []
+        # for visit, detector, packed in zip(data["visits"], data["detectors"], data["packed"], strict=True):
+        #     observation_identifier = ObservationIdentifiers(
+        #         visit=visit,
+        #         detector=detector,
+        #         packed=packed,
+        #         instrument=header["INSTRUMENT"],
+        #     )
+        #     inputs.append(observation_identifier)
 
         return SingleCellCoadd(
             outer=image_planes,
@@ -263,13 +285,18 @@ def writeMultipleCellCoaddAsFits(
 
     visit_array, detector_array, packed_array, instrument_set = [], [], [], set()
     maximum_observation_identifier_count = 0
-    for _, single_cell_coadd in multiple_cell_coadd.cells.items():
+    vdp = set()
+    link = []
+    for idx, (_, single_cell_coadd) in enumerate(multiple_cell_coadd.cells.items()):
         try:
             visits, detectors, packeds, instrument = zip(*[(observation_identifier.visit, observation_identifier.detector, observation_identifier.packed, observation_identifier.instrument) for observation_identifier in single_cell_coadd.inputs])
             visit_array.append(visits)
             detector_array.append(detectors)
             packed_array.append(packeds)
             instrument_set.update(instrument)
+            # Use (visit, ccd) as primary key.
+            vdp.update((observation_identifier.visit, observation_identifier.detector, observation_identifier.packed,) for observation_identifier in single_cell_coadd.inputs)
+            link += [(idx, observation_identifier.packed) for observation_identifier in single_cell_coadd.inputs]
             maximum_observation_identifier_count = max(maximum_observation_identifier_count, len(visits))
         except ValueError:
             #self.log.warn("No inputs found for cell %s", single_cell_coadd.identifiers.cell)
@@ -277,6 +304,24 @@ def writeMultipleCellCoaddAsFits(
 
     assert len(instrument_set) == 1, "All cells must have the same instrument"
     instrument = instrument_set.pop()
+
+    # Backwards compatible by identifying and naming HDUs.
+    # The sum of 3x3 covariance matrix.
+    vdp_table = Table(names=("visit", "detector", "packed"), dtype=("i4", "i4", "i4",))
+    for vdp_element in vdp:
+        vdp_table.add_row(vdp_element)
+
+    # cell_id can be (xy,y)
+    # Instead of corr matrix, put the affine transform
+    # Include weights used for the coaddition.
+    # maskfrac value for each cell?
+    # Call this HDU INPUTS.
+    link_table = Table(names=("cell_id", "packed (visit, detector)", "estimate of bg-only var", "(may be a weighted sum of ) 3x3 correlation matrix"), dtype=("i4", "i4",))
+    for link_element in link:
+        link_table.add_row(link_element)
+
+    vdp_hdu = fits.BinTableHDU(vdp_table)
+    link_hdu = fits.BinTableHDU(link_table)
 
     visits = fits.Column(
         name="visits",
@@ -328,7 +373,8 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    col_defs = fits.ColDefs([cell_id, visits, detectors, packed, image, mask, variance, psf])
+    # col_defs = fits.ColDefs([cell_id, visits, detectors, packed, image, mask, variance, psf])
+    col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
@@ -382,5 +428,5 @@ def writeMultipleCellCoaddAsFits(
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
 
-    hdu_list = fits.HDUList([primary_hdu, hdu])
+    hdu_list = fits.HDUList([primary_hdu, hdu, vdp_hdu, link_hdu])
     hdu_list.writeto(filename, overwrite=overwrite)
