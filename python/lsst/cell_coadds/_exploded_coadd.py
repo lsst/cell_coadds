@@ -123,7 +123,7 @@ class ExplodedCoadd(StitchedImagePlanes):
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
         for cell in self._cell_coadd.cells.values():
-            new_bbox = self._grid.bbox_of(cell.identifiers.cell.index)
+            new_bbox = self._grid.bbox_of(cell.identifiers.cell)
             make_view = partial(self._make_view_with_xy0, xy0=new_bbox.getMin())
 
             yield ViewImagePlanes(cell.outer, make_view, bbox=new_bbox)
