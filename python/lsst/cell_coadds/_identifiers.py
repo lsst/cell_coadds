@@ -145,14 +145,18 @@ class ObservationIdentifiers:
     """
 
     @classmethod
-    def from_data_id(cls, data_id: DataCoordinate) -> ObservationIdentifiers:
+    def from_data_id(cls, data_id: DataCoordinate, *, backup_detector: int = -1) -> ObservationIdentifiers:
         """Construct from a data ID.
 
         Parameters
         ----------
         data_id : `~lsst.daf.butler.DataCoordinate`
-            Fully-expanded data ID that includes the 'visit' and 'detector'
-            dimensions.
+            Fully-expanded data ID that includes the 'visit', 'detector' and
+            'day_obs' dimensions.
+        backup_detector : `int`, optional
+            Detector ID to use as a backup if not present in ``data_id``.
+            This is not used if detector information is available in
+            ``data_id`` and does not override it.
 
         Returns
         -------
@@ -160,9 +164,12 @@ class ObservationIdentifiers:
             Struct of identifiers for this observation.
         """
         packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
+        detector = data_id.get("detector", backup_detector)
         return cls(
             instrument=cast(str, data_id["instrument"]),
-            packed=cast(int, packer.pack(data_id, returnMaxBits=False)),
+            # Passing detector twice does not crash the packer. So send it in
+            # without checking if available in data_id.
+            packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
-            detector=cast(int, data_id["detector"]),
+            detector=cast(int, detector),
         )
