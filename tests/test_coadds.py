@@ -213,6 +213,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                                     visit=12345,
                                     detector=67,
                                     packed=13579,
+                                    day_obs=20000101,
                                 ),
                             )
                         ),

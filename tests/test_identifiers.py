@@ -59,6 +59,7 @@ class IdentifiersTestCase(unittest.TestCase):
         self.assertEqual(observationIdentifier.physical_filter, "r")
         self.assertEqual(observationIdentifier.visit, 1234)
         self.assertEqual(observationIdentifier.detector, 9)
+        self.assertEqual(observationIdentifier.day_obs, 20240201)
 
     def test_observation_identifiers_with_backup_detector(self) -> None:
         """Test that the optional detector keyword argument does not override

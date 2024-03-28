@@ -144,6 +144,12 @@ class ObservationIdentifiers:
     share the same visit ID.
     """
 
+    day_obs: int
+    """A day and night of observations that rolls over during daylight hours.
+      The identifier is an decimal integer-concatenated date, i.e. YYYYMMDD,
+      with the exact rollover time observatory-dependent.
+    """
+
     detector: int
     """Unique identifier for the detector.
     """
@@ -169,6 +175,7 @@ class ObservationIdentifiers:
         """
         packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
         detector = data_id.get("detector", backup_detector)
+        day_obs = data_id.get("day_obs", None)
         return cls(
             instrument=cast(str, data_id["instrument"]),
             physical_filter=cast(str, data_id["physical_filter"]),
@@ -176,5 +183,6 @@ class ObservationIdentifiers:
             # without checking if available in data_id.
             packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
+            day_obs=cast(int, day_obs),
             detector=cast(int, detector),
         )
