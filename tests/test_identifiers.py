@@ -58,6 +58,16 @@ class IdentifiersTestCase(unittest.TestCase):
         self.assertEqual(observationIdentifier.visit, 1234)
         self.assertEqual(observationIdentifier.detector, 9)
 
+    def test_observation_identifiers_with_backup_detector(self) -> None:
+        """Test that the optional detector keyword argument does not override
+        the value present in the data_id.
+        """
+        observationIdentifier = ObservationIdentifiers.from_data_id(
+            self.data_id,
+            backup_detector=42,
+        )
+        self.assertEqual(observationIdentifier.detector, 9)
+
     def test_patch_identifiers(self) -> None:
         """Test we can construct a PatchIdentifiers from a DataCoordinate."""
         patchIdentifier = PatchIdentifiers.from_data_id(self.data_id)  # type: ignore [attr-defined]
