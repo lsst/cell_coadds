@@ -19,6 +19,61 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Module to handle FITS serialization and de-serialization.
+
+The routines to write and read the files are in the same module, as a change to
+one is typically accompanied by a corresponding change to another. Code changes
+relating to writing the file must bump to the version number denoted by the
+module constant FILE_FORMAT_VERSION.
+
+Although the typical use case is for newer versions of the code to read files
+written by an older version, for the purposes of deciding the newer version
+string, it is helpful to think about an older version of the reader attempting
+to read a newer version of the file on disk. The policy for bumping the version
+is as follows:
+
+1. When the on-disk file format written by this module changes such that the
+previous version of the reader can still read files written by the newer
+version, then there should be a minor bump.
+
+2. When the on-disk format written by this module changes in a way that will
+prevent the previous version of the reader from reading a file produced by the
+current version of the module, then there should be a major bump. This usually
+means that the new version of the reader cannot read older file either,
+save the temporary support with deprecation warnings, possibly until a new
+release of the Science Pipelines is made.
+
+Examples
+--------
+1. A file with VERSION=1.3 should still be readable by the reader in
+this module when the module-level constant FILE_FORMAT_VERSION=1.4. A file
+written with VERSION=1.4 will typically be readable by a reader when the
+module-level FILE_FORMAT_VERSION=1.3, although such a use case is not expected.
+A concrete example of change
+that requires only a minor bump is adding another BinTable that keeps track of
+the input visits.
+
+2. An example of major change would be migrating from using
+BinTableHDU to ImageHDU to save data. Even if the reader supports reading
+either of this formats based on the value of VERSION from the header, it should
+be a major change because the previous version of the reader cannot read data
+from ImageHDUs.
+
+Unit tests only check that a file written can be read by the concurrent version
+of the module, but not by any of the previous ones. Hence, bumping
+FILE_FORMAT_VERSION to the appropriate value is ultimately at the discretion of
+the developers.
+
+A major bump must also be recorded in the `isCompatibleWith` method.
+It is plausible that different (non-consequent) major format versions can be
+read by the same reader (due to reverting back to an earlier format, or to
+something very similar). `isCompatibleWith` method offers the convenience of
+checking if a particular format version can be read by the current reader.
+
+Note that major version 0 is considered unstable and experimental and none of
+the guarantee above applies.
+"""
+
 from __future__ import annotations
 
 __all__ = (
