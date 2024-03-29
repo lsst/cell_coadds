@@ -83,8 +83,10 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inner_bbox = inner_bbox
         self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self._make_view)
         self._common = common
+        # Remove any duplicate elements in the input, sorted them and make
+        # them an immutable sequence.
         # TODO: Remove the conditioning in DM-40563.
-        self._inputs = frozenset(sorted(inputs)) if inputs else frozenset()
+        self._inputs = tuple(sorted(set(inputs))) if inputs else ()
         self._identifiers = identifiers
 
     @property
@@ -105,7 +107,8 @@ class SingleCellCoadd(CommonComponentsProperties):
         return self._psf
 
     @property
-    def inputs(self) -> frozenset[ObservationIdentifiers]:
+    # TODO: Remove the conditioning in DM-40563.
+    def inputs(self) -> tuple[ObservationIdentifiers, ...] | tuple[()]:
         """Identifiers for the input images that contributed to this cell,
         sorted by their `packed` attribute.
         """
