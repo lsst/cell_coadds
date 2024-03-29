@@ -120,6 +120,12 @@ def generate_data_id(
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
     for key in (
+        "instrument",
+        "physical_filter",
+    ):
+        record_id[key] = record_id[key].name
+
+    for key in (
         "visit",
         "detector",
     ):

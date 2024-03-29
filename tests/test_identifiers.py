@@ -55,6 +55,8 @@ class IdentifiersTestCase(unittest.TestCase):
         observationIdentifier = ObservationIdentifiers.from_data_id(
             self.data_id  # type: ignore [attr-defined]
         )
+        self.assertEqual(observationIdentifier.instrument, "DummyCam")
+        self.assertEqual(observationIdentifier.physical_filter, "r")
         self.assertEqual(observationIdentifier.visit, 1234)
         self.assertEqual(observationIdentifier.detector, 9)
 

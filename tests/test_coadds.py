@@ -209,6 +209,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             (
                                 ObservationIdentifiers(
                                     instrument="dummy",
+                                    physical_filter="dummy-I",
                                     visit=12345,
                                     detector=67,
                                     packed=13579,
