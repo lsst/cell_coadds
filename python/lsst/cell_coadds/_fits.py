@@ -74,11 +74,48 @@ class CellCoaddFitsReader:
         The name of the FITS file to read.
     """
 
+    # Minimum and maximum compatible file format versions are listed as
+    # iterables so as to allow for discontiguous intervals.
+    MINIMUM_FILE_FORMAT_VERSIONS = ("0.1",)
+    MAXIMUM_FILE_FORMAT_VERSIONS = ("1.0",)
+
     def __init__(self, filename: str) -> None:
         if not os.path.exists(filename):
             raise FileNotFoundError(f"File {filename} not found")
 
         self.filename = filename
+
+    @classmethod
+    def isCompatibleWith(cls, written_version: str, /) -> bool:
+        """Check if the serialization version is compatible with the reader.
+
+        This is a convenience method to ask if the current version of this
+        class can read a file, based on the VERSION in its header.
+
+        Parameters
+        ----------
+        written_version: `str`
+            The VERSION of the file to be read.
+
+        Returns
+        -------
+        compatible : `bool`
+            Whether the reader can read a file whose VERSION is
+            ``written_version``.
+
+        Notes
+        -----
+        This accepts the other version as a positional argument only.
+        """
+        for min_version, max_version in zip(
+            cls.MINIMUM_FILE_FORMAT_VERSIONS,
+            cls.MAXIMUM_FILE_FORMAT_VERSIONS,
+            strict=True,
+        ):
+            if min_version <= written_version < max_version:
+                return True
+
+        return False
 
     def readAsMultipleCellCoadd(self) -> MultipleCellCoadd:
         """Read the FITS file as a MultipleCellCoadd object."""
