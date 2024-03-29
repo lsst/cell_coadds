@@ -304,6 +304,14 @@ class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
             wcs.getFitsMetadata().toString(), self.multiple_cell_coadd.wcs.getFitsMetadata().toString()
         )
 
+    def test_visit_count(self):
+        """Test the visit_count method."""
+        # Since we don't simulate coaddition from multiple warps, the cells are
+        # all going to have just a single visit.
+        for cellId, singleCellCoadd in self.multiple_cell_coadd.cells.items():
+            with self.subTest(x=cellId.x, y=cellId.y):
+                self.assertEqual(singleCellCoadd.visit_count, 1)
+
 
 class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     """Test the construction and methods of an ExplodedCoadd instance."""
