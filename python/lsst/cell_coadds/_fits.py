@@ -79,6 +79,7 @@ from __future__ import annotations
 __all__ = (
     "CellCoaddFitsFormatter",
     "CellCoaddFitsReader",
+    "IncompatibleVersionError",
     "writeMultipleCellCoaddAsFits",
 )
 
@@ -106,6 +107,12 @@ FILE_FORMAT_VERSION = "0.2"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
+
+
+class IncompatibleVersionError(RuntimeError):
+    """Exception raised when the CellCoaddFitsReader version is not compatible
+    with the FITS file attempted to read.
+    """
 
 
 class CellCoaddFitsFormatter(FitsGenericFormatter):
