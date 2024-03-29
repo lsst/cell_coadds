@@ -37,6 +37,7 @@ from lsst.cell_coadds import (
     CommonComponents,
     ExplodedCoadd,
     MultipleCellCoadd,
+    ObservationIdentifiers,
     OwnedImagePlanes,
     PatchIdentifiers,
     SingleCellCoadd,
@@ -204,9 +205,16 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs={
-                            None,  # type: ignore [arg-type]
-                        },
+                        inputs=frozenset(
+                            (
+                                ObservationIdentifiers(
+                                    instrument="dummy",
+                                    visit=12345,
+                                    detector=67,
+                                    packed=13579,
+                                ),
+                            )
+                        ),
                         common=common,
                         identifiers=identifiers,
                     )
