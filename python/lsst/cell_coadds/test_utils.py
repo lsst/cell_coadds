@@ -119,8 +119,14 @@ def generate_data_id(
 
     # A dictionary with all the relevant recordIds.
     record_id = record.copy()
-    for key in ("visit", "detector"):
+    for key in (
+        "visit",
+        "detector",
+    ):
         record_id[key] = record_id[key].id
+
+    if "day_obs" in record_id:
+        record_id["day_obs"] = record_id["day_obs"].id
 
     # TODO: Catching mypy failures on Github Actions should be made easier,
     # perhaps in DM-36873. Igroring these for now.
