@@ -126,6 +126,10 @@ class ObservationIdentifiers:
     """Name of the instrument that this observation was taken with.
     """
 
+    physical_filter: str
+    """Name of the physical filter that this observation was taken with.
+    """
+
     packed: int
     """ID that uniquely identifies both the visit and detector by packing
     together their IDs.
@@ -167,6 +171,7 @@ class ObservationIdentifiers:
         detector = data_id.get("detector", backup_detector)
         return cls(
             instrument=cast(str, data_id["instrument"]),
+            physical_filter=cast(str, data_id["physical_filter"]),
             # Passing detector twice does not crash the packer. So send it in
             # without checking if available in data_id.
             packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
