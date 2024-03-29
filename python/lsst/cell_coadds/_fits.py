@@ -47,6 +47,11 @@ from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 
+FILE_FORMAT_VERSION = "0.2"
+"""Version number for the file format as persisted, presented as a string of
+the form M.m, where M is the major version, m is the minor version.
+"""
+
 
 class CellCoaddFitsFormatter(FitsGenericFormatter):
     """Interface for writing and reading cell coadds to/from FITS files.
@@ -245,6 +250,11 @@ def writeMultipleCellCoaddAsFits(
         Whether to overwrite the file if it already exists?
     metadata : `~lsst.daf.base.PropertySet`, optional
         Additional metadata to write to the FITS file.
+
+    Notes
+    -----
+    Changes to this function that modify the way the file is written to disk
+    must be accompanied with a change to FILE_FORMAT_VERSION.
     """
     cell_id = fits.Column(
         name="cell_id",
