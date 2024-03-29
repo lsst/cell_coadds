@@ -29,7 +29,7 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import cast
+from typing import Self, cast
 
 from lsst.daf.butler import DataCoordinate, DimensionRecord
 from lsst.pipe.base import Instrument
@@ -186,3 +186,6 @@ class ObservationIdentifiers:
             day_obs=cast(int, day_obs),
             detector=cast(int, detector),
         )
+
+    def __lt__(self, other: Self, /) -> bool:
+        return self.packed < other.packed
