@@ -205,17 +205,15 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs=frozenset(
-                            (
-                                ObservationIdentifiers(
-                                    instrument="dummy",
-                                    physical_filter="dummy-I",
-                                    visit=12345,
-                                    detector=67,
-                                    packed=13579,
-                                    day_obs=20000101,
-                                ),
-                            )
+                        inputs=(
+                            ObservationIdentifiers(
+                                instrument="dummy",
+                                physical_filter="dummy-I",
+                                visit=12345,
+                                detector=67,
+                                packed=13579,
+                                day_obs=20000101,
+                            ),
                         ),
                         common=common,
                         identifiers=identifiers,

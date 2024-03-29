@@ -23,6 +23,7 @@ from __future__ import annotations
 
 __all__ = ("SingleCellCoadd",)
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from lsst.afw.image import ImageD, ImageF
@@ -50,7 +51,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     inner_bbox : `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
         with but adjacent to all other cell inner regions.
-    inputs : `frozenset` of `ObservationIdentifiers`
+    inputs : `Iterable` [`ObservationIdentifiers`]
         Identifiers of observations that contributed to this cell.
     common : `CommonComponents`
         Image attributes common to all cells in a patch.
@@ -70,7 +71,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         *,
         psf: ImageD,
         inner_bbox: Box2I,
-        inputs: frozenset[ObservationIdentifiers],
+        inputs: Iterable[ObservationIdentifiers],
         common: CommonComponents,
         identifiers: CellIdentifiers,
     ):
@@ -82,7 +83,8 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inner_bbox = inner_bbox
         self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self._make_view)
         self._common = common
-        self._inputs = inputs
+        # TODO: Remove the conditioning in DM-40563.
+        self._inputs = frozenset(sorted(inputs)) if inputs else frozenset()
         self._identifiers = identifiers
 
     @property
@@ -104,7 +106,9 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     @property
     def inputs(self) -> frozenset[ObservationIdentifiers]:
-        """Identifiers for the input images that contributed to this cell."""
+        """Identifiers for the input images that contributed to this cell,
+        sorted by their `packed` attribute.
+        """
         return self._inputs
 
     @property
