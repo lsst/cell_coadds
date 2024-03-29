@@ -337,6 +337,7 @@ def writeMultipleCellCoaddAsFits(
     primary_hdu = fits.PrimaryHDU()
     primary_hdu.header.extend(wcs_cards)
 
+    hdu.header["VERSION"] = FILE_FORMAT_VERSION
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
