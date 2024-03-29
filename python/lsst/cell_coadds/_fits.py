@@ -83,6 +83,7 @@ __all__ = (
     "writeMultipleCellCoaddAsFits",
 )
 
+import logging
 import os
 from collections.abc import Mapping
 from typing import Any
@@ -107,6 +108,8 @@ FILE_FORMAT_VERSION = "0.2"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
+
+logger = logging.getLogger(__name__)
 
 
 class IncompatibleVersionError(RuntimeError):
@@ -180,10 +183,31 @@ class CellCoaddFitsReader:
         return False
 
     def readAsMultipleCellCoadd(self) -> MultipleCellCoadd:
-        """Read the FITS file as a MultipleCellCoadd object."""
+        """Read the FITS file as a MultipleCellCoadd object.
+
+        Raises
+        ------
+        IncompatibleError
+            Raised if the version of this module that wrote the file is
+            incompatible with this module that is reading it in.
+        """
         with fits.open(self.filename) as hdu_list:
-            data = hdu_list[1].data
             header = hdu_list[1].header
+            written_version = header.get("VERSION", "0.1")
+            if not self.isCompatibleWith(written_version):
+                raise IncompatibleVersionError(
+                    f"{self.filename} was written with version {written_version}"
+                    f"but attempting to read it with a reader designed for {FILE_FORMAT_VERSION}"
+                )
+            if written_version != FILE_FORMAT_VERSION:
+                logger.info(
+                    "Reading %s having version %s with reader designed for %s",
+                    self.filename,
+                    written_version,
+                    FILE_FORMAT_VERSION,
+                )
+
+            data = hdu_list[1].data
 
             # Read in WCS
             ps = PropertySet()
