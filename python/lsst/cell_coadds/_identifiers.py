@@ -29,7 +29,7 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import cast
+from typing import Self, cast
 
 from lsst.daf.butler import DataCoordinate, DimensionRecord
 from lsst.pipe.base import Instrument
@@ -126,6 +126,10 @@ class ObservationIdentifiers:
     """Name of the instrument that this observation was taken with.
     """
 
+    physical_filter: str
+    """Name of the physical filter that this observation was taken with.
+    """
+
     packed: int
     """ID that uniquely identifies both the visit and detector by packing
     together their IDs.
@@ -140,19 +144,29 @@ class ObservationIdentifiers:
     share the same visit ID.
     """
 
+    day_obs: int
+    """A day and night of observations that rolls over during daylight hours.
+      The identifier is an decimal integer-concatenated date, i.e. YYYYMMDD,
+      with the exact rollover time observatory-dependent.
+    """
+
     detector: int
     """Unique identifier for the detector.
     """
 
     @classmethod
-    def from_data_id(cls, data_id: DataCoordinate) -> ObservationIdentifiers:
+    def from_data_id(cls, data_id: DataCoordinate, *, backup_detector: int = -1) -> ObservationIdentifiers:
         """Construct from a data ID.
 
         Parameters
         ----------
         data_id : `~lsst.daf.butler.DataCoordinate`
-            Fully-expanded data ID that includes the 'visit' and 'detector'
-            dimensions.
+            Fully-expanded data ID that includes the 'visit', 'detector' and
+            'day_obs' dimensions.
+        backup_detector : `int`, optional
+            Detector ID to use as a backup if not present in ``data_id``.
+            This is not used if detector information is available in
+            ``data_id`` and does not override it.
 
         Returns
         -------
@@ -160,9 +174,18 @@ class ObservationIdentifiers:
             Struct of identifiers for this observation.
         """
         packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
+        detector = data_id.get("detector", backup_detector)
+        day_obs = data_id.get("day_obs", None)
         return cls(
             instrument=cast(str, data_id["instrument"]),
-            packed=cast(int, packer.pack(data_id, returnMaxBits=False)),
+            physical_filter=cast(str, data_id["physical_filter"]),
+            # Passing detector twice does not crash the packer. So send it in
+            # without checking if available in data_id.
+            packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
-            detector=cast(int, data_id["detector"]),
+            day_obs=cast(int, day_obs),
+            detector=cast(int, detector),
         )
+
+    def __lt__(self, other: Self, /) -> bool:
+        return self.packed < other.packed

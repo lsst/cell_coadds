@@ -37,6 +37,7 @@ from lsst.cell_coadds import (
     CommonComponents,
     ExplodedCoadd,
     MultipleCellCoadd,
+    ObservationIdentifiers,
     OwnedImagePlanes,
     PatchIdentifiers,
     SingleCellCoadd,
@@ -204,9 +205,16 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs={
-                            None,  # type: ignore [arg-type]
-                        },
+                        inputs=(
+                            ObservationIdentifiers(
+                                instrument="dummy",
+                                physical_filter="dummy-I",
+                                visit=12345,
+                                detector=67,
+                                packed=13579,
+                                day_obs=20000101,
+                            ),
+                        ),
                         common=common,
                         identifiers=identifiers,
                     )
@@ -295,6 +303,14 @@ class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
         self.assertEqual(
             wcs.getFitsMetadata().toString(), self.multiple_cell_coadd.wcs.getFitsMetadata().toString()
         )
+
+    def test_visit_count(self):
+        """Test the visit_count method."""
+        # Since we don't simulate coaddition from multiple warps, the cells are
+        # all going to have just a single visit.
+        for cellId, singleCellCoadd in self.multiple_cell_coadd.cells.items():
+            with self.subTest(x=cellId.x, y=cellId.y):
+                self.assertEqual(singleCellCoadd.visit_count, 1)
 
 
 class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
