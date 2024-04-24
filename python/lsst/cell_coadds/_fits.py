@@ -19,14 +19,71 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""Module to handle FITS serialization and de-serialization.
+
+The routines to write and read the files are in the same module, as a change to
+one is typically accompanied by a corresponding change to another. Code changes
+relating to writing the file must bump to the version number denoted by the
+module constant FILE_FORMAT_VERSION.
+
+Although the typical use case is for newer versions of the code to read files
+written by an older version, for the purposes of deciding the newer version
+string, it is helpful to think about an older version of the reader attempting
+to read a newer version of the file on disk. The policy for bumping the version
+is as follows:
+
+1. When the on-disk file format written by this module changes such that the
+previous version of the reader can still read files written by the newer
+version, then there should be a minor bump.
+
+2. When the on-disk format written by this module changes in a way that will
+prevent the previous version of the reader from reading a file produced by the
+current version of the module, then there should be a major bump. This usually
+means that the new version of the reader cannot read older file either,
+save the temporary support with deprecation warnings, possibly until a new
+release of the Science Pipelines is made.
+
+Examples
+--------
+1. A file with VERSION=1.3 should still be readable by the reader in
+this module when the module-level constant FILE_FORMAT_VERSION=1.4. A file
+written with VERSION=1.4 will typically be readable by a reader when the
+module-level FILE_FORMAT_VERSION=1.3, although such a use case is not expected.
+A concrete example of change
+that requires only a minor bump is adding another BinTable that keeps track of
+the input visits.
+
+2. An example of major change would be migrating from using
+BinTableHDU to ImageHDU to save data. Even if the reader supports reading
+either of this formats based on the value of VERSION from the header, it should
+be a major change because the previous version of the reader cannot read data
+from ImageHDUs.
+
+Unit tests only check that a file written can be read by the concurrent version
+of the module, but not by any of the previous ones. Hence, bumping
+FILE_FORMAT_VERSION to the appropriate value is ultimately at the discretion of
+the developers.
+
+A major bump must also be recorded in the `isCompatibleWith` method.
+It is plausible that different (non-consequent) major format versions can be
+read by the same reader (due to reverting back to an earlier format, or to
+something very similar). `isCompatibleWith` method offers the convenience of
+checking if a particular format version can be read by the current reader.
+
+Note that major version 0 is considered unstable and experimental and none of
+the guarantee above applies.
+"""
+
 from __future__ import annotations
 
 __all__ = (
     "CellCoaddFitsFormatter",
     "CellCoaddFitsReader",
+    "IncompatibleVersionError",
     "writeMultipleCellCoaddAsFits",
 )
 
+import logging
 import os
 from collections.abc import Mapping
 from typing import Any
@@ -46,6 +103,19 @@ from ._identifiers import CellIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
+
+FILE_FORMAT_VERSION = "0.2"
+"""Version number for the file format as persisted, presented as a string of
+the form M.m, where M is the major version, m is the minor version.
+"""
+
+logger = logging.getLogger(__name__)
+
+
+class IncompatibleVersionError(RuntimeError):
+    """Exception raised when the CellCoaddFitsReader version is not compatible
+    with the FITS file attempted to read.
+    """
 
 
 class CellCoaddFitsFormatter(FitsGenericFormatter):
@@ -69,17 +139,75 @@ class CellCoaddFitsReader:
         The name of the FITS file to read.
     """
 
+    # Minimum and maximum compatible file format versions are listed as
+    # iterables so as to allow for discontiguous intervals.
+    MINIMUM_FILE_FORMAT_VERSIONS = ("0.1",)
+    MAXIMUM_FILE_FORMAT_VERSIONS = ("1.0",)
+
     def __init__(self, filename: str) -> None:
         if not os.path.exists(filename):
             raise FileNotFoundError(f"File {filename} not found")
 
         self.filename = filename
 
+    @classmethod
+    def isCompatibleWith(cls, written_version: str, /) -> bool:
+        """Check if the serialization version is compatible with the reader.
+
+        This is a convenience method to ask if the current version of this
+        class can read a file, based on the VERSION in its header.
+
+        Parameters
+        ----------
+        written_version: `str`
+            The VERSION of the file to be read.
+
+        Returns
+        -------
+        compatible : `bool`
+            Whether the reader can read a file whose VERSION is
+            ``written_version``.
+
+        Notes
+        -----
+        This accepts the other version as a positional argument only.
+        """
+        for min_version, max_version in zip(
+            cls.MINIMUM_FILE_FORMAT_VERSIONS,
+            cls.MAXIMUM_FILE_FORMAT_VERSIONS,
+            strict=True,
+        ):
+            if min_version <= written_version < max_version:
+                return True
+
+        return False
+
     def readAsMultipleCellCoadd(self) -> MultipleCellCoadd:
-        """Read the FITS file as a MultipleCellCoadd object."""
+        """Read the FITS file as a MultipleCellCoadd object.
+
+        Raises
+        ------
+        IncompatibleError
+            Raised if the version of this module that wrote the file is
+            incompatible with this module that is reading it in.
+        """
         with fits.open(self.filename) as hdu_list:
-            data = hdu_list[1].data
             header = hdu_list[1].header
+            written_version = header.get("VERSION", "0.1")
+            if not self.isCompatibleWith(written_version):
+                raise IncompatibleVersionError(
+                    f"{self.filename} was written with version {written_version}"
+                    f"but attempting to read it with a reader designed for {FILE_FORMAT_VERSION}"
+                )
+            if written_version != FILE_FORMAT_VERSION:
+                logger.info(
+                    "Reading %s having version %s with reader designed for %s",
+                    self.filename,
+                    written_version,
+                    FILE_FORMAT_VERSION,
+                )
+
+            data = hdu_list[1].data
 
             # Read in WCS
             ps = PropertySet()
@@ -245,6 +373,11 @@ def writeMultipleCellCoaddAsFits(
         Whether to overwrite the file if it already exists?
     metadata : `~lsst.daf.base.PropertySet`, optional
         Additional metadata to write to the FITS file.
+
+    Notes
+    -----
+    Changes to this function that modify the way the file is written to disk
+    must be accompanied with a change to FILE_FORMAT_VERSION.
     """
     cell_id = fits.Column(
         name="cell_id",
@@ -327,6 +460,7 @@ def writeMultipleCellCoaddAsFits(
     primary_hdu = fits.PrimaryHDU()
     primary_hdu.header.extend(wcs_cards)
 
+    hdu.header["VERSION"] = FILE_FORMAT_VERSION
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
