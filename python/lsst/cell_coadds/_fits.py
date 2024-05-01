@@ -85,7 +85,7 @@ __all__ = (
 
 import logging
 import os
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import lsst.afw.geom as afwGeom
@@ -97,9 +97,11 @@ from lsst.daf.base import PropertySet
 from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
+from packaging import version
 
 from ._common_components import CoaddUnits, CommonComponents
-from ._identifiers import CellIdentifiers, PatchIdentifiers
+from ._grid_container import GridContainer
+from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
@@ -172,12 +174,13 @@ class CellCoaddFitsReader:
         -----
         This accepts the other version as a positional argument only.
         """
+        written_version_object = version.parse(written_version)
         for min_version, max_version in zip(
             cls.MINIMUM_FILE_FORMAT_VERSIONS,
             cls.MAXIMUM_FILE_FORMAT_VERSIONS,
             strict=True,
         ):
-            if min_version <= written_version < max_version:
+            if version.parse(min_version) <= written_version_object < version.parse(max_version):
                 return True
 
         return False
@@ -206,6 +209,8 @@ class CellCoaddFitsReader:
                     written_version,
                     FILE_FORMAT_VERSION,
                 )
+
+            written_version = version.parse(written_version)
 
             data = hdu_list[1].data
 
@@ -241,12 +246,42 @@ class CellCoaddFitsReader:
             outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
             psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
+            # Attempt to get inputs for each cell.
+            inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
+            if written_version >= version.parse("0.3"):
+                visit_dict = {
+                    row["visit"]: (row["physical_filter"], row["day_obs"])
+                    for row in hdu_list[hdu_list.index_of("VISIT")].data
+                }
+                link_table = hdu_list[hdu_list.index_of("CELL")].data
+                for link_row in link_table:
+                    cell_id = Index2D(link_row["cell_x"], link_row["cell_y"])
+                    visit = link_row["visit"]
+                    obs_id = ObservationIdentifiers(
+                        instrument=header["INSTRUME"],
+                        visit=visit,
+                        detector=link_row["detector"],
+                        day_obs=visit_dict[visit][1],
+                        physical_filter=visit_dict[visit][0],
+                    )
+                    if cell_id in inputs:
+                        inputs[cell_id] += [obs_id]
+                    else:
+                        inputs[cell_id] = [obs_id]
+            else:
+                logger.info(
+                    "Cell inputs are available for VERSION=0.3 or later. The file provided has ",
+                    "VERSION = %s",
+                    written_version,
+                )
+
             coadd = MultipleCellCoadd(
                 (
                     self._readSingleCellCoadd(
                         data=row,
                         header=header,
                         common=common,
+                        inputs=inputs[Index2D(row["cell_id"][0], row["cell_id"][1])],
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
@@ -268,6 +303,7 @@ class CellCoaddFitsReader:
         common: CommonComponents,
         header: Mapping[str, Any],
         *,
+        inputs: Iterable[ObservationIdentifiers],
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
@@ -281,6 +317,11 @@ class CellCoaddFitsReader:
             table representation.
         common : `CommonComponents`
             The common components of the coadd.
+        header : `Mapping`
+            The header of the FITS file as a dictionary.
+        inputs : `Iterable` [`ObservationIdentifiers`]
+            Any iterable of ObservationIdentifiers instances that contributed
+            to this cell.
         outer_cell_size : `Extent2I`
             The size of the outer cell.
         psf_image_size : `Extent2I`
@@ -335,8 +376,7 @@ class CellCoaddFitsReader:
             ),
             common=common,
             identifiers=identifiers,
-            # TODO: Pass a sensible value here in DM-40563.
-            inputs=None,  # type: ignore[arg-type]
+            inputs=inputs,
         )
 
     def readWcs(self) -> afwGeom.SkyWcs:
@@ -374,11 +414,56 @@ def writeMultipleCellCoaddAsFits(
     metadata : `~lsst.daf.base.PropertySet`, optional
         Additional metadata to write to the FITS file.
 
+    Returns
+    -------
+    hdu_list : `~astropy.io.fits.HDUList`
+        The FITS file as an HDUList.
+
     Notes
     -----
     Changes to this function that modify the way the file is written to disk
     must be accompanied with a change to FILE_FORMAT_VERSION.
     """
+    # Create metadata tables:
+    # 1. Visit table containing information about the visits.
+    # 2. Cell table containing info about the visit+detector for each cell.
+    visit_records: list[Any] = []
+    cell_records: list[Any] = []
+    instrument_set = set()
+    for cell_id, single_cell_coadd in multiple_cell_coadd.cells.items():
+        for observation_id in single_cell_coadd.inputs:
+            visit_records.append(
+                (observation_id.visit, observation_id.physical_filter, observation_id.day_obs)
+            )
+            cell_records.append((cell_id.x, cell_id.y, observation_id.visit, observation_id.detector))
+            instrument_set.add(observation_id.instrument)
+
+    assert len(instrument_set) == 1, "All cells must have the same instrument."
+    instrument = instrument_set.pop()
+
+    visit_recarray = np.rec.fromrecords(
+        recList=sorted(set(visit_records), key=lambda x: x[0]),  # Sort by visit.
+        formats=None,  # formats has specified to please mypy. See numpy#26376.
+        names=(
+            "visit",
+            "physical_filter",
+            "day_obs",
+        ),
+    )
+    cell_recarray = np.rec.fromrecords(
+        recList=cell_records,
+        formats=None,  # formats has specified to please mypy. See numpy#26376.
+        names=(
+            "cell_x",
+            "cell_y",
+            "visit",
+            "detector",
+        ),
+    )
+
+    visit_hdu = fits.BinTableHDU.from_columns(visit_recarray, name="VISIT")
+    cell_hdu = fits.BinTableHDU.from_columns(cell_recarray, name="CELL")
+
     cell_id = fits.Column(
         name="cell_id",
         format="2I",
@@ -464,6 +549,7 @@ def writeMultipleCellCoaddAsFits(
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
+    hdu.header["INSTRUME"] = instrument
     hdu.header["BAND"] = multiple_cell_coadd.common.band
     hdu.header["SKYMAP"] = multiple_cell_coadd.common.identifiers.skymap
     hdu.header["TRACT"] = multiple_cell_coadd.common.identifiers.tract
@@ -473,7 +559,7 @@ def writeMultipleCellCoaddAsFits(
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
 
-    hdu_list = fits.HDUList([primary_hdu, hdu])
+    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu])
     hdu_list.writeto(filename, overwrite=overwrite)
 
     return hdu_list
