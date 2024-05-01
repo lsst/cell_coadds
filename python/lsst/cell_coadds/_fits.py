@@ -106,7 +106,7 @@ from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 
-FILE_FORMAT_VERSION = "0.2"
+FILE_FORMAT_VERSION = "0.3"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
