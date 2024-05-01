@@ -1,0 +1,1 @@
+Replace "BAND" in the header with a more standard "FILTER" keyword.

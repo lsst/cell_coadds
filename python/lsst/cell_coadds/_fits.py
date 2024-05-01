@@ -212,6 +212,10 @@ class CellCoaddFitsReader:
 
             written_version = version.parse(written_version)
 
+            # TODO: Remove this when FILE_FORMAT_VERSION is bumped to 1.0
+            if written_version < version.parse("0.3"):
+                header.rename_keyword("BAND", "FILTER")
+
             data = hdu_list[1].data
 
             # Read in WCS
@@ -223,12 +227,12 @@ class CellCoaddFitsReader:
             common = CommonComponents(
                 units=CoaddUnits(1),  # TODO: read from FITS TUNIT1 (DM-40562)
                 wcs=wcs,
-                band=header["BAND"],
+                band=header["FILTER"],
                 identifiers=PatchIdentifiers(
                     skymap=header["SKYMAP"],
                     tract=header["TRACT"],
                     patch=Index2D(x=header["PATCH_X"], y=header["PATCH_Y"]),
-                    band=header["BAND"],
+                    band=header["FILTER"],
                 ),
             )
 
@@ -550,7 +554,7 @@ def writeMultipleCellCoaddAsFits(
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
     hdu.header["INSTRUME"] = instrument
-    hdu.header["BAND"] = multiple_cell_coadd.common.band
+    hdu.header["FILTER"] = multiple_cell_coadd.common.band
     hdu.header["SKYMAP"] = multiple_cell_coadd.common.identifiers.skymap
     hdu.header["TRACT"] = multiple_cell_coadd.common.identifiers.tract
     hdu.header["PATCH_X"] = multiple_cell_coadd.common.identifiers.patch.x
