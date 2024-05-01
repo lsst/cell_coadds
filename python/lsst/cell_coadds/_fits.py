@@ -360,7 +360,7 @@ def writeMultipleCellCoaddAsFits(
     filename: str,
     overwrite: bool = False,
     metadata: PropertySet | None = None,
-) -> None:
+) -> fits.HDUList:
     """Write a MultipleCellCoadd object to a FITS file.
 
     Parameters
@@ -475,3 +475,5 @@ def writeMultipleCellCoaddAsFits(
 
     hdu_list = fits.HDUList([primary_hdu, hdu])
     hdu_list.writeto(filename, overwrite=overwrite)
+
+    return hdu_list
