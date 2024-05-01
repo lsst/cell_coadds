@@ -86,6 +86,7 @@ __all__ = (
 import logging
 import os
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Any
 
 import lsst.afw.geom as afwGeom
@@ -118,6 +119,18 @@ class IncompatibleVersionError(RuntimeError):
     """Exception raised when the CellCoaddFitsReader version is not compatible
     with the FITS file attempted to read.
     """
+
+
+@dataclass
+class VisitRecord:
+    """A dataclass to hold relevant info about a visit.
+
+    This is intended for use with this module.
+    """
+
+    visit: int
+    day_obs: int
+    physical_filter: str
 
 
 class CellCoaddFitsFormatter(FitsGenericFormatter):
@@ -254,7 +267,11 @@ class CellCoaddFitsReader:
             inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
             if written_version >= version.parse("0.3"):
                 visit_dict = {
-                    row["visit"]: (row["physical_filter"], row["day_obs"])
+                    row["visit"]: VisitRecord(
+                        visit=row["visit"],
+                        physical_filter=row["physical_filter"],
+                        day_obs=row["day_obs"],
+                    )
                     for row in hdu_list[hdu_list.index_of("VISIT")].data
                 }
                 link_table = hdu_list[hdu_list.index_of("CELL")].data
@@ -265,8 +282,8 @@ class CellCoaddFitsReader:
                         instrument=header["INSTRUME"],
                         visit=visit,
                         detector=link_row["detector"],
-                        day_obs=visit_dict[visit][1],
-                        physical_filter=visit_dict[visit][0],
+                        day_obs=visit_dict[visit].day_obs,
+                        physical_filter=visit_dict[visit].physical_filter,
                     )
                     if cell_id in inputs:
                         inputs[cell_id] += [obs_id]
