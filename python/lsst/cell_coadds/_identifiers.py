@@ -188,4 +188,4 @@ class ObservationIdentifiers:
         )
 
     def __lt__(self, other: Self, /) -> bool:
-        return self.packed < other.packed
+        return (self.visit, self.detector) < (other.visit, other.detector)
