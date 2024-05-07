@@ -110,7 +110,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     # TODO: Remove the conditioning in DM-40563.
     def inputs(self) -> tuple[ObservationIdentifiers, ...] | tuple[()]:
         """Identifiers for the input images that contributed to this cell,
-        sorted by their `packed` attribute.
+        sorted by their `visit` attribute first, and then by `detector`.
         """
         return self._inputs
 

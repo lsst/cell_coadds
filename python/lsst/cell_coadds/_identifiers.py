@@ -32,7 +32,6 @@ from dataclasses import dataclass
 from typing import Self, cast
 
 from lsst.daf.butler import DataCoordinate, DimensionRecord
-from lsst.pipe.base import Instrument
 from lsst.skymap import Index2D
 
 
@@ -130,11 +129,6 @@ class ObservationIdentifiers:
     """Name of the physical filter that this observation was taken with.
     """
 
-    packed: int
-    """ID that uniquely identifies both the visit and detector by packing
-    together their IDs.
-    """
-
     visit: int
     """Unique identifier for the visit.
 
@@ -173,19 +167,15 @@ class ObservationIdentifiers:
         identifiers : `ObservationIdentifiers`
             Struct of identifiers for this observation.
         """
-        packer = Instrument.make_default_dimension_packer(data_id, is_exposure=False)
         detector = data_id.get("detector", backup_detector)
         day_obs = data_id.get("day_obs", None)
         return cls(
             instrument=cast(str, data_id["instrument"]),
             physical_filter=cast(str, data_id["physical_filter"]),
-            # Passing detector twice does not crash the packer. So send it in
-            # without checking if available in data_id.
-            packed=cast(int, packer.pack(data_id, detector=detector, returnMaxBits=False)),
             visit=cast(int, data_id["visit"]),
             day_obs=cast(int, day_obs),
             detector=cast(int, detector),
         )
 
     def __lt__(self, other: Self, /) -> bool:
-        return self.packed < other.packed
+        return (self.visit, self.detector) < (other.visit, other.detector)

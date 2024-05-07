@@ -211,7 +211,6 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                                 physical_filter="dummy-I",
                                 visit=12345,
                                 detector=67,
-                                packed=13579,
                                 day_obs=20000101,
                             ),
                         ),
