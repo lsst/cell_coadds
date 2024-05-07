@@ -268,11 +268,13 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             self.assertMasksEqual(mcc1.cells[idx].outer.mask, mcc2.cells[idx].outer.mask)
             self.assertImagesEqual(mcc1.cells[idx].outer.variance, mcc2.cells[idx].outer.variance)
             self.assertImagesEqual(mcc1.cells[idx].psf_image, mcc2.cells[idx].psf_image)
+            self.assertEqual(mcc1.cells[idx].inputs, mcc2.cells[idx].inputs)
 
             self.assertEqual(mcc1.cells[idx].band, mcc1.band)
             self.assertEqual(mcc1.cells[idx].common, mcc1.common)
             self.assertEqual(mcc1.cells[idx].units, mcc2.units)
             self.assertEqual(mcc1.cells[idx].wcs, mcc1.wcs)
+
             # Identifiers differ because of the ``cell`` component.
             # Check the other attributes within the identifiers.
             for attr in ("skymap", "tract", "patch", "band"):
