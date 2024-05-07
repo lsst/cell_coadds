@@ -85,7 +85,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._common = common
         # Remove any duplicate elements in the input, sorted them and make
         # them an immutable sequence.
-        # TODO: Remove the conditioning in DM-40563.
+        # TODO: Remove support for inputs as None when bumping to v1.0 .
         self._inputs = tuple(sorted(set(inputs))) if inputs else ()
         self._identifiers = identifiers
 
@@ -107,7 +107,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         return self._psf
 
     @property
-    # TODO: Remove the conditioning in DM-40563.
+    # TODO: Remove the option of returning empty tuple in v1.0.
     def inputs(self) -> tuple[ObservationIdentifiers, ...] | tuple[()]:
         """Identifiers for the input images that contributed to this cell,
         sorted by their `visit` attribute first, and then by `detector`.
