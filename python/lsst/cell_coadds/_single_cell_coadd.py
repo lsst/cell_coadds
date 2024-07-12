@@ -26,16 +26,13 @@ __all__ = ("SingleCellCoadd",)
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from lsst.afw.image import ImageD, ImageF
-from lsst.geom import Box2I
+import lsst.shoefits as shf
 
 from ._common_components import CommonComponents, CommonComponentsProperties
-from ._image_planes import ViewImagePlanes
-from .typing_helpers import ImageLike
+from ._image_planes import ImagePlanes
 
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers
-    from ._image_planes import ImagePlanes, OwnedImagePlanes
 
 
 class SingleCellCoadd(CommonComponentsProperties):
@@ -67,10 +64,10 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     def __init__(
         self,
-        outer: OwnedImagePlanes,
+        outer: ImagePlanes,
         *,
-        psf: ImageD,
-        inner_bbox: Box2I,
+        psf: shf.Image,
+        inner_bbox: shf.Box,
         inputs: Iterable[ObservationIdentifiers],
         common: CommonComponents,
         identifiers: CellIdentifiers,
@@ -81,7 +78,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._outer = outer
         self._psf = psf
         self._inner_bbox = inner_bbox
-        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self._make_view)
+        self._inner = ImagePlanes.view_of(outer, bbox=inner_bbox)
         self._common = common
         # Remove any duplicate elements in the input, sorted them and make
         # them an immutable sequence.
@@ -102,7 +99,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         return self._outer
 
     @property
-    def psf_image(self) -> ImageF:
+    def psf_image(self) -> shf.Image:
         """The coadded PSF image."""
         return self._psf
 
@@ -130,6 +127,3 @@ class SingleCellCoadd(CommonComponentsProperties):
     def common(self) -> CommonComponents:
         # Docstring inherited.
         return self._common
-
-    def _make_view(self, image: ImageLike) -> ImageLike:
-        return image[self._inner_bbox]

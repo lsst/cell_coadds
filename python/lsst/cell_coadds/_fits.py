@@ -89,13 +89,9 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-import lsst.afw.geom as afwGeom
-import lsst.afw.image as afwImage
+import lsst.shoefits as shf
 import numpy as np
 from astropy.io import fits
-from lsst.afw.image import ImageD, ImageF
-from lsst.daf.base import PropertySet
-from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
 from packaging import version
@@ -103,8 +99,9 @@ from packaging import version
 from ._common_components import CoaddUnits, CommonComponents
 from ._grid_container import GridContainer
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
-from ._image_planes import OwnedImagePlanes
+from ._image_planes import ImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
+from ._to_upstream import CellIndex, CellShape, PixelIndex, PixelShape
 from ._uniform_grid import UniformGrid
 
 FILE_FORMAT_VERSION = "0.3"
@@ -231,10 +228,8 @@ class CellCoaddFitsReader:
 
             data = hdu_list[1].data
 
-            # Read in WCS
-            ps = PropertySet()
-            ps.update(hdu_list[0].header)
-            wcs = afwGeom.makeSkyWcs(ps)
+            # TODO: DM-45189: read WCS from header
+            wcs = None
 
             # Build the quantities needed to construct a MultipleCellCoadd.
             common = CommonComponents(
@@ -249,19 +244,31 @@ class CellCoaddFitsReader:
                 ),
             )
 
-            grid_cell_size = Extent2I(header["GRCELL1"], header["GRCELL2"])  # Inner size of a single cell.
-            grid_shape = Extent2I(header["GRSHAPE1"], header["GRSHAPE2"])
-            grid_min = Point2I(header["GRMIN1"], header["GRMIN2"])
-            grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, min=grid_min)
-
-            # This is the inner bounding box for the multiple cell coadd
-            inner_bbox = Box2I(
-                Point2I(header["INBBOX11"], header["INBBOX12"]),
-                Point2I(header["INBBOX21"], header["INBBOX22"]),
+            # Inner size of a single cell.
+            grid_cell_size = PixelShape(x=header["GRCELL1"], y=header["GRCELL2"])
+            # Number of cells in the grid in each dimension.
+            grid_shape = CellShape(x=header["GRSHAPE1"], y=header["GRSHAPE2"])
+            # Coordinate of first pixel in the unpadded grid.
+            grid_min = PixelIndex(x=header["GRMIN1"], y=header["GRMIN2"])
+            # This format version doesn't save the grid padding directly; it's
+            # derivable from the inner cell size and the outer cell size.
+            outer_cell_size = PixelShape(x=header["OCELL1"], y=header["OCELL2"])
+            padding_x, bad_remainder_x = divmod(outer_cell_size.x - grid_cell_size.x, 2)
+            padding_y, bad_remainder_y = divmod(outer_cell_size.y - grid_cell_size.y, 2)
+            assert not bad_remainder_x, "Cell padding in x cannot be symmetric."
+            assert not bad_remainder_y, "Cell padding in y cannot be symmetric."
+            assert padding_x == padding_y, "Cell padding should be the same in x and y."
+            grid = UniformGrid.from_cell_size_shape(
+                grid_cell_size, grid_shape, min=grid_min, padding=padding_x
             )
 
-            outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
-            psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
+            inner_bbox = shf.Box.factory[
+                header["INBBOX12"] : header["INBBOX22"],
+                header["INBBOX11"] : header["INBBOX21"],
+            ]
+            assert inner_bbox == grid.bbox, "INBBOX and GR* keys are actually redundant."
+
+            psf_image_size = PixelShape(x=header["PSFSIZE1"], y=header["PSFSIZE2"])
 
             # Attempt to get inputs for each cell.
             inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
@@ -300,19 +307,17 @@ class CellCoaddFitsReader:
                 (
                     self._readSingleCellCoadd(
                         data=row,
-                        header=header,
                         common=common,
-                        inputs=inputs[Index2D(row["cell_id"][0], row["cell_id"][1])],
+                        inputs=inputs[CellIndex(x=row["cell_id"][0], y=row["cell_id"][1])],
+                        grid=grid,
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
-                        inner_cell_size=grid_cell_size,
                     )
                     for row in data
                 ),
                 grid=grid,
                 outer_cell_size=outer_cell_size,
                 psf_image_size=psf_image_size,
-                inner_bbox=inner_bbox,
                 common=common,
             )
 
@@ -322,12 +327,11 @@ class CellCoaddFitsReader:
     def _readSingleCellCoadd(
         data: Mapping[str, Any],
         common: CommonComponents,
-        header: Mapping[str, Any],
         *,
         inputs: Iterable[ObservationIdentifiers],
-        outer_cell_size: Extent2I,
-        inner_cell_size: Extent2I,
-        psf_image_size: Extent2I,
+        grid: UniformGrid,
+        outer_cell_size: PixelShape,
+        psf_image_size: PixelShape,
     ) -> SingleCellCoadd:
         """Read a coadd from a FITS file.
 
@@ -338,47 +342,53 @@ class CellCoaddFitsReader:
             table representation.
         common : `CommonComponents`
             The common components of the coadd.
-        header : `Mapping`
-            The header of the FITS file as a dictionary.
         inputs : `Iterable` [`ObservationIdentifiers`]
             Any iterable of ObservationIdentifiers instances that contributed
             to this cell.
-        outer_cell_size : `Extent2I`
+        grid : `UniformGrid`
+            Cell geometry grid.
+        outer_cell_size : `PixelShape`
             The size of the outer cell.
-        psf_image_size : `Extent2I`
+        psf_image_size : `PixelShape`
             The size of the PSF image.
-        inner_cell_size : `Extent2I`
-            The size of the inner cell.
 
         Returns
         -------
         coadd : `SingleCellCoadd`
             The coadd read from the file.
         """
-        buffer = (outer_cell_size - inner_cell_size) // 2
-
-        psf = ImageD(
-            array=data["psf"].astype(np.float64),
-            xy0=(-(psf_image_size // 2)).asPoint(),  # integer division and negation do not commute.
-        )  # use the variable
-        xy0 = Point2I(
-            inner_cell_size.x * data["cell_id"][0] - buffer.x + header["GRMIN1"],
-            inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
+        psf = shf.Image(
+            data["psf"].astype(np.float64),
+            # integer division and negation do not commute.
+            start=(-(psf_image_size.y // 2), -(psf_image_size.x // 2)),
         )
-        mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
-        image_planes = OwnedImagePlanes(
-            image=ImageF(
+        cell_index = CellIndex.from_xy(data["cell_id"])
+        inner_bbox = grid.bbox_of(cell_index)
+        outer_start = PixelIndex(x=inner_bbox.x.start - grid.padding, y=inner_bbox.y.start - grid.padding)
+        # TODO DM-45189:
+        # We don't seem to be saving the mask plane definitions at all, so for
+        # now we just set them all to be undefined.  Should probably hard-code
+        # the afw global default mask plane here instead.
+        mask_schema = shf.MaskSchema([None] * 32, dtype=np.uint8)
+        mask_array = np.frombuffer(data["mask"].tobytes(), dtype=np.uint8).reshape(
+            *tuple(outer_cell_size) + (4,)
+        )
+        mask = shf.Mask(mask_array, start=outer_start, schema=mask_schema)
+        unit = common.units.to_astropy()
+        image_planes = ImagePlanes(
+            image=shf.Image(
                 data["image"].astype(np.float32),
-                xy0=xy0,
+                start=outer_start,
+                unit=unit,
             ),
             mask=mask,
-            variance=ImageF(data["variance"].astype(np.float32), xy0=xy0),
+            variance=shf.Image(data["variance"].astype(np.float32), start=outer_start, unit=unit),
             noise_realizations=[],
             mask_fractions=None,
         )
 
         identifiers = CellIdentifiers(
-            cell=Index2D(data["cell_id"][0], data["cell_id"][1]),
+            cell=CellIndex(x=data["cell_id"][0], y=data["cell_id"][1]),
             skymap=common.identifiers.skymap,
             tract=common.identifiers.tract,
             patch=common.identifiers.patch,
@@ -388,39 +398,18 @@ class CellCoaddFitsReader:
         return SingleCellCoadd(
             outer=image_planes,
             psf=psf,
-            inner_bbox=Box2I(
-                corner=Point2I(
-                    inner_cell_size.x * data["cell_id"][0] + header["GRMIN1"],
-                    inner_cell_size.y * data["cell_id"][1] + header["GRMIN2"],
-                ),
-                dimensions=inner_cell_size,
-            ),
+            inner_bbox=inner_bbox,
             common=common,
             identifiers=identifiers,
             inputs=inputs,
         )
-
-    def readWcs(self) -> afwGeom.SkyWcs:
-        """Read the WCS information from the FITS file.
-
-        Returns
-        -------
-        wcs : `~lsst.afw.geom.SkyWcs`
-            The WCS information read from the FITS file.
-        """
-        # Read in WCS
-        ps = PropertySet()
-        with fits.open(self.filename) as hdu_list:
-            ps.update(hdu_list[0].header)
-        wcs = afwGeom.makeSkyWcs(ps)
-        return wcs
 
 
 def writeMultipleCellCoaddAsFits(
     multiple_cell_coadd: MultipleCellCoadd,
     filename: str,
     overwrite: bool = False,
-    metadata: PropertySet | None = None,
+    metadata: fits.Header | None = None,
 ) -> fits.HDUList:
     """Write a MultipleCellCoadd object to a FITS file.
 
@@ -432,7 +421,7 @@ def writeMultipleCellCoaddAsFits(
         The name of the file to write to.
     overwrite : `bool`, optional
         Whether to overwrite the file if it already exists?
-    metadata : `~lsst.daf.base.PropertySet`, optional
+    metadata : `~astropy.io.fits.Header`, optional
         Additional metadata to write to the FITS file.
 
     Returns
@@ -528,16 +517,16 @@ def writeMultipleCellCoaddAsFits(
     col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
-    grid_cell_size = multiple_cell_coadd.grid.cell_size
-    grid_shape = multiple_cell_coadd.grid.shape
-    grid_min = multiple_cell_coadd.grid.bbox.getMin()
+    grid = multiple_cell_coadd.grid
+    grid_cell_size = grid.cell_size
+    grid_shape = grid.shape
     grid_cards = {
         "GRCELL1": grid_cell_size.x,
         "GRCELL2": grid_cell_size.y,
         "GRSHAPE1": grid_shape.x,
         "GRSHAPE2": grid_shape.y,
-        "GRMIN1": grid_min.x,
-        "GRMIN2": grid_min.y,
+        "GRMIN1": grid.bbox.x.min,
+        "GRMIN2": grid.bbox.y.min,
     }
     hdu.header.extend(grid_cards)
 
@@ -554,18 +543,15 @@ def writeMultipleCellCoaddAsFits(
     hdu.header.extend(psf_image_size_cards)
 
     inner_bbox_cards = {
-        "INBBOX11": multiple_cell_coadd.inner_bbox.minX,
-        "INBBOX12": multiple_cell_coadd.inner_bbox.minY,
-        "INBBOX21": multiple_cell_coadd.inner_bbox.maxX,
-        "INBBOX22": multiple_cell_coadd.inner_bbox.maxY,
+        "INBBOX11": grid.bbox.x.min,
+        "INBBOX12": grid.bbox.y.min,
+        "INBBOX21": grid.bbox.x.max,
+        "INBBOX22": grid.bbox.y.max,
     }
     hdu.header.extend(inner_bbox_cards)
 
-    wcs = multiple_cell_coadd.common.wcs
-    wcs_cards = wcs.getFitsMetadata().toDict()
     primary_hdu = fits.PrimaryHDU()
-    primary_hdu.header.extend(wcs_cards)
-
+    # TODO DM-45189: save WCS
     hdu.header["VERSION"] = FILE_FORMAT_VERSION
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
@@ -578,7 +564,7 @@ def writeMultipleCellCoaddAsFits(
     hdu.header["PATCH_Y"] = multiple_cell_coadd.common.identifiers.patch.y
 
     if metadata is not None:
-        hdu.header.extend(metadata.toDict())
+        hdu.header.extend(metadata)
 
     hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu])
     hdu_list.writeto(filename, overwrite=overwrite)

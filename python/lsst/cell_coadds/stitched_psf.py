@@ -32,6 +32,7 @@ from lsst.afw.typehandling import StorableHelperFactory
 from lsst.meas.algorithms import ImagePsf
 
 from ._grid_container import GridContainer
+from ._to_upstream import PixelIndex
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
@@ -91,10 +92,10 @@ class StitchedPsf(ImagePsf):
 
     # The _do* methods make use of the ImagePsf trampoline.
     def _doComputeBBox(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> geom.Box2I:
-        return self._images[self._grid.index(geom.Point2I(position))].getBBox()
+        return self._images[self._grid.index(PixelIndex.from_xy(geom.Point2I(position)))].getBBox()
 
     def _doComputeKernelImage(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> ImageD:
-        return self._images[self._grid.index(geom.Point2I(position))]
+        return self._images[self._grid.index(PixelIndex.from_xy(geom.Point2I(position)))]
 
     def clone(self) -> StitchedPsf:
         """Return a deep copy of this object."""
@@ -104,7 +105,7 @@ class StitchedPsf(ImagePsf):
         """Return a deep copy of this object."""
         return StitchedPsf(self.images, self.grid)
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object) -> bool:  # noqa: D105
         if not isinstance(other, StitchedPsf):
             return False
 
@@ -132,7 +133,7 @@ class StitchedPsf(ImagePsf):
             bigger_image[image.getBBox()] = image
             return bigger_image[bbox]
 
-    def resized(self, width: int, height: int) -> StitchedPsf:
+    def resized(self, width: int, height: int) -> StitchedPsf:  # noqa: D102
         if not (width % 2 == 1 and width > 0):
             raise ValueError("resized width must be a positive odd integer; got {width}.")
         if not (height % 2 == 1 and height > 0):
@@ -143,7 +144,7 @@ class StitchedPsf(ImagePsf):
         return StitchedPsf(gc, self.grid)
 
     @staticmethod
-    def isPersistable() -> bool:
+    def isPersistable() -> bool:  # noqa: D102
         return True
 
     @staticmethod
@@ -155,10 +156,10 @@ class StitchedPsf(ImagePsf):
         return __name__
 
     # The get/set state methods are needed to support pickle.
-    def __getstate__(self) -> dict:
+    def __getstate__(self) -> dict:  # noqa: D105
         return {"images": self.images, "grid": self.grid}
 
-    def __setstate__(self, state: dict) -> None:
+    def __setstate__(self, state: dict) -> None:  # noqa: D105
         StitchedPsf.__init__(self, state["images"], state["grid"])
 
     def _write(self) -> bytes:

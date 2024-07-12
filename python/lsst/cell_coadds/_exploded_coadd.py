@@ -23,128 +23,66 @@ from __future__ import annotations
 
 __all__ = ("ExplodedCoadd",)
 
-from collections.abc import Iterator, Set
-from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
-from lsst.afw.image import ImageF
+import lsst.shoefits as shf
 
-from ._image_planes import ImagePlanes, ViewImagePlanes
-from ._stitched_image_planes import StitchedImagePlanes
+from ._image_planes import ImagePlanes
 from ._uniform_grid import UniformGrid
-from .typing_helpers import ImageLike
 
 if TYPE_CHECKING:
-    from lsst.geom import Box2I, Point2I
-
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
-class ExplodedCoadd(StitchedImagePlanes):
-    """A lazy-evaluation coadd that stitches together the outer regions of the
-    cells in a `MultipleCellCoadd` (including multiple values for most pixels).
-
-    Parameters
-    ----------
-    cell_coadd : `MultipleCellCoadd`
-        Cell-based coadd to stitch together.
-    pad_psfs_with : `float` or `None`, optional
-        A floating-point value to pad PSF images with so each PSF-image cell
-        has the same dimensions as the image (outer) cell it corresponds to.
-        If `None`, PSF images will not be padded and the full PSF image will
-        generally be smaller than the exploded image it corresponds to.
+class ExplodedCoadd(ImagePlanes):
+    """A coadd that stitches together the outer regions of the cells in a
+    `MultipleCellCoadd` (including multiple values for most pixels).
 
     Notes
     -----
-    An `ExplodedCoadd` cannot be serialized in FITS format directly.  Instead,
-    the recommended way is to serialize the `MultipleCellCoadd` instance that
-    was used to construct the object and reconstruct the `ExplodedCoadd` by
-    calling the `explode` method on it.
+    `ExplodedCoadd` is intended primarily for serialization and visualization,
+    and with this in mind it stores its PSF as a single stitched image as well.
+
+    An `ExplodedCoadd` and a `MultipleCellCoadd` may share data, but generally
+    only if the `MultipleCellCoadd` is constructed from the `ExplodedCoadd`,
+    not the other way around.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, pad_psfs_with: float | None = None):
-        super().__init__()
-        self._grid = UniformGrid(cell_coadd.outer_cell_size, cell_coadd.grid.shape)
-        if pad_psfs_with is None:
-            self._psf_grid = UniformGrid(cell_coadd.psf_image_size, cell_coadd.grid.shape)
-        elif (cell_coadd.psf_image_size.x > cell_coadd.outer_cell_size.x) or (
-            cell_coadd.psf_image_size.y > cell_coadd.outer_cell_size.y
-        ):
-            raise ValueError(
-                f"PSF image dimensions {cell_coadd.psf_image_size} are larger than "
-                f"outer cell dimensions {cell_coadd.outer_cell_size}; cannot pad."
-            )
-        else:
-            self._psf_grid = self._grid
-        self._cell_coadd = cell_coadd
-        self._pad_psfs_with = pad_psfs_with
-        self._psf_image: ImageF | None = None
+    grid: UniformGrid
+    """Object that defines the piecewise grid (of outer cell regions) that
+    this object stitches together.
 
-    @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._grid.bbox
+    This grid always starts at ``(0, 0)``; because there is no way to align
+    this "exploded" grid with the inner cell grid over more than one cell, no
+    attempt is made to align it with the inner cell grid's overall offset.
+    """
 
-    @property
-    def grid(self) -> UniformGrid:
-        """Object that defines the piecewise grid (of outer cell regions) that
-        this object stitches together.
+    psf_grid: UniformGrid
+    """Object that describes the grid on which PSF model images are stitched
+    together.
+    """
 
-        This grid always starts at `(0, 0)`; because there is no way to align
-        this "exploded" grid with the inner cell grid over more than one cell,
-        no attempt is made to align it with the inner cell grid's overall
-        offset.
+    psf_image: shf.Image
+    """A stitched-together image of the PSF models for each cell."""
+
+    @classmethod
+    def from_cell_coadd(cls, cell_coadd: MultipleCellCoadd, pad_psfs_with: float | None) -> Self:
+        """Build an `ExplodedCoadd` from a `MultipleCellCoadd`.
+
+        Parameters
+        ----------
+        cell_coadd : `MultipleCellCoadd`
+            Cell-based coadd to stitch together.
+        pad_psfs_with : `float` or `None`, optional
+            A floating-point value to pad PSF images with so each PSF-image
+            cell has the same dimensions as the image (outer) cell it
+            corresponds to. If `None`, PSF images will not be padded and the
+            full PSF image will generally be smaller than the exploded image it
+            corresponds to.
+
+        Returns
+        -------
+        exploded : `ExplodedCoadd`
+            Stitched outer-cell coadd.
         """
-        return self._grid
-
-    @property
-    def psf_grid(self) -> UniformGrid:
-        """Object that describes the grid on which PSF model images are
-        stitched together.
-        """
-        return self._psf_grid
-
-    @property
-    def n_noise_realizations(self) -> int:
-        # Docstring inherited.
-        return self._cell_coadd.n_noise_realizations
-
-    @property
-    def mask_fraction_names(self) -> Set[str]:
-        # Docstring inherited.
-        return self._cell_coadd.mask_fraction_names
-
-    @staticmethod
-    def _make_view_with_xy0(original: ImageLike, xy0: Point2I) -> ImageLike:
-        result = original[:, :]  # copy bbox, share pixel data.
-        result.setXY0(xy0)
-        return result
-
-    def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
-        # Docstring inherited.
-        for cell in self._cell_coadd.cells.values():
-            new_bbox = self._grid.bbox_of(cell.identifiers.cell)
-            make_view = partial(self._make_view_with_xy0, xy0=new_bbox.getMin())
-
-            yield ViewImagePlanes(cell.outer, make_view, bbox=new_bbox)
-
-    @property
-    def psf_image(self) -> ImageF:
-        """A stitched-together image of the PSF models for each cell."""
-        if self._psf_image is None:
-            stitched_psf_image = ImageF(self.psf_grid.bbox)
-            if self._pad_psfs_with is not None:
-                stitched_psf_image.set(self._pad_psfs_with)
-            for cell in self._cell_coadd.cells.values():
-                target_subimage = stitched_psf_image[self.psf_grid.bbox_of(cell.identifiers.cell)]
-                target_dimensions = target_subimage.getDimensions()
-                source_dimensions = cell.psf_image.getDimensions()
-                offset = (target_dimensions - source_dimensions) // 2
-                # Use numpy views instead of Image methods because the images
-                # are not in the same coordinate system to begin with, so xy0
-                # doesn't help us.
-                target_subimage.array[
-                    offset.y : offset.y + source_dimensions.y, offset.x : offset.x + source_dimensions.x
-                ] = cell.psf_image.array
-            self._psf_image = stitched_psf_image
-        return self._psf_image
+        raise NotImplementedError("TODO DM-45189")

@@ -21,217 +21,50 @@
 
 from __future__ import annotations
 
-__all__ = (
-    "ImagePlanes",
-    "OwnedImagePlanes",
-    "ViewImagePlanes",
-)
+__all__ = ("ImagePlanes",)
 
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Self
+from collections.abc import Sequence
+from typing import Self
 
-from lsst.afw.image import MaskedImageF
-
-if TYPE_CHECKING:
-    from lsst.afw.image import Mask, MaskedImage
-    from lsst.geom import Box2I
-
-    from .typing_helpers import ImageLike
+import lsst.shoefits as shf
+import pydantic
 
 
-class ImagePlanes(ABC):
-    """Struct interface for the image-like planes we coadd.
-
-    Notes
-    -----
-    The extends the set of planes in `lsst.afw.image.MaskedImage` by adding
-    noise realizations and "mask fraction" images.
-    """
-
-    @property
-    @abstractmethod
-    def bbox(self) -> Box2I:
-        """The bounding box common to all image planes."""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def image(self) -> ImageLike:
-        """The data image itself."""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def mask(self) -> Mask:
-        """An integer bitmask."""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def variance(self) -> ImageLike:
-        """Per-pixel variances for the image."""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def mask_fractions(self) -> ImageLike | None:
-        """The (weighted) fraction of masked pixels that contribute to each
-        pixel.
-        """
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def noise_realizations(self) -> Sequence[ImageLike]:
-        """A sequence of noise realizations that were coadded with the same
-        operations that were appled to the data image.
-        """
-        raise NotImplementedError()
-
-    def asMaskedImage(self) -> MaskedImageF:
-        """Return an `lsst.afw.image.MaskedImage` view of the image, mask, and
-        variance planes.
-        """
-        return MaskedImageF(self.image, self.mask, self.variance)
-
-
-class OwnedImagePlanes(ImagePlanes):
-    """An implementation of the `ImagePlanes` interface backed by actual
-    afw objects.
-    """
-
-    def __init__(
-        self,
-        *,
-        image: ImageLike,
-        mask: Mask,
-        variance: ImageLike,
-        mask_fractions: ImageLike | None = None,
-        noise_realizations: Sequence[ImageLike] = (),
-    ):
-        self._image = image
-        self._mask = mask
-        self._variance = variance
-        self._mask_fractions = mask_fractions
-        self._noise_realizations = tuple(noise_realizations)
+class ImagePlanes(pydantic.BaseModel):
+    """Struct combining the image-like planes in a cell-based coadd."""
 
     @classmethod
-    def from_masked_image(
-        cls,
-        masked_image: MaskedImage,
-        mask_fractions: ImageLike | None = None,
-        noise_realizations: Sequence[ImageLike] = (),
-    ) -> Self:
-        """Construct from an `lsst.afw.image.MaskedImage`.
-
-        Parameters
-        ----------
-        masked_image : `~lsst.afw.image.MaskedImage`
-            The image to construct from. The image, mask and variance planes
-            of ``masked_image`` will be used as the image, mask and variance
-            planes of the constructed object.
-        mask_fractions : `ImageLike`, optional
-            The mask fractions image.
-        noise_realizations : `Sequence` [`ImageLike`], optional
-            The noise realizations.
-
-        Returns
-        -------
-        self : `OwnedImagePlanes`
-            An instance of OwnedImagePlanes.
-        """
+    def view_of(cls, other: ImagePlanes, bbox: shf.Box) -> Self:
         return cls(
-            image=masked_image.image,
-            mask=masked_image.mask,
-            variance=masked_image.variance,
-            mask_fractions=mask_fractions,
-            noise_realizations=noise_realizations,
+            image=other.image[bbox],
+            mask=other.mask[bbox],
+            variance=other.variance[bbox],
+            mask_fractions=(other.mask_fractions[bbox] if other.mask_fractions is not None else None),
+            noise_realizations=tuple([n[bbox] for n in other.noise_realizations]),
         )
 
     @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._image.getBBox()
+    def bbox(self) -> shf.Box:
+        """The bounding box common to all image planes."""
+        return self.image.bbox
 
-    @property
-    def image(self) -> ImageLike:
-        # Docstring inherited.
-        return self._image
+    image: shf.Image
+    """The data image itself."""
 
-    @property
-    def mask(self) -> Mask:
-        # Docstring inherited.
-        return self._mask
+    mask: shf.Mask
+    """An integer bitmask."""
 
-    @property
-    def variance(self) -> ImageLike:
-        # Docstring inherited.
-        return self._variance
+    variance: shf.Image
+    """Per-pixel variances for the image."""
 
-    @property
-    def mask_fractions(self) -> ImageLike | None:
-        # Docstring inherited.
-        return self._mask_fractions
-
-    @property
-    def noise_realizations(self) -> Sequence[ImageLike]:
-        # Docstring inherited.
-        return self._noise_realizations
-
-
-class ViewImagePlanes(ImagePlanes):
-    """An implementation of the `ImagePlanes` interface that extracts views
-    from another target `ImagePlanes` instance.
-
-    Parameters
-    ----------
-    target : `ImagePlanes`
-        Planes to construct views of.
-    make_view : `Callable`
-        Callable that takes an original image plane and returns a view into it.
-    bbox : `Box2I`, optional
-        Bounding box of the new image plane.  Defaults to ``target.bbox``.
+    mask_fractions: shf.Image | None
+    """The (weighted) fraction of masked pixels that contribute to each
+    pixel.
     """
 
-    def __init__(
-        self, target: ImagePlanes, make_view: Callable[[ImageLike], ImageLike], bbox: Box2I | None = None
-    ):
-        self._target = target
-        self._bbox = bbox if bbox is not None else self._target.bbox
-        self._make_view = make_view
+    noise_realizations: Sequence[shf.Image]
+    """A sequence of noise realizations that were coadded with the same
+    operations that were appled to the data image.
+    """
 
-    @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._bbox
-
-    @property
-    def image(self) -> ImageLike:
-        # Docstring inherited.
-        return self._make_view(self._target.image)
-
-    @property
-    def mask(self) -> Mask:
-        # Docstring inherited.
-        return self._make_view(self._target.mask)
-
-    @property
-    def variance(self) -> ImageLike:
-        # Docstring inherited.
-        return self._make_view(self._target.variance)
-
-    @property
-    def mask_fractions(self) -> ImageLike | None:
-        # Docstring inherited.
-        if self._target.mask_fractions is not None:
-            return self._make_view(self._target.mask_fractions)
-
-        return None
-
-    @property
-    def noise_realizations(self) -> Sequence[ImageLike]:
-        # Docstring inherited.
-        # We could make this even lazier with a custom Sequence class, but it
-        # doesn't seem worthwhile.
-        return tuple(self._make_view(r) for r in self._target.noise_realizations)
+    # TODO DM-45189: validate that bboxes are consistent.

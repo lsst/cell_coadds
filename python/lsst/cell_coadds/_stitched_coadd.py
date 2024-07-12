@@ -23,134 +23,39 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
-from collections.abc import Iterator, Set
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
-from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
-from lsst.geom import Box2I
+import lsst.shoefits as shf
 
-from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
+from ._common_components import CommonComponents
+from ._grid_container import GridContainer
 from ._image_planes import ImagePlanes
-from ._stitched_image_planes import StitchedImagePlanes
-from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
 
 
-class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
-    """A lazy-evaluation coadd that stitches together images from adjacent
-    cells.
-
-    Parameters
-    ----------
-    cell_coadd : `MultipleCellCoadd`
-        Cell-based coadd to stitch together.
-    bbox : `Box2I`, optional
-        The region over which a contiguous coadd is desired.  Defaults to
-        ``cell_coadd.inner_bbox``.
+class StitchedCoadd(ImagePlanes, CommonComponents):
+    """A coadd that stitches together images from adjacent cells.
 
     Notes
     -----
-    This class simply inserts subimages from each cell into the full image,
-    doing so when an attribute is first accessed to avoid stitching together
-    planes that may never be accessed.
-
-    A `StitchedCoadd` cannot be serialized in FITS format directly.  Instead,
-    the recommended way is to serialize the `MultipleCellCoadd` instance that
-    was used to construct the object and reconstruct the `StitchedCoadd` by
-    calling the `stitch` method on it. A less recommended way is to call the
-    `asExposure` method to get an `lsst.afw.image.Exposure` object and persist
-    that to the disk.
+    A `StitchedCoadd` coadd never shares image data with a `MultipleCellCoadd`;
+    pixel values must always be copied.  PSF models images may be shared,
+    however.
     """
 
-    def __init__(self, cell_coadd: MultipleCellCoadd, *, bbox: Box2I | None = None):
-        super().__init__()
-        if bbox is None:
-            bbox = cell_coadd.outer_bbox
-        elif not cell_coadd.outer_bbox.contains(bbox):
-            raise ValueError(
-                f"Cell coadd inner bounding box {cell_coadd.outer_bbox} does not "
-                f"contain stitch target area {bbox}."
-            )
-        self._bbox = bbox
-        self._cell_coadd = cell_coadd
-        self._psf: StitchedPsf | None = None
-        self._common = cell_coadd.common
+    grid: UniformGrid
+    """Object that defines the piecewise grid (of inner cell regions) that
+    this object stitches together.
 
-    @property
-    def bbox(self) -> Box2I:
-        # Docstring inherited.
-        return self._bbox
+    This may include cells outside the region covered by these image planes.
+    """
 
-    @property
-    def grid(self) -> UniformGrid:
-        """Object that defines the piecewise grid (of inner cell regions) that
-        this object stitches together.
+    psf_images: GridContainer[shf.Image]
+    """The piecewise PSF of this image as a grid of PSF model images."""
 
-        This may include cells outside the region covered by these image
-        planes.
-        """
-        return self._cell_coadd.grid
-
-    def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
-        # Docstring inherited.
-        for cell in self._cell_coadd.cells.values():
-            yield cell.inner
-
-    @property
-    def n_noise_realizations(self) -> int:
-        # Docstring inherited.
-        return self._cell_coadd.n_noise_realizations
-
-    @property
-    def mask_fraction_names(self) -> Set[str]:
-        # Docstring inherited.
-        return self._cell_coadd.mask_fraction_names
-
-    @property
-    def psf(self) -> StitchedPsf:
-        """The piecewise PSF of this image."""
-        if self._psf is None:
-            self._psf = StitchedPsf(
-                self._cell_coadd.cells.rebuild_transformed(lambda cell: cell.psf_image.convertD()),
-                self._cell_coadd.grid,
-            )
-        return self._psf
-
-    @property
-    def common(self) -> CommonComponents:
-        # Docstring inherited.
-        return self._cell_coadd.common
-
-    def asExposure(self) -> ExposureF:
-        """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
-        result = ExposureF(self.asMaskedImage())
-        # Exposure components derived from "common" components are all simple.
-        result.setWcs(self._cell_coadd.wcs)
-        result.setFilter(FilterLabel(band=self.band))
-        if self.units is CoaddUnits.nJy:
-            result.setPhotoCalib(PhotoCalib(1.0))
-
-        # We can't do result.setId here, because:
-        #
-        # - we don't know whether this should be a packed tract+patch+band ID
-        #   or just a tract+patch ID;
-        #
-        # - we don't know how to pack the information we have anyway.
-        #
-        # Maybe DM-31924 will provide a solution to at least the latter.
-        # result.setId(self._cell_coadd.identifiers.patch)
-
-        # We could add CoaddInputs here, but without WCS, PSF, etc in them;
-        # it's not clear that's good enough or even useful, given that the cell
-        # provide a much more clean view of what the inputs are at any given
-        # point.
-
-        # PSF is the first of many components that need piecewise
-        # implementations.  More to do here for at least aperture corrections
-        # and transmission curves.
-        result.setPsf(self.psf)
-
-        return result
+    @classmethod
+    def from_cell_coadd(cls, cell_coadd: MultipleCellCoadd, bbox: shf.Box | None = None) -> Self:
+        raise NotImplementedError("TODO DM-45189")

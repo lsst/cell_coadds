@@ -25,12 +25,12 @@ __all__ = ("CoaddUnits", "CommonComponents", "CommonComponentsProperties")
 
 import enum
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from lsst.afw.geom import SkyWcs  # pragma: no cover
+import astropy.units
+import pydantic
 
+if TYPE_CHECKING:
     from ._identifiers import PatchIdentifiers  # pragma: no cover
 
 
@@ -57,18 +57,30 @@ class CoaddUnits(enum.Enum):
     """Pixels represent a signal-to-noise ratio.
     """
 
+    def to_astropy(self) -> astropy.units.Unit | None:
+        match self:
+            case CoaddUnits.nJy:
+                return astropy.units.nanojansky
+            case CoaddUnits.chi:
+                return astropy.units.dimensionless_unscaled
+            case CoaddUnits.legacy:
+                # TODO DM-45189: should be able to express this in terms of nJy
+                # if we define a new unit and look up the conversion factor.
+                return None
 
-@dataclass(frozen=True, eq=False, repr=False)
-class CommonComponents:
+
+class CommonComponents(pydantic.BaseModel):
     """Struct containing image attributes that are common to all cells in a
     patch.
     """
+
+    model_config = pydantic.ConfigDict(frozen=True)
 
     units: CoaddUnits
     """Units of the coadd's data pixels.
     """
 
-    wcs: SkyWcs
+    wcs: None  # TODO DM-45189: need a afw-unencumbered WCS.
     """World Coordinate System object that maps the pixel grid to sky
     coordinates.
     """
@@ -97,7 +109,7 @@ class CommonComponentsProperties(ABC):
         return self.common.units
 
     @property
-    def wcs(self) -> SkyWcs:
+    def wcs(self) -> None:
         """World Coordinate System object that maps the pixel grid to sky
         coordinates.
         """

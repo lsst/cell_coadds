@@ -29,6 +29,7 @@ import lsst.geom
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 import lsst.pipe.base.connectionTypes as cT
+import lsst.shoefits as shf
 import lsst.sphgeom
 import lsst.utils
 from lsst.daf.butler import DataCoordinate, DeferredDatasetHandle
@@ -39,6 +40,7 @@ from ._common_components import CoaddUnits, CommonComponents
 from ._identifiers import ObservationIdentifiers, PatchIdentifiers
 from ._multiple_cell_coadd import MultipleCellCoadd
 from ._single_cell_coadd import SingleCellCoadd
+from ._to_upstream import PixelShape
 from ._uniform_grid import UniformGrid
 
 __all__ = (
@@ -126,7 +128,7 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
 singleCellCoaddBuilderRegistry = pexConfig.makeRegistry(doc="Registry of single cell coadd builders")
 
 
-class MultipleCellCoaddBuilderConnections(
+class MultipleCellCoaddBuilderConnections(  # noqa: D101
     pipeBase.PipelineTaskConnections,
     dimensions=("tract", "patch", "band", "skymap"),
     defaultTemplates={"inputCoaddName": "deep", "outputCoaddName": "deep", "warpType": "direct"},
@@ -190,7 +192,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
 
     See Also
     --------
-    SingleCellCoaddBuilderTask
+    SingleCellCoaddBuilderTaskwould
     """
 
     ConfigClass: ClassVar[type[pipeBase.PipelineTaskConfig]] = MultipleCellCoaddBuilderConfig
@@ -201,7 +203,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
         self.makeSubtask(name="singleCellCoaddBuilder")
         self.singleCellCoaddBuilder: SingleCellCoaddBuilderTask
 
-    def runQuantum(  # type: ignore[override]
+    def runQuantum(  # type: ignore[override]  # noqa: D102
         self,
         butlerQC: pipeBase.QuantumContext,
         inputRefs: pipeBase.InputQuantizedConnection,
@@ -290,18 +292,21 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             cellCoadd = self.singleCellCoaddBuilder.run(scc_inputs, cellInfo, common)
             cellCoadds.append(cellCoadd)
 
-        # grid has no notion about border or inner/outer boundaries.
-        # So we have to clip the outermost border when constructing the grid.
+        # The bbox we pass to this UniformGrid factory method should not
+        # include the cell border; the grid will hold that as its padding.
         grid_bbox = patchInfo.outer_bbox.erodedBy(patchInfo.getCellBorder())
-        grid = UniformGrid.from_bbox_cell_size(grid_bbox, patchInfo.getCellInnerDimensions())
+        grid = UniformGrid.from_bbox_cell_size(
+            bbox=shf.Box.factory[grid_bbox.slices],
+            cell_size=PixelShape.from_xy(patchInfo.getCellInnerDimensions()),
+            padding=patchInfo.getCellBorder(),
+        )
 
         multipleCellCoadd = MultipleCellCoadd(
             cellCoadds,
             grid=grid,
-            outer_cell_size=cellInfo.outer_bbox.getDimensions(),
-            inner_bbox=None,
+            outer_cell_size=PixelShape.from_xy(cellInfo.outer_bbox.getDimensions()),
             common=common,
-            psf_image_size=cellCoadds[0].psf_image.getDimensions(),
+            psf_image_size=PixelShape.from_yx(cellCoadds[0].psf_image.bbox.shape),
         )
         return multipleCellCoadd
 

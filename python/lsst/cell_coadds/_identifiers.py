@@ -28,16 +28,18 @@ __all__ = (
 )
 
 
-from dataclasses import dataclass
 from typing import Self, cast
 
+import pydantic
 from lsst.daf.butler import DataCoordinate, DimensionRecord
-from lsst.skymap import Index2D
+
+from ._to_upstream import CellIndex, PatchIndex
 
 
-@dataclass(frozen=True)
-class PatchIdentifiers:
+class PatchIdentifiers(pydantic.BaseModel):
     """Struct of identifiers for a coadd patch."""
+
+    model_config = pydantic.ConfigDict(frozen=True)
 
     skymap: str
     """The name of the skymap this patch belongs to.
@@ -47,7 +49,7 @@ class PatchIdentifiers:
     """The name of the tract this patch belongs to.
     """
 
-    patch: Index2D
+    patch: PatchIndex
     """Identifiers for the patch itself.
     """
 
@@ -74,21 +76,20 @@ class PatchIdentifiers:
         return cls(
             skymap=cast(str, data_id["skymap"]),
             tract=cast(int, data_id["tract"]),
-            patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
+            patch=PatchIndex(x=patch_record.cell_x, y=patch_record.cell_y),
             band=cast(str, data_id.get("band")),
         )
 
 
-@dataclass(frozen=True)
 class CellIdentifiers(PatchIdentifiers):
     """Struct of identifiers for a coadd cell."""
 
-    cell: Index2D
+    cell: CellIndex
     """Identifiers for the cell itself."""
 
     @classmethod
     def from_data_id(  # type: ignore [override]
-        cls, data_id: DataCoordinate, cell: Index2D
+        cls, data_id: DataCoordinate, cell: CellIndex
     ) -> CellIdentifiers:
         """Construct from a data ID and a cell index.
 
@@ -97,7 +98,7 @@ class CellIdentifiers(PatchIdentifiers):
         data_id : `~lsst.daf.butler.DataCoordinate`
             Fully-expanded data ID that includes the 'patch' dimension and
             optionally the `band` dimension.
-        cell : `~lsst.skymap.Index2D`
+        cell : `CellIndex`
             Index of the cell within the patch.
 
         Returns
@@ -109,17 +110,18 @@ class CellIdentifiers(PatchIdentifiers):
         return cls(
             skymap=cast(str, data_id["skymap"]),
             tract=cast(int, data_id["tract"]),
-            patch=Index2D(x=patch_record.cell_x, y=patch_record.cell_y),
+            patch=PatchIndex(x=patch_record.cell_x, y=patch_record.cell_y),
             band=cast(str, data_id.get("band")),
             cell=cell,
         )
 
 
-@dataclass(frozen=True)
-class ObservationIdentifiers:
+class ObservationIdentifiers(pydantic.BaseModel):
     """Struct of identifiers for an observation that contributed to a coadd
     cell.
     """
+
+    model_config = pydantic.ConfigDict(frozen=True)
 
     instrument: str
     """Name of the instrument that this observation was taken with.

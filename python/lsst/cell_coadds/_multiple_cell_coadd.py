@@ -23,21 +23,21 @@ from __future__ import annotations
 
 __all__ = ("MultipleCellCoadd",)
 
-from collections.abc import Iterable, Set
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from lsst.geom import Box2I
+import lsst.shoefits as shf
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
 from ._grid_container import GridContainer
 from ._single_cell_coadd import SingleCellCoadd
 from ._stitched_coadd import StitchedCoadd
+from ._to_upstream import PixelShape
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
-    from lsst.daf.base import PropertySet
-    from lsst.geom import Extent2I
+    import astropy.io.fits
 
 
 class MultipleCellCoadd(CommonComponentsProperties):
@@ -51,48 +51,46 @@ class MultipleCellCoadd(CommonComponentsProperties):
     directly) and measurement algorithms that just want one image and don't
     care (or don't care much) about discontinuities (which can use `stitch` to
     obtain such an image).
-
-    Indexing with `Box2I` yields a `MultipleCellCoadd` view containing just the
-    cells that overlap that region.
     """
 
     def __init__(
         self,
         cells: Iterable[SingleCellCoadd],
         grid: UniformGrid,
-        outer_cell_size: Extent2I,
-        psf_image_size: Extent2I,
+        outer_cell_size: PixelShape,
+        psf_image_size: PixelShape,
         *,
         common: CommonComponents,
-        inner_bbox: Box2I | None = None,
     ):
         self._grid = grid
         self._outer_cell_size = outer_cell_size
         self._psf_image_size = psf_image_size
         self._common = common
-        cells_builder = GridContainer[SingleCellCoadd](self._grid.shape)
-        self._mask_fraction_names: set[str] = set()
+        self._cells = GridContainer[SingleCellCoadd](self._grid.shape)
 
         for cell in cells:
             index = cell.identifiers.cell
-            cells_builder[index] = cell
+            self._cells[index] = cell
             if cell.inner.bbox != self._grid.bbox_of(index):
                 raise ValueError(
                     f"Cell at index {index} has inner bbox {cell.inner.bbox}, "
                     f"but grid expects {self._grid.bbox_of(index)}."
                 )
-            if cell.outer.bbox.getDimensions() != self._outer_cell_size:
+            if cell.outer.bbox.shape != self._outer_cell_size:
                 raise ValueError(
-                    f"Cell at index {index} has outer dimensions {cell.outer.bbox.getDimensions()}, "
+                    f"Cell at index {index} has outer dimensions {cell.outer.bbox.shape}, "
                     f"but coadd expects {self._outer_cell_size}."
                 )
-            if cell.psf_image.getDimensions() != self._psf_image_size:
+            if cell.psf_image.bbox.shape != self._psf_image_size:
                 raise ValueError(
-                    f"Cell at index {index} has PSF image with dimensions {cell.psf_image.getDimensions()}, "
+                    f"Cell at index {index} has PSF image with dimensions {cell.psf_image.bbox.shape}, "
                     f"but coadd expects {self._psf_image_size}."
                 )
 
-        self._cells = cells_builder
+        self._mask_fractions = {cell.outer.mask_fractions is not None for cell in self._cells.values()}
+        self._has_mask_fractions = self._mask_fractions.pop()
+        if self._has_mask_fractions:
+            raise ValueError("Cells are inconsistent in presence/absence of mask fractions.")
         n_noise_realizations = {len(cell.outer.noise_realizations) for cell in self._cells.values()}
         self._n_noise_realizations = n_noise_realizations.pop()
         if n_noise_realizations:
@@ -100,23 +98,6 @@ class MultipleCellCoadd(CommonComponentsProperties):
             raise ValueError(
                 f"Inconsistent number of noise realizations ({n_noise_realizations}) between cells."
             )
-
-        # Finish the construction without relying on the first and last of
-        # self._cells so we can construct an instance with partial list.
-        indices = list(cells_builder.indices())
-        max_inner_bbox = Box2I(
-            grid.bbox_of(indices[0]).getMin(),
-            grid.bbox_of(indices[-1]).getMax(),
-        )
-
-        if inner_bbox is None:
-            inner_bbox = max_inner_bbox
-        elif not max_inner_bbox.contains(inner_bbox):
-            raise ValueError(
-                f"Requested inner bounding box {inner_bbox} is not fully covered by these "
-                f"cells (bbox is {max_inner_bbox})."
-            )
-        self._inner_bbox = inner_bbox
 
     @property
     def cells(self) -> GridContainer[SingleCellCoadd]:
@@ -129,50 +110,55 @@ class MultipleCellCoadd(CommonComponentsProperties):
         return self._n_noise_realizations
 
     @property
-    def mask_fraction_names(self) -> Set[str]:
-        """The names of all mask planes whose fractions were propagated in any
-        cell.
-
-        Cells that do not have a mask fraction for a particular name may be
-        assumed to have the fraction for that mask plane uniformly zero.
+    def has_mask_fractions(self) -> bool:
+        """Whether cells have ``mask_fractions`` planes that record the
+        fraction of contributing pixels that were interpolated bad pixels.
         """
-        return self._mask_fraction_names
+        return self._has_mask_fractions
 
     @property
     def grid(self) -> UniformGrid:
-        """Object that defines the inner geometry for all cells."""
+        """Object that defines the inner geometry for all cells.
+
+        The padding in this grid reflects the outer cell boundaries of the
+        outermost cells in the grid.
+        """
         return self._grid
 
     @property
-    def outer_cell_size(self) -> Extent2I:
+    def outer_cell_size(self) -> PixelShape:
         """Dimensions of the outer region of each cell."""
         return self._outer_cell_size
 
     @property
-    def psf_image_size(self) -> Extent2I:
+    def psf_image_size(self) -> PixelShape:
         """Dimensions of PSF model images."""
         return self._psf_image_size
 
     @property
-    def outer_bbox(self) -> Box2I:
+    def outer_bbox(self) -> shf.Box:
         """The rectangular region fully covered by all cell outer bounding
         boxes.
+
+        This is an alias for ``self.grid.bbox_with_padding``.
         """
-        return Box2I(self.cells.first.outer.bbox.getMin(), self.cells.last.outer.bbox.getMax())
+        return self.grid.bbox_with_padding
 
     @property
-    def inner_bbox(self) -> Box2I:
+    def inner_bbox(self) -> shf.Box:
         """The rectangular region fully covered by all cell inner bounding
         boxes.
+
+        This is an alias for ``self.grid.bbox``.
         """
-        return self._inner_bbox
+        return self.grid.bbox
 
     @property
     def common(self) -> CommonComponents:
         # Docstring inherited.
         return self._common
 
-    def stitch(self, bbox: Box2I | None = None) -> StitchedCoadd:
+    def stitch(self, bbox: shf.Box | None = None) -> StitchedCoadd:
         """Return a contiguous (but in general discontinuous) coadd by
         stitching together inner cells.
 
@@ -192,7 +178,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # discontinuities may also be provided; we'd implement that by having
         # this return different types (from a common ABC), perhaps dispatched
         # by an enum.
-        return StitchedCoadd(self, bbox=bbox)
+        return StitchedCoadd.from_cell_coadd(self, bbox=bbox)
 
     def explode(self, pad_psfs_with: float | None = None) -> ExplodedCoadd:
         """Return a coadd whose image planes stitch together the outer regions
@@ -212,7 +198,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         exploded : `ExplodedCoadd`
             Exploded version of the coadd.
         """
-        return ExplodedCoadd(self, pad_psfs_with=pad_psfs_with)
+        return ExplodedCoadd.from_cell_coadd(self, pad_psfs_with=pad_psfs_with)
 
     @classmethod
     def read_fits(cls, filename: str) -> MultipleCellCoadd:
@@ -228,7 +214,8 @@ class MultipleCellCoadd(CommonComponentsProperties):
         cell_coadd : `MultipleCellCoadd`
             The MultipleCellCoadd object read from the FITS file.
         """
-        from ._fits import CellCoaddFitsReader  # Avoid circular import.
+        # Avoid circular import, keep afw dependence optional.
+        from ._fits import CellCoaddFitsReader
 
         reader = CellCoaddFitsReader(filename)
         return reader.readAsMultipleCellCoadd()
@@ -247,7 +234,9 @@ class MultipleCellCoadd(CommonComponentsProperties):
         """
         return cls.read_fits(*args, **kwargs)
 
-    def write_fits(self, filename: str, overwrite: bool = False, metadata: PropertySet | None = None) -> None:
+    def write_fits(
+        self, filename: str, overwrite: bool = False, metadata: astropy.io.fits.Header | None = None
+    ) -> None:
         """Write the coadd as a FITS file.
 
         Parameters
@@ -256,10 +245,11 @@ class MultipleCellCoadd(CommonComponentsProperties):
             The path to the FITS file to write.
         overwrite : `bool`, optional
             Whether to overwrite an existing file?
-        metadata : `~lsst.daf.base.PropertySet`, optional
+        metadata : `astropy.io.fits.Header`, optional
             Additional metadata to write to the FITS header.
         """
-        from ._fits import writeMultipleCellCoaddAsFits  # Avoid circular import.
+        # Avoid circular import, keep afw dependence optional.
+        from ._fits import writeMultipleCellCoaddAsFits
 
         writeMultipleCellCoaddAsFits(self, filename, overwrite=overwrite, metadata=metadata)
 

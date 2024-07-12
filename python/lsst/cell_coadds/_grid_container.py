@@ -21,24 +21,21 @@
 
 from __future__ import annotations
 
+__all__ = ("GridContainer",)
+
 from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from itertools import product
-from typing import TYPE_CHECKING, TypeVar
+from typing import TypeVar
 
-from lsst.skymap import Index2D
+import lsst.shoefits as shf
 
+from ._to_upstream import CellIndex, CellShape, PixelIndex
 from ._uniform_grid import UniformGrid
-
-if TYPE_CHECKING:
-    import lsst.geom as geom
-
-
-__all__ = ("GridContainer",)
 
 T = TypeVar("T")
 
 
-class GridContainer(MutableMapping[Index2D, T]):
+class GridContainer(MutableMapping[CellIndex, T]):
     """A container whose elements form a 2-d grid.
 
     Parameters
@@ -47,18 +44,18 @@ class GridContainer(MutableMapping[Index2D, T]):
         The number of cells in the grid in each dimension.
     offset : `~lsst.skymap.Index2D` or None, optional
         The integer offset of the grid in each dimension. If `None`, the offset
-        is Index2D(0, 0).
+        is ``CellIndex(y=0, x=0)``.
     """
 
-    def __init__(self, shape: Index2D, offset: Index2D | None = None) -> None:
+    def __init__(self, shape: CellShape, offset: CellIndex | None = None):
         super().__init__()
 
-        self._offset = offset if offset else Index2D(0, 0)
+        self._offset = offset if offset else CellIndex(x=0, y=0)
         self._shape = shape
-        self._cells: dict[Index2D, T] = {}
+        self._cells: dict[CellIndex, T] = {}
         self._mapping = self._cells
 
-    def _check(self, index: Index2D) -> None:
+    def _check(self, index: CellIndex) -> None:
         """Check if a given index belongs to the container or not."""
         if index.x < self.offset.x or index.x >= self.offset.x + self.shape.x:
             raise ValueError(
@@ -78,30 +75,21 @@ class GridContainer(MutableMapping[Index2D, T]):
     def __len__(self) -> int:
         return len(self._cells)
 
-    def __getitem__(self, index: Index2D) -> T:
+    def __getitem__(self, index: CellIndex) -> T:
         return self._cells[index]
 
-    def __setitem__(self, index: Index2D, value: T) -> None:
+    def __setitem__(self, index: CellIndex, value: T) -> None:
         self._check(index)
         self._cells[index] = value
 
-    def __delitem__(self, index: Index2D) -> None:
+    def __delitem__(self, index: CellIndex) -> None:
         self._check(index)
         del self._cells[index]
 
-    def __iter__(self) -> Iterator[T]:
+    def __iter__(self) -> Iterator[CellIndex]:
         return iter(self._cells)
 
-    # def keys(self) -> Iterable[Index2D]:  # populated_indices
-    #     """Return an iterator over the indices in the container with values.
-
-    #     See also
-    #     --------
-    #     indices
-    #     """
-    #     yield from self._cells.keys()
-
-    def indices(self) -> Iterable[Index2D]:
+    def indices(self) -> Iterable[CellIndex]:
         """Return an iterator over all possible indices for the container.
 
         Unlike `keys`, this method returns an iterator over all valid indices,
@@ -116,15 +104,15 @@ class GridContainer(MutableMapping[Index2D, T]):
             range(self.offset.x, self.offset.x + self.shape.x),
         )
         for y, x in iterator:
-            yield Index2D(x, y)
+            yield CellIndex(x=x, y=y)
 
     @property
-    def shape(self) -> Index2D:
+    def shape(self) -> CellShape:
         """Number of cells in the container in each dimension."""
         return self._shape
 
     @property
-    def offset(self) -> Index2D:
+    def offset(self) -> CellIndex:
         """Index of the first cell in the container."""
         return self._offset
 
@@ -145,18 +133,18 @@ class GridContainer(MutableMapping[Index2D, T]):
     @property
     def last(self) -> T:
         """The cell at the upper right corner of the container."""
-        return self._cells[Index2D(x=self.offset.x + self.shape.x - 1, y=self.offset.y + self.shape.y - 1)]
+        return self._cells[CellIndex(x=self.offset.x + self.shape.x - 1, y=self.offset.y + self.shape.y - 1)]
 
-    def subset_overlapping(self, grid: UniformGrid, bbox: geom.Box2I) -> GridContainer:
+    def subset_overlapping(self, grid: UniformGrid, bbox: shf.Box) -> GridContainer:
         """Return a new GridContainer with cells that overlap a bounding box.
 
         Parameters
         ----------
-        grid : `~lsst.cell_coadds.UniformGrid`
+        grid : `UniformGrid`
             Grid that maps the container's cells to the coordinates used to
-            define the bounding box.  May define a grid that is a super of the
-            container's cells.
-        bbox : `~lsst.geom.Box2I`
+            define the bounding box.  May define a grid that is a superset of
+            the container's cells.
+        bbox : `lsst.shoefits.Box`
             Bounding box that returned cells must overlap.
 
         Returns
@@ -164,11 +152,11 @@ class GridContainer(MutableMapping[Index2D, T]):
         grid_container : `GridContainer`
             GridContainer with just the cells that overlap the bounding box.
         """
-        bbox = bbox.clippedTo(grid.bbox)
-        offset = grid.index(bbox.getBegin())
-        last = grid.index(bbox.getMax())
-        end = Index2D(last.x + 1, last.y + 1)
-        shape = Index2D(end.x - offset.x, end.y - offset.y)
+        if (clipped_bbox := bbox.intersection(grid.bbox)) is None:
+            return GridContainer(CellShape(x=0, y=0))
+        offset = grid.index(PixelIndex(x=clipped_bbox.x.min, y=clipped_bbox.y.min))
+        last = grid.index(PixelIndex(x=clipped_bbox.x.max, y=clipped_bbox.y.max))
+        shape = CellShape(x=last.x + 1 - offset.x, y=last.y + 1 - offset.y)
         gc = GridContainer[T](shape, offset)
         for index in gc.indices():
             gc[index] = self[index]
