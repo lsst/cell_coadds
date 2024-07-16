@@ -33,6 +33,7 @@ from ._to_upstream import CellIndex, CellShape, PixelIndex
 from ._uniform_grid import UniformGrid
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 class GridContainer(MutableMapping[CellIndex, T]):
@@ -162,7 +163,7 @@ class GridContainer(MutableMapping[CellIndex, T]):
             gc[index] = self[index]
         return gc
 
-    def rebuild_transformed(self, transform: Callable[[T], T]) -> GridContainer:
+    def rebuild_transformed(self, transform: Callable[[T], U]) -> GridContainer[U]:
         """Return a GridContainer with the same shape and offset.
 
         The cell values are created by applying a callback function to each
@@ -173,7 +174,7 @@ class GridContainer(MutableMapping[CellIndex, T]):
         transform : Callable[[T], T]
             A callable function that takes a cell value and returns a new
         """
-        gc = GridContainer[T](self.shape, self.offset)
-        for key in self.keys():  # noqa: SIM118
-            gc[key] = transform(self[key])
+        gc = GridContainer[U](self.shape, self.offset)
+        for key, value in self.items():
+            gc[key] = transform(value)
         return gc

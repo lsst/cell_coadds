@@ -59,6 +59,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         grid: UniformGrid,
         outer_cell_size: PixelShape,
         psf_image_size: PixelShape,
+        mask_schema: shf.MaskSchema,
         *,
         common: CommonComponents,
     ):
@@ -67,7 +68,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         self._psf_image_size = psf_image_size
         self._common = common
         self._cells = GridContainer[SingleCellCoadd](self._grid.shape)
-
+        self._mask_schema = mask_schema
         for cell in cells:
             index = cell.identifiers.cell
             self._cells[index] = cell
@@ -86,7 +87,11 @@ class MultipleCellCoadd(CommonComponentsProperties):
                     f"Cell at index {index} has PSF image with dimensions {cell.psf_image.bbox.shape}, "
                     f"but coadd expects {self._psf_image_size}."
                 )
-
+            if cell.outer.mask.schema != self._mask_schema:
+                raise ValueError(
+                    f"Cell at index {index} has mask schema {cell.outer.mask.schema}, "
+                    f"but coadd expects {self._mask_schema}."
+                )
         self._mask_fractions = {cell.outer.mask_fractions is not None for cell in self._cells.values()}
         self._has_mask_fractions = self._mask_fractions.pop()
         if self._has_mask_fractions:
@@ -103,6 +108,10 @@ class MultipleCellCoadd(CommonComponentsProperties):
     def cells(self) -> GridContainer[SingleCellCoadd]:
         """The grid of single-cell coadds, indexed by (y, x)."""
         return self._cells
+
+    @property
+    def mask_schema(self) -> shf.MaskSchema:
+        return self._mask_schema
 
     @property
     def n_noise_realizations(self) -> int:
@@ -180,25 +189,16 @@ class MultipleCellCoadd(CommonComponentsProperties):
         # by an enum.
         return StitchedCoadd.from_cell_coadd(self, bbox=bbox)
 
-    def explode(self, pad_psfs_with: float | None = None) -> ExplodedCoadd:
+    def explode(self) -> ExplodedCoadd:
         """Return a coadd whose image planes stitch together the outer regions
         of each cell, duplicating pixels in the overlap regions.
-
-        Parameters
-        ----------
-        pad_psfs_with : `float` or None, optional
-            A floating-point value to pad PSF images with so each PSF-image
-            cell has the same dimensions as the image (outer) cell it
-            corresponds to.  If `None`, PSF images will not be padded and the
-            full PSF image will generally be smaller than the exploded image it
-            corresponds to.
 
         Returns
         -------
         exploded : `ExplodedCoadd`
             Exploded version of the coadd.
         """
-        return ExplodedCoadd.from_cell_coadd(self, pad_psfs_with=pad_psfs_with)
+        return ExplodedCoadd.from_cell_coadd(self)
 
     @classmethod
     def read_fits(cls, filename: str) -> MultipleCellCoadd:

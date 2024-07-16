@@ -142,8 +142,8 @@ class ObservationIdentifiers(pydantic.BaseModel):
 
     day_obs: int
     """A day and night of observations that rolls over during daylight hours.
-      The identifier is an decimal integer-concatenated date, i.e. YYYYMMDD,
-      with the exact rollover time observatory-dependent.
+    The identifier is an decimal integer-concatenated date, i.e. YYYYMMDD,
+    with the exact rollover time observatory-dependent.
     """
 
     detector: int

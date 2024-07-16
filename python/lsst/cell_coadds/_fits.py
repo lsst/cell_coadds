@@ -303,6 +303,12 @@ class CellCoaddFitsReader:
                     written_version,
                 )
 
+            # TODO DM-45189: We don't seem to be saving the mask plane
+            # definitions at all, so for now we just set them all to be
+            # undefined.  Should probably hard-code the afw global default mask
+            # plane here instead.
+            mask_schema = shf.MaskSchema([None] * 32, dtype=np.uint8)
+
             coadd = MultipleCellCoadd(
                 (
                     self._readSingleCellCoadd(
@@ -312,6 +318,7 @@ class CellCoaddFitsReader:
                         grid=grid,
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
+                        mask_schema=mask_schema,
                     )
                     for row in data
                 ),
@@ -319,6 +326,7 @@ class CellCoaddFitsReader:
                 outer_cell_size=outer_cell_size,
                 psf_image_size=psf_image_size,
                 common=common,
+                mask_schema=mask_schema,
             )
 
         return coadd
@@ -332,6 +340,7 @@ class CellCoaddFitsReader:
         grid: UniformGrid,
         outer_cell_size: PixelShape,
         psf_image_size: PixelShape,
+        mask_schema: shf.MaskSchema,
     ) -> SingleCellCoadd:
         """Read a coadd from a FITS file.
 
@@ -351,6 +360,8 @@ class CellCoaddFitsReader:
             The size of the outer cell.
         psf_image_size : `PixelShape`
             The size of the PSF image.
+        mask_schema : `lsst.shoefits.MaskSchema`
+            Definitions of coadded mask planes.
 
         Returns
         -------
@@ -365,11 +376,6 @@ class CellCoaddFitsReader:
         cell_index = CellIndex.from_xy(data["cell_id"])
         inner_bbox = grid.bbox_of(cell_index)
         outer_start = PixelIndex(x=inner_bbox.x.start - grid.padding, y=inner_bbox.y.start - grid.padding)
-        # TODO DM-45189:
-        # We don't seem to be saving the mask plane definitions at all, so for
-        # now we just set them all to be undefined.  Should probably hard-code
-        # the afw global default mask plane here instead.
-        mask_schema = shf.MaskSchema([None] * 32, dtype=np.uint8)
         mask_array = np.frombuffer(data["mask"].tobytes(), dtype=np.uint8).reshape(
             *tuple(outer_cell_size) + (4,)
         )

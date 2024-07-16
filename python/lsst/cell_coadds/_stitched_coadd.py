@@ -58,4 +58,17 @@ class StitchedCoadd(ImagePlanes, CommonComponents):
 
     @classmethod
     def from_cell_coadd(cls, cell_coadd: MultipleCellCoadd, bbox: shf.Box | None = None) -> Self:
-        raise NotImplementedError("TODO DM-45189")
+        if bbox is not None:
+            cells = cell_coadd.cells.subset_overlapping(cell_coadd.grid, bbox)
+        else:
+            bbox = cell_coadd.grid.bbox
+            cells = cell_coadd.cells
+        psf_images = cells.rebuild_transformed(lambda cell: cell.psf_image)
+        result = cls.from_bbox(
+            bbox,
+            mask_schema=cell_coadd.mask_schema,
+            include_mask_fractions=cell_coadd.has_mask_fractions,
+            n_noise_realizations=cell_coadd.n_noise_realizations,
+            psf_images=psf_images,
+        )
+        return result

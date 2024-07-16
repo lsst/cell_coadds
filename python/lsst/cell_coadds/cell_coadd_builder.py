@@ -122,6 +122,11 @@ class SingleCellCoaddBuilderTask(pipeBase.Task, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    @abstractmethod
+    def get_mask_schema(self) -> shf.MaskSchema:
+        """Return the schema for the masks produced by this task."""
+        raise NotImplementedError()
+
     registry = pexConfig.makeRegistry(doc="Internal registry")
 
 
@@ -307,6 +312,7 @@ class MultipleCellCoaddBuilderTask(pipeBase.PipelineTask):
             outer_cell_size=PixelShape.from_xy(cellInfo.outer_bbox.getDimensions()),
             common=common,
             psf_image_size=PixelShape.from_yx(cellCoadds[0].psf_image.bbox.shape),
+            mask_schema=self.singleCellCoaddBuilder.get_mask_schema(),
         )
         return multipleCellCoadd
 

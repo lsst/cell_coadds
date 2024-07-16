@@ -26,8 +26,10 @@ __all__ = ("ExplodedCoadd",)
 from typing import TYPE_CHECKING, Self
 
 import lsst.shoefits as shf
+import numpy as np
 
 from ._image_planes import ImagePlanes
+from ._to_upstream import PixelShape
 from ._uniform_grid import UniformGrid
 
 if TYPE_CHECKING:
@@ -57,32 +59,49 @@ class ExplodedCoadd(ImagePlanes):
     attempt is made to align it with the inner cell grid's overall offset.
     """
 
-    psf_grid: UniformGrid
-    """Object that describes the grid on which PSF model images are stitched
-    together.
-    """
+    psf_cell_size: PixelShape
+    """Shape of one cell's PSF model image in `psf_image`."""
 
     psf_image: shf.Image
     """A stitched-together image of the PSF models for each cell."""
 
     @classmethod
-    def from_cell_coadd(cls, cell_coadd: MultipleCellCoadd, pad_psfs_with: float | None) -> Self:
+    def from_cell_coadd(cls, cell_coadd: MultipleCellCoadd) -> Self:
         """Build an `ExplodedCoadd` from a `MultipleCellCoadd`.
 
         Parameters
         ----------
         cell_coadd : `MultipleCellCoadd`
             Cell-based coadd to stitch together.
-        pad_psfs_with : `float` or `None`, optional
-            A floating-point value to pad PSF images with so each PSF-image
-            cell has the same dimensions as the image (outer) cell it
-            corresponds to. If `None`, PSF images will not be padded and the
-            full PSF image will generally be smaller than the exploded image it
-            corresponds to.
 
         Returns
         -------
         exploded : `ExplodedCoadd`
             Stitched outer-cell coadd.
         """
-        raise NotImplementedError("TODO DM-45189")
+        exploded_grid = UniformGrid.from_cell_size_shape(
+            cell_size=cell_coadd.outer_cell_size, shape=cell_coadd.grid.shape, padding=0
+        )
+        psf_image_bbox = shf.Box.factory[
+            : cell_coadd.psf_image_size.y * exploded_grid.shape.y,
+            : cell_coadd.psf_image_size.x * exploded_grid.shape.x,
+        ]
+        psf_image = shf.Image(0.0, bbox=psf_image_bbox, dtype=np.float32)
+        result = cls.from_bbox(
+            bbox=exploded_grid.bbox,
+            mask_schema=cell_coadd.mask_schema,
+            include_mask_fractions=cell_coadd.has_mask_fractions,
+            n_noise_realizations=cell_coadd.n_noise_realizations,
+            psf_native_size=cell_coadd.psf_image_size,
+            psf_image=psf_image,
+        )
+        for index, cell in cell_coadd.cells.items():
+            exploded_cell_bbox = exploded_grid.bbox_of(index)
+            exploded_cell_view = ImagePlanes.view_of(result, exploded_cell_bbox)
+            exploded_cell_view.copy_from(cell.outer)
+            iy = index.y * cell_coadd.psf_image_size.y
+            ix = index.x * cell_coadd.psf_image_size.x
+            psf_image.array[iy : iy + cell_coadd.psf_image_size.y, ix : ix + cell_coadd.psf_image_size.x] = (
+                cell.psf_image.array
+            )
+        return result
