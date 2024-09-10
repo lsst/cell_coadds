@@ -33,7 +33,7 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
         self.units = CoaddUnits.nJy
         quantum_data_id = test_utils.generate_data_id()
         self.wcs = test_utils.generate_wcs()
-        self.band = quantum_data_id.get("band", None)
+        self.band = quantum_data_id.get("band")
         self.identifiers = PatchIdentifiers.from_data_id(quantum_data_id)
         self.common = CommonComponents(
             units=self.units, wcs=self.wcs, band=self.band, identifiers=self.identifiers

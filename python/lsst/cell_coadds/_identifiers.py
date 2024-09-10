@@ -168,7 +168,7 @@ class ObservationIdentifiers:
             Struct of identifiers for this observation.
         """
         detector = data_id.get("detector", backup_detector)
-        day_obs = data_id.get("day_obs", None)
+        day_obs = data_id.get("day_obs")
         return cls(
             instrument=cast(str, data_id["instrument"]),
             physical_filter=cast(str, data_id["physical_filter"]),
