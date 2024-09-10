@@ -238,7 +238,7 @@ class CellCoaddFitsReader:
 
             # Build the quantities needed to construct a MultipleCellCoadd.
             common = CommonComponents(
-                units=CoaddUnits(1),  # TODO: read from FITS TUNIT1 (DM-40562)
+                units=CoaddUnits(header["TUNIT1"]),
                 wcs=wcs,
                 band=header["FILTER"],
                 identifiers=PatchIdentifiers(
