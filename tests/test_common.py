@@ -33,7 +33,7 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
         self.units = CoaddUnits.nJy
         quantum_data_id = test_utils.generate_data_id()
         self.wcs = test_utils.generate_wcs()
-        self.band = quantum_data_id.get("band", None)
+        self.band = quantum_data_id.get("band")
         self.identifiers = PatchIdentifiers.from_data_id(quantum_data_id)
         self.common = CommonComponents(
             units=self.units, wcs=self.wcs, band=self.band, identifiers=self.identifiers
@@ -45,6 +45,12 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(self.common.wcs, self.wcs)
         self.assertEqual(self.common.band, self.band)
         self.assertEqual(self.common.identifiers, self.identifiers)
+
+    def test_coaddUnits(self):
+        """Test that the member name and values are the same."""
+        for unit in CoaddUnits:
+            with self.subTest(unit.name):
+                self.assertEqual(unit.name, unit.value)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):

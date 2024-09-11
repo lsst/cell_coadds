@@ -168,13 +168,13 @@ class ObservationIdentifiers:
             Struct of identifiers for this observation.
         """
         detector = data_id.get("detector", backup_detector)
-        day_obs = data_id.get("day_obs", None)
+        day_obs = data_id.get("day_obs")
         return cls(
             instrument=cast(str, data_id["instrument"]),
             physical_filter=cast(str, data_id["physical_filter"]),
             visit=cast(int, data_id["visit"]),
             day_obs=cast(int, day_obs),
-            detector=cast(int, detector),
+            detector=detector,
         )
 
     def __lt__(self, other: Self, /) -> bool:
