@@ -46,6 +46,12 @@ class CommonComponentsTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(self.common.band, self.band)
         self.assertEqual(self.common.identifiers, self.identifiers)
 
+    def test_coaddUnits(self):
+        """Test that the member name and values are the same."""
+        for unit in CoaddUnits:
+            with self.subTest(unit.name):
+                self.assertEqual(unit.name, unit.value)
+
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     """Check for resource/memory leaks."""
