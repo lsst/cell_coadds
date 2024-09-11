@@ -44,16 +44,16 @@ class CoaddUnits(enum.Enum):
     flux unit other than nJy).
     """
 
-    legacy = enum.auto()
+    legacy = "legacy"
     """Pixels in semi-arbitrary unit obtained by scaling the warps to a common
     zeropoint (typically 27).
     """
 
-    nJy = enum.auto()
+    nJy = "nJy"
     """Pixels represent flux in nanojanskies.
     """
 
-    chi = enum.auto()
+    chi = "chi"
     """Pixels represent a signal-to-noise ratio.
     """
 
