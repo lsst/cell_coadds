@@ -29,3 +29,4 @@ pytest_session.txt
 
 # Ruff
 .ruff_cache/
+python/*.dist-info/
