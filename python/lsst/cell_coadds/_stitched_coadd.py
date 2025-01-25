@@ -107,18 +107,18 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             match cell.identifiers.cell.x:
                 case 0:
                     # This is a special case for the first column of cells.
-                    bbox.expandedTo(Point2I(cell.outer.bbox.beginX, cell.outer.bbox.centerY))
+                    bbox.include(Point2I(cell.outer.bbox.beginX, cell.outer.bbox.centerY))
                 case x_max:
                     # This is a special case for the last column of cells.
-                    bbox.expandedTo(Point2I(cell.outer.bbox.endX, cell.outer.bbox.centerY))
+                    bbox.include(Point2I(cell.outer.bbox.endX, cell.outer.bbox.centerY))
 
             match cell.identifiers.cell.y:
                 case 0:
                     # This is a special case for the last row of cells.
-                    bbox.expandedTo(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.beginY))
+                    bbox.include(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.beginY))
                 case y_max:
                     # This is a special case for the first row of cells.
-                    bbox.expandedTo(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.endY))
+                    bbox.include(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.endY))
 
             make_view = partial(cell.make_view, bbox=bbox)
             yield ViewImagePlanes(cell.outer, bbox=bbox, make_view=make_view)
