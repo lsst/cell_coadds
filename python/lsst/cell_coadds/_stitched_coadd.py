@@ -26,11 +26,12 @@ __all__ = ("StitchedCoadd",)
 from collections.abc import Iterator, Set
 from typing import TYPE_CHECKING
 
+from functools import partial
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
-from lsst.geom import Box2I
+from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
-from ._image_planes import ImagePlanes
+from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
@@ -96,8 +97,31 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
+        x_max, y_max = self._cell_coadd.cells.last.identifiers.cell
+
+        x_border = self._cell_coadd.cells.last.outer.bbox.endX - self._cell_coadd.cells.last.inner.bbox.endX
+        y_border = self._cell_coadd.cells.last.outer.bbox.endY - self._cell_coadd.cells.last.inner.bbox.endY
+
         for cell in self._cell_coadd.cells.values():
-            yield cell.inner
+            bbox = cell.inner.bbox
+            match cell.identifiers.cell.x:
+                case 0:
+                    # This is a special case for the first column of cells.
+                    bbox.expandedTo(Point2I(cell.outer.bbox.beginX, cell.outer.bbox.centerY))
+                case x_max:
+                    # This is a special case for the last column of cells.
+                    bbox.expandedTo(Point2I(cell.outer.bbox.endX, cell.outer.bbox.centerY))
+
+            match cell.identifiers.cell.y:
+                case 0:
+                    # This is a special case for the last row of cells.
+                    bbox.expandedTo(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.beginY))
+                case y_max:
+                    # This is a special case for the first row of cells.
+                    bbox.expandedTo(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.endY))
+
+            make_view = partial(cell.make_view, bbox=bbox)
+            yield ViewImagePlanes(cell.outer, bbox=bbox, make_view=make_view)
 
     @property
     def n_noise_realizations(self) -> int:

@@ -81,7 +81,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._outer = outer
         self._psf = psf
         self._inner_bbox = inner_bbox
-        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self._make_view)
+        self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self.make_view)
         self._common = common
         # Remove any duplicate elements in the input, sorted them and make
         # them an immutable sequence.
@@ -131,5 +131,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         # Docstring inherited.
         return self._common
 
-    def _make_view(self, image: ImageLike) -> ImageLike:
-        return image[self._inner_bbox]
+    def make_view(self, image: ImageLike, bbox: Box2I | None = None) -> ImageLike:
+        if bbox is None:
+            bbox = self._inner_bbox
+        return image[bbox]
