@@ -120,6 +120,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
                     # This is a special case for the first row of cells.
                     bbox.include(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.endY))
 
+            bbox.clip(cell.outer.bbox)
             make_view = partial(cell.make_view, bbox=bbox)
             yield ViewImagePlanes(cell.outer, bbox=bbox, make_view=make_view)
 
