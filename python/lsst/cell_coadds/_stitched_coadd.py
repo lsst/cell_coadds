@@ -49,7 +49,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         Cell-based coadd to stitch together.
     bbox : `Box2I`, optional
         The region over which a contiguous coadd is desired.  Defaults to
-        ``cell_coadd.inner_bbox``.
+        ``cell_coadd.outer_bbox``.
 
     Notes
     -----
