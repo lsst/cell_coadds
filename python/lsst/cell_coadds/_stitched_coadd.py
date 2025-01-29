@@ -24,13 +24,14 @@ from __future__ import annotations
 __all__ = ("StitchedCoadd",)
 
 from collections.abc import Iterator, Set
+from functools import partial
 from typing import TYPE_CHECKING
 
 from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
-from lsst.geom import Box2I
+from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
-from ._image_planes import ImagePlanes
+from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
@@ -49,7 +50,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         Cell-based coadd to stitch together.
     bbox : `Box2I`, optional
         The region over which a contiguous coadd is desired.  Defaults to
-        ``cell_coadd.inner_bbox``.
+        ``cell_coadd.outer_bbox``.
 
     Notes
     -----
@@ -96,8 +97,27 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
+        x_max, y_max = self._cell_coadd.cells.last.identifiers.cell
+
         for cell in self._cell_coadd.cells.values():
-            yield cell.inner
+            bbox = cell.inner.bbox
+            if cell.identifiers.cell.x == 0:
+                # This is a special case for the first column of cells.
+                bbox.include(Point2I(cell.outer.bbox.beginX, cell.outer.bbox.centerY))
+            elif cell.identifiers.cell.x == x_max:
+                # This is a special case for the last column of cells.
+                bbox.include(Point2I(cell.outer.bbox.endX, cell.outer.bbox.centerY))
+
+            if cell.identifiers.cell.y == 0:
+                # This is a special case for the last row of cells.
+                bbox.include(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.beginY))
+            elif cell.identifiers.cell.y == y_max:
+                # This is a special case for the first row of cells.
+                bbox.include(Point2I(cell.outer.bbox.centerX, cell.outer.bbox.endY))
+
+            bbox.clip(cell.outer.bbox)
+            make_view = partial(cell.make_view, bbox=bbox)
+            yield ViewImagePlanes(cell.outer, bbox=bbox, make_view=make_view)
 
     @property
     def n_noise_realizations(self) -> int:
