@@ -476,6 +476,20 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 self.assertImagesEqual(exposure.variance[bbox], self.exposures[index].variance[bbox])
                 self.assertImagesEqual(exposure.mask[bbox], self.exposures[index].mask[bbox])
 
+    def test_borders(self):
+        """Test that the borders are populated correctly on stitching."""
+        mi = self.stitched_coadd.asMaskedImage()
+
+        # Check that the borders are not all zero.
+        with self.assertRaises(AssertionError):
+            np.testing.assert_array_equal(mi.image.array[: self.border_size, :], 0)
+        with self.assertRaises(AssertionError):
+            np.testing.assert_array_equal(mi.image.array[-self.border_size :, :], 0)
+        with self.assertRaises(AssertionError):
+            np.testing.assert_array_equal(mi.image.array[:, : self.border_size], 0)
+        with self.assertRaises(AssertionError):
+            np.testing.assert_array_equal(mi.image.array[:, -self.border_size :], 0)
+
     def test_fits(self):
         """Test that we can write an Exposure with StitchedPsf to a FITS file
         and read it.
