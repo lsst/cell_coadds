@@ -17,24 +17,22 @@ jobs:
     runs-on: "ubuntu-latest"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.pyver }}
           channels: conda-forge,default
           channel-priority: strict
           show-channel-urls: true
-          miniforge-variant: Miniforge3
-          use-mamba: true
 
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
           conda config --set always_yes yes
 
-          mamba install -q stackvana=0
-          mamba install -q mypy
+          conda install -q stackvana=0
+          conda install -q mypy
 
       - name: Build and run tests
         id: build
@@ -46,11 +44,18 @@ jobs:
           scons
 
       - name: Upload coverage to codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
-          directory: tests/.tests/
-          file: pytest-cell_coadds.xml-cov-cell_coadds.xml
+          files: tests/.tests/pytest-cell_coadds.xml-cov-cell_coadds.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: tests/.tests/pytest-cell_coadds.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Check if the build failed
         if: "steps.build.outcome == 'failure'"

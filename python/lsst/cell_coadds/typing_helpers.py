@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Protocol, Self, overload
 
 import numpy as np
+
 from lsst.geom import Box2I, Point2I
 
 

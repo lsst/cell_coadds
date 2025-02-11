@@ -36,7 +36,7 @@ def generate_data_id(
     detector_id: int = 9,
     visit_id: int = 1234,
     detector_max: int = 109,
-    visit_max: int = 10000
+    visit_max: int = 10000,
 ) -> DataCoordinate:
     """Generate a DataCoordinate instance to use as data_id.
 

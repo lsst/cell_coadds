@@ -22,10 +22,11 @@
 import pickle
 import unittest
 
+import numpy as np
+
 import lsst.geom as geom
 import lsst.meas.base.tests
 import lsst.utils.tests
-import numpy as np
 from lsst.afw.detection import GaussianPsf
 from lsst.afw.image import ImageD
 from lsst.cell_coadds import GridContainer, StitchedPsf, UniformGrid
