@@ -44,11 +44,12 @@ jobs:
           scons
 
       - name: Upload coverage to codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
           directory: tests/.tests/
-          file: pytest-cell_coadds.xml-cov-cell_coadds.xml
+          files: pytest-cell_coadds.xml-cov-cell_coadds.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Check if the build failed
         if: "steps.build.outcome == 'failure'"
