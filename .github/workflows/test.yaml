@@ -51,6 +51,14 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          directory: tests/.tests/
+          files: pytest-cell_coadds.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Check if the build failed
         if: "steps.build.outcome == 'failure'"
         run: exit 1
