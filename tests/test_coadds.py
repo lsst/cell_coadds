@@ -23,11 +23,12 @@ import unittest
 from collections.abc import Iterable, Mapping
 from itertools import product
 
+import numpy as np
+
 import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
 import lsst.meas.base.tests
 import lsst.utils.tests
-import numpy as np
 from lsst.afw.geom import Quadrupole
 from lsst.afw.image import ExposureF, ImageF
 from lsst.cell_coadds import (

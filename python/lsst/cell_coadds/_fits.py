@@ -89,16 +89,17 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-import lsst.afw.geom as afwGeom
-import lsst.afw.image as afwImage
 import numpy as np
 from astropy.io import fits
+from packaging import version
+
+import lsst.afw.geom as afwGeom
+import lsst.afw.image as afwImage
 from lsst.afw.image import ImageD, ImageF
 from lsst.daf.base import PropertySet
 from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
-from packaging import version
 
 from ._common_components import CoaddUnits, CommonComponents
 from ._grid_container import GridContainer

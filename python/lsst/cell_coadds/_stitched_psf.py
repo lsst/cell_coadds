@@ -25,8 +25,9 @@ import pickle
 from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
-import lsst.geom as geom
 import numpy as np
+
+import lsst.geom as geom
 from lsst.afw.image import ImageD
 from lsst.afw.typehandling import StorableHelperFactory
 from lsst.meas.algorithms import ImagePsf
