@@ -17,24 +17,22 @@ jobs:
     runs-on: "ubuntu-latest"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.pyver }}
           channels: conda-forge,default
           channel-priority: strict
           show-channel-urls: true
-          miniforge-variant: Miniforge3
-          use-mamba: true
 
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
           conda config --set always_yes yes
 
-          mamba install -q stackvana=0
-          mamba install -q mypy
+          conda install -q stackvana=0
+          conda install -q mypy
 
       - name: Build and run tests
         id: build
