@@ -131,6 +131,145 @@ class TestCoaddApCorrMapStacker(lsst.utils.tests.TestCase):
             atol=1e-8,
         )
 
+    @lsst.utils.tests.methodParameters(
+        do_coadd_inverse_ap_corr=[True, False],
+    )
+    def test_weight_normalization(self, do_coadd_inverse_ap_corr):
+        """Test that the coadd aperture corrections stay the same when the
+        relative weights are the same.
+        """
+        stacker = CoaddApCorrMapStacker(
+            evaluation_point=self.evaluation_point,
+            do_coadd_inverse_ap_corr=do_coadd_inverse_ap_corr,
+        )
+
+        normalized_weights = np.random.rand(self.visit_count)
+        normalized_weights /= np.sum(normalized_weights)
+
+        for idx in range(self.visit_count):
+            stacker.add(
+                self.ap_corr_map_list[idx],
+                weight=normalized_weights[idx],
+            )
+
+        reference_ap_corr_map = stacker.final_ap_corr_map
+
+        for scale in (
+            1.0,
+            0.5,
+            2.0,
+        ):
+            stacker = CoaddApCorrMapStacker(
+                evaluation_point=self.evaluation_point,
+                do_coadd_inverse_ap_corr=do_coadd_inverse_ap_corr,
+            )
+            weights = scale * normalized_weights
+            for idx in range(self.visit_count):
+                stacker.add(
+                    self.ap_corr_map_list[idx],
+                    weight=weights[idx],
+                )
+            final_ap_corr_map = stacker.final_ap_corr_map
+
+            for field_name in reference_ap_corr_map:
+                with self.subTest(scale=scale, field_name=field_name):
+                    self.assertFloatsAlmostEqual(
+                        final_ap_corr_map[field_name],
+                        reference_ap_corr_map[field_name],
+                        atol=1e-9,
+                    )
+
+    @lsst.utils.tests.methodParameters(
+        do_coadd_inverse_ap_corr=[True, False],
+    )
+    def test_constant_weight(self, do_coadd_inverse_ap_corr):
+        """Test that the coadd aperture corrections stay the same when the
+        weights are all equal.
+        """
+        stacker = CoaddApCorrMapStacker(
+            evaluation_point=self.evaluation_point,
+            do_coadd_inverse_ap_corr=do_coadd_inverse_ap_corr,
+        )
+
+        for idx in range(self.visit_count):
+            stacker.add(
+                self.ap_corr_map_list[idx],
+                weight=1.0,
+            )
+
+        reference_ap_corr_map = stacker.final_ap_corr_map
+
+        stacker = CoaddApCorrMapStacker(
+            evaluation_point=self.evaluation_point,
+            do_coadd_inverse_ap_corr=do_coadd_inverse_ap_corr,
+        )
+        for idx in range(self.visit_count):
+            stacker.add(
+                self.ap_corr_map_list[idx],
+                weight=2.0,
+            )
+        final_ap_corr_map = stacker.final_ap_corr_map
+
+        for algorithm_name in stacker.ap_corr_names:
+            field_name = f"{algorithm_name}_instFlux"
+            with self.subTest(field_name=field_name):
+                self.assertFloatsAlmostEqual(
+                    final_ap_corr_map[field_name],
+                    reference_ap_corr_map[field_name],
+                    atol=1e-8,
+                )
+
+            field_name = f"{algorithm_name}_instFluxErr"
+            # Errors are down by sqrt(visit_count).
+            conversion_factor = 1.0  # np.sqrt(self.visit_count)
+            with self.subTest(field_name=field_name):
+                self.assertFloatsAlmostEqual(
+                    final_ap_corr_map[field_name] / conversion_factor,
+                    reference_ap_corr_map[field_name],
+                    atol=1e-8,
+                )
+
+    @lsst.utils.tests.methodParameters(
+        do_coadd_inverse_ap_corr=[True, False],
+    )
+    def test_constant_apcorr(self, do_coadd_inverse_ap_corr):
+        """Test that the coadd aperture corrections are constant when the
+        input aperture corrections are constant.
+        """
+        stacker = CoaddApCorrMapStacker(
+            evaluation_point=self.evaluation_point,
+            do_coadd_inverse_ap_corr=do_coadd_inverse_ap_corr,
+        )
+
+        weights = np.random.rand(self.visit_count)
+        initial_ap_corr_map = self.ap_corr_map_list[0]
+        for idx in range(self.visit_count):
+            stacker.add(
+                initial_ap_corr_map,  # Add the same over and over again.
+                weight=weights[idx],
+            )
+
+        final_ap_corr_map = stacker.final_ap_corr_map
+
+        for algorithm_name in stacker.ap_corr_names:
+            field_name = f"{algorithm_name}_instFlux"
+            with self.subTest(field_name=field_name):
+                self.assertFloatsAlmostEqual(
+                    final_ap_corr_map[field_name],
+                    initial_ap_corr_map[field_name].evaluate(geom.Point2D(self.evaluation_point)),
+                    atol=1e-8,
+                )
+
+            field_name = f"{algorithm_name}_instFluxErr"
+            # Errors are down by conversion_factor.
+            conversion_factor = np.sqrt(np.sum(weights**2)) / np.sum(weights)
+            with self.subTest(field_name=field_name):
+                self.assertFloatsAlmostEqual(
+                    final_ap_corr_map[field_name] / conversion_factor,
+                    initial_ap_corr_map[field_name].evaluate(geom.Point2D(self.evaluation_point)),
+                    atol=1e-8,
+                )
+
 
 class TestCoaddApCorrMapMemoryTestCase(lsst.utils.tests.MemoryTestCase):
     """Test the CoaddApCorrMapStacker for memory leaks."""
