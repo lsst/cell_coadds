@@ -24,9 +24,10 @@
 
 from __future__ import annotations
 
-from typing import Protocol, Self, overload
+from typing import Protocol, Self, TypeAlias, overload
 
 import numpy as np
+from frozendict import frozendict
 
 from lsst.geom import Box2I, Point2I
 
@@ -59,3 +60,7 @@ class ImageLike(Protocol):
     @property
     def array(self) -> np.ndarray:  # noqa: D102
         pass
+
+
+SingleCellCoaddApCorrMap: TypeAlias = frozendict[str, float]
+"""A type alias for aperture correction maps for single cell coadds."""
