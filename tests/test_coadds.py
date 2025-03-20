@@ -58,7 +58,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
     inner_size: int
     outer_size: int
     test_positions: Iterable[tuple[geom.Point2D, Index2D]]
-    exposures: Mapping[Index2D, lsst.afw.image.ExposureF]
+    exposures: Mapping[Index2D, ExposureF]
     multiple_cell_coadd: MultipleCellCoadd
 
     @classmethod
