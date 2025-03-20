@@ -63,12 +63,12 @@ class GridContainer(MutableMapping[Index2D, T]):
         if index.x < self.offset.x or index.x >= self.offset.x + self.shape.x:
             raise ValueError(
                 f"x index {index.x} out of range; expected a value between {self.offset.x} and "
-                f"{self.offset.x + self.shape.x -1}."
+                f"{self.offset.x + self.shape.x - 1}."
             )
         if index.y < self.offset.y or index.y >= self.offset.y + self.shape.y:
             raise ValueError(
                 f"y index {index.y} out of range; expected a value between {self.offset.y} and "
-                f"{self.offset.y + self.shape.y -1}."
+                f"{self.offset.y + self.shape.y - 1}."
             )
 
     def __repr__(self) -> str:
