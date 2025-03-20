@@ -24,6 +24,7 @@ from collections.abc import Iterable, Mapping
 from itertools import product
 
 import numpy as np
+from frozendict import frozendict
 
 import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
@@ -195,6 +196,12 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 image_plane = OwnedImagePlanes(
                     image=exposure.image, variance=exposure.variance, mask=exposure.mask
                 )
+                aperture_correction_map = frozendict(
+                    base_GaussianFlux_instFlux=0.9 * (x + 1),
+                    base_GaussianFlux_instFluxErr=0.01 * (y + 1),
+                    base_PsfFlux_instFlux=0.8 * (y + 2),
+                    base_PsfFlux_instFluxErr=0.02 * (x + 2),
+                )
 
                 single_cell_coadds.append(
                     SingleCellCoadd(
@@ -217,6 +224,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                         ),
                         common=common,
                         identifiers=identifiers,
+                        aperture_correction_map=aperture_correction_map,
                     )
                 )
 
@@ -275,6 +283,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             self.assertEqual(mcc1.cells[idx].common, mcc1.common)
             self.assertEqual(mcc1.cells[idx].units, mcc2.units)
             self.assertEqual(mcc1.cells[idx].wcs, mcc1.wcs)
+            self.assertEqual(mcc1.cells[idx].aperture_correction_map, mcc2.cells[idx].aperture_correction_map)
 
             # Identifiers differ because of the ``cell`` component.
             # Check the other attributes within the identifiers.
@@ -313,6 +322,17 @@ class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
         for cellId, singleCellCoadd in self.multiple_cell_coadd.cells.items():
             with self.subTest(x=cellId.x, y=cellId.y):
                 self.assertEqual(singleCellCoadd.visit_count, 1)
+
+    def test_aperture_correction(self):
+        """Test the aperture correction values are what we expect."""
+        for cellId, single_cell_coadd in self.multiple_cell_coadd.cells.items():
+            with self.subTest(x=cellId.x, y=cellId.y):
+                ap_corr_map = single_cell_coadd.aperture_correction_map
+                self.assertIsNotNone(ap_corr_map)
+                self.assertEqual(ap_corr_map["base_GaussianFlux_instFlux"], 0.9 * (cellId.x + 1))
+                self.assertEqual(ap_corr_map["base_GaussianFlux_instFluxErr"], 0.01 * (cellId.y + 1))
+                self.assertEqual(ap_corr_map["base_PsfFlux_instFlux"], 0.8 * (cellId.y + 2))
+                self.assertEqual(ap_corr_map["base_PsfFlux_instFluxErr"], 0.02 * (cellId.x + 2))
 
 
 class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
