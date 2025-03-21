@@ -569,6 +569,7 @@ def writeMultipleCellCoaddAsFits(
 
     hdu.header["VERSION"] = FILE_FORMAT_VERSION
     hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
+    hdu.header["TUNIT4"] = multiple_cell_coadd.common.units.name + "**2"
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
     hdu.header["INSTRUME"] = instrument
