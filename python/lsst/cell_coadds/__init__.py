@@ -19,8 +19,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import typing_helpers
+from . import typing_helpers  # noqa: F401
 from ._cell_coadd_builder import *
+from ._coadd_ap_corr_map import *
 from ._common_components import *
 from ._exploded_coadd import *
 from ._fits import *

@@ -152,6 +152,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         result.setFilter(FilterLabel(band=self.band))
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
+            result.metadata["BUNIT"] = "nJy"
 
         # We can't do result.setId here, because:
         #

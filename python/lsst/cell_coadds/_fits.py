@@ -91,6 +91,7 @@ from typing import Any
 
 import numpy as np
 from astropy.io import fits
+from frozendict import frozendict
 from packaging import version
 
 import lsst.afw.geom as afwGeom
@@ -101,14 +102,16 @@ from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
 
+from ._coadd_ap_corr_map import EMPTY_AP_CORR_MAP
 from ._common_components import CoaddUnits, CommonComponents
 from ._grid_container import GridContainer
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
 from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
+from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.3"
+FILE_FORMAT_VERSION = "0.4"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -239,7 +242,7 @@ class CellCoaddFitsReader:
 
             # Build the quantities needed to construct a MultipleCellCoadd.
             common = CommonComponents(
-                units=CoaddUnits(header["TUNIT1"]),
+                units=CoaddUnits(header["TUNIT2"]),
                 wcs=wcs,
                 band=header["FILTER"],
                 identifiers=PatchIdentifiers(
@@ -297,18 +300,35 @@ class CellCoaddFitsReader:
                     written_version,
                 )
 
+            try:
+                aperture_correction_hdu = hdu_list[hdu_list.index_of("APCORR")].data
+                assert len(aperture_correction_hdu) == 0 or len(aperture_correction_hdu) == len(
+                    data
+                ), "Aperture correction map is not available for all cells."
+                aperture_correction_grid = self._readApCorr(aperture_correction_hdu, grid_shape)
+            except KeyError:
+                logger.info("Unable to read aperture correction map from the file.")
+                aperture_correction_hdu = EMPTY_AP_CORR_MAP
+
             coadd = MultipleCellCoadd(
                 (
                     self._readSingleCellCoadd(
-                        data=row,
+                        data=data[row_id],
                         header=header,
                         common=common,
-                        inputs=inputs[Index2D(row["cell_id"][0], row["cell_id"][1])],
+                        inputs=inputs[Index2D(data[row_id]["cell_id"][0], data[row_id]["cell_id"][1])],
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
+                        aperture_correction_map=aperture_correction_grid.get(
+                            Index2D(
+                                data[row_id]["cell_id"][0].tolist(),
+                                data[row_id]["cell_id"][1].tolist(),
+                            ),
+                            EMPTY_AP_CORR_MAP,
+                        ),
                     )
-                    for row in data
+                    for row_id in range(len(data))
                 ),
                 grid=grid,
                 outer_cell_size=outer_cell_size,
@@ -329,6 +349,7 @@ class CellCoaddFitsReader:
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
+        aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
     ) -> SingleCellCoadd:
         """Read a coadd from a FITS file.
 
@@ -350,6 +371,9 @@ class CellCoaddFitsReader:
             The size of the PSF image.
         inner_cell_size : `Extent2I`
             The size of the inner cell.
+        aperture_correction_map : `Mapping` [`str`, `float`], optional
+            Mapping of algorithm name to aperture correction value.
+            If None, no aperture correction is applied.
 
         Returns
         -------
@@ -399,6 +423,7 @@ class CellCoaddFitsReader:
             common=common,
             identifiers=identifiers,
             inputs=inputs,
+            aperture_correction_map=aperture_correction_map,
         )
 
     def readWcs(self) -> afwGeom.SkyWcs:
@@ -415,6 +440,39 @@ class CellCoaddFitsReader:
             ps.update(hdu_list[0].header)
         wcs = afwGeom.makeSkyWcs(ps)
         return wcs
+
+    def _readApCorr(
+        self, aperture_correction_hdu: fits.fitsrec.FITS_rec, grid_shape: Index2D
+    ) -> GridContainer[SingleCellCoaddApCorrMap]:
+        """Read the aperture correction map from the FITS file."""
+        column_names = aperture_correction_hdu.names
+        column_names.remove("x")
+        column_names.remove("y")
+
+        gc = GridContainer[SingleCellCoaddApCorrMap](shape=grid_shape)
+        for row_idx in range(len(aperture_correction_hdu)):
+            cell_id = Index2D(
+                x=aperture_correction_hdu["x"][row_idx], y=aperture_correction_hdu["y"][row_idx]
+            )
+            ap_corr_map_dict = {name: float(aperture_correction_hdu[name][row_idx]) for name in column_names}
+            gc[cell_id] = frozendict(ap_corr_map_dict)
+
+        return gc
+
+
+def to_numpy_record(ap_corr_map: Mapping[str, float], xy: Index2D) -> np.record:
+    """Convert the aperture correction map to a numpy record with
+    appropriate data types.
+    """
+    dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_map]
+    record = np.recarray((1,), dtype=dtypes)[0]
+    for field_name in ap_corr_map:
+        record[field_name] = ap_corr_map[field_name]
+
+    record["x"] = xy.x
+    record["y"] = xy.y
+
+    return record
 
 
 def writeMultipleCellCoaddAsFits(
@@ -526,6 +584,20 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
+    if apcorr := multiple_cell_coadd.cells.first.aperture_correction_map:
+        dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr]
+        aperture_correction_recarray = np.rec.fromrecords(
+            recList=[
+                to_numpy_record(cell.aperture_correction_map, cell.identifiers.cell)
+                for cell in multiple_cell_coadd.cells.values()
+                if cell.aperture_correction_map
+            ],
+            dtype=dtypes,
+        )
+        aperture_correction_hdu = fits.BinTableHDU.from_columns(aperture_correction_recarray, name="APCORR")
+    else:
+        aperture_correction_hdu = None
+
     col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
@@ -568,7 +640,8 @@ def writeMultipleCellCoaddAsFits(
     primary_hdu.header.extend(wcs_cards)
 
     hdu.header["VERSION"] = FILE_FORMAT_VERSION
-    hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
+    hdu.header["TUNIT2"] = multiple_cell_coadd.common.units.name
+    hdu.header["TUNIT4"] = multiple_cell_coadd.common.units.name + "**2"
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
     hdu.header["INSTRUME"] = instrument
@@ -582,6 +655,9 @@ def writeMultipleCellCoaddAsFits(
         hdu.header.extend(metadata.toDict())
 
     hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu])
+    if aperture_correction_hdu:
+        hdu_list.append(aperture_correction_hdu)
+
     hdu_list.writeto(filename, overwrite=overwrite)
 
     return hdu_list

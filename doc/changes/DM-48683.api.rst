@@ -1,0 +1,2 @@
+Add TUNIT4 to the FITS header to denote the units of the variance plane.
+Add BUNIT to the FITS header when converting to an afw Exposure.

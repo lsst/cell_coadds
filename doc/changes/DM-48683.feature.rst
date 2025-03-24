@@ -1,0 +1,1 @@
+Add a new APCORR HDU carrying the aperture correction values for each cell.
