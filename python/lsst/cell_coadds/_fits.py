@@ -239,7 +239,7 @@ class CellCoaddFitsReader:
 
             # Build the quantities needed to construct a MultipleCellCoadd.
             common = CommonComponents(
-                units=CoaddUnits(header["TUNIT1"]),
+                units=CoaddUnits(header["TUNIT2"]),
                 wcs=wcs,
                 band=header["FILTER"],
                 identifiers=PatchIdentifiers(
@@ -568,7 +568,7 @@ def writeMultipleCellCoaddAsFits(
     primary_hdu.header.extend(wcs_cards)
 
     hdu.header["VERSION"] = FILE_FORMAT_VERSION
-    hdu.header["TUNIT1"] = multiple_cell_coadd.common.units.name
+    hdu.header["TUNIT2"] = multiple_cell_coadd.common.units.name
     hdu.header["TUNIT4"] = multiple_cell_coadd.common.units.name + "**2"
     # This assumed to be the same as multiple_cell_coadd.common.identifers.band
     # See DM-38843.
