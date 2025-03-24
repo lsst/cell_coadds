@@ -241,8 +241,14 @@ class CellCoaddFitsReader:
             wcs = afwGeom.makeSkyWcs(ps)
 
             # Build the quantities needed to construct a MultipleCellCoadd.
+            if written_version >= version.parse("0.4"):
+                coadd_units = header["TUNIT2"]
+            else:
+                logger.info("Attemping to set pixel units from TUNIT1.")
+                coadd_units = header.get("TUNIT1", CoaddUnits.legacy.name)
+
             common = CommonComponents(
-                units=CoaddUnits(header["TUNIT2"]),
+                units=CoaddUnits(coadd_units),
                 wcs=wcs,
                 band=header["FILTER"],
                 identifiers=PatchIdentifiers(
