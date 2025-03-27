@@ -31,10 +31,13 @@ from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
+from ._grid_container import GridContainer
 from ._image_planes import ImagePlanes, ViewImagePlanes
+from ._stitched_aperture_correction import StitchedApertureCorrection
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
+from .typing_helpers import StitchedCoaddApCorrMap
 
 if TYPE_CHECKING:
     from ._multiple_cell_coadd import MultipleCellCoadd
@@ -78,6 +81,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         self._bbox = bbox
         self._cell_coadd = cell_coadd
         self._psf: StitchedPsf | None = None
+        self._ap_corr_map: StitchedCoaddApCorrMap | None = None
         self._common = cell_coadd.common
 
     @property
@@ -175,3 +179,29 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         result.setPsf(self.psf)
 
         return result
+
+    @property
+    def ap_corr_map(self) -> StitchedCoaddApCorrMap:
+        """Stitch the aperture correction maps from the cell coadd.
+
+        This converts the aperture correction maps from each cell into a single
+        `ApCorrMap` that quacks like `lsst.afw.image.ApCorrMap`. The resulting
+        object has the fields to correct as keys and a
+        `StitchedApertureCorrection` for each field.
+
+        Notes
+        -----
+        These cannot be attached to an `~lsst.afw.image.Exposure` object.
+        """
+        if self._ap_corr_map is None:
+            ap_corr_map: dict[str, StitchedApertureCorrection] = {}
+            field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
+            for field_name in field_names:
+                gc = GridContainer[float](shape=self.grid.shape)
+                for scc in self._cell_coadd.cells.values():
+                    gc[scc.identifiers.cell] = scc.aperture_correction_map[field_name]
+                ap_corr_map[field_name] = StitchedApertureCorrection(self.grid, gc)
+
+            self._ap_corr_map = ap_corr_map
+
+        return self._ap_corr_map
