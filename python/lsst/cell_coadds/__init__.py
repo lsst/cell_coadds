@@ -30,6 +30,7 @@ from ._identifiers import *
 from ._image_planes import *
 from ._multiple_cell_coadd import *
 from ._single_cell_coadd import *
+from ._stitched_aperture_correction import *
 from ._stitched_coadd import *
 from ._stitched_image_planes import *
 from ._stitched_psf import *
