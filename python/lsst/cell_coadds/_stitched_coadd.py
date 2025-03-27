@@ -27,11 +27,13 @@ from collections.abc import Iterator, Set
 from functools import partial
 from typing import TYPE_CHECKING
 
-from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
+from lsst.afw.image import ApCorrMap, ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
+from ._grid_container import GridContainer
 from ._image_planes import ImagePlanes, ViewImagePlanes
+from ._piecewise_bounded_field import PieceWiseBoundedField
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
@@ -78,6 +80,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         self._bbox = bbox
         self._cell_coadd = cell_coadd
         self._psf: StitchedPsf | None = None
+        self._stitched_ap_corr_map: ApCorrMap | None = None
         self._common = cell_coadd.common
 
     @property
@@ -150,6 +153,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # Exposure components derived from "common" components are all simple.
         result.setWcs(self._cell_coadd.wcs)
         result.setFilter(FilterLabel(band=self.band))
+        result.setApCorrMap(self.stitched_ap_corr_map)
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
             result.metadata["BUNIT"] = "nJy"
@@ -175,3 +179,25 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         result.setPsf(self.psf)
 
         return result
+
+    @property
+    def stitched_ap_corr_map(self) -> ApCorrMap:
+        """Stitch the aperture correction maps from the cell coadd.
+
+        This converts the aperture correction maps from each cell into a single
+        `ApCorrMap` that can be attached to the `Exposure` objects. The
+        resulting object has the fields to correct as keys and a
+        `PieceWiseBoundedField` for each field.
+        """
+        if self._stitched_ap_corr_map is None:
+            ap_corr_map = ApCorrMap()
+            field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
+            for field_name in field_names:
+                gc = GridContainer[float](shape=self.grid.shape)
+                for scc in self._cell_coadd.cells.values():
+                    gc[scc.identifiers.cell] = scc.aperture_correction_map[field_name]
+                ap_corr_map[field_name] = PieceWiseBoundedField(self.grid, gc)
+
+            self._stitched_ap_corr_map = ap_corr_map
+
+        return self._stitched_ap_corr_map
