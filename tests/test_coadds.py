@@ -497,6 +497,20 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 self.assertImagesEqual(exposure.variance[bbox], self.exposures[index].variance[bbox])
                 self.assertImagesEqual(exposure.mask[bbox], self.exposures[index].mask[bbox])
 
+    def test_aperture_correction(self):
+        """Test the aperture correction values are what we expect."""
+        exposure = self.stitched_coadd.asExposure()
+        algorithm_names = ("base_GaussianFlux_instFlux", "base_PsfFlux_instFlux")
+
+        for (position, cellId), algorithm_name in product(self.test_positions, algorithm_names):
+            with self.subTest(x=cellId.x, y=cellId.y, algorithm_name=algorithm_name):
+                ap_corr_map = exposure.getInfo().getApCorrMap()
+                field_name = algorithm_name
+                self.assertEqual(
+                    ap_corr_map[field_name].evaluate(position),
+                    self.multiple_cell_coadd.cells[cellId].aperture_correction_map[field_name],
+                )
+
     def test_borders(self):
         """Test that the borders are populated correctly on stitching."""
         mi = self.stitched_coadd.asMaskedImage()

@@ -29,6 +29,7 @@ from ._grid_container import *
 from ._identifiers import *
 from ._image_planes import *
 from ._multiple_cell_coadd import *
+from ._piecewise_bounded_field import *
 from ._single_cell_coadd import *
 from ._stitched_coadd import *
 from ._stitched_image_planes import *
