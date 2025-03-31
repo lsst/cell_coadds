@@ -100,6 +100,9 @@ class CoaddApCorrMapStacker:
 
             ap_corr_name_set.add(algorithm_name)
 
+        ap_corr_name_set.pop("ext_gaap_GaapFlux_1_15x_0_5_instFlux", None)
+        ap_corr_name_set.pop("ext_gaap_GaapFlux_1_15x_0_5_instFluxErr", None)
+
         cls._ap_corr_names = tuple(sorted(ap_corr_name_set))
 
     @property
