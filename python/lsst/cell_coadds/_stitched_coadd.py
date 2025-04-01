@@ -27,7 +27,7 @@ from collections.abc import Iterator, Set
 from functools import partial
 from typing import TYPE_CHECKING
 
-from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
+from lsst.afw.image import ApCorrMap, ExposureF, FilterLabel, PhotoCalib
 from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
@@ -154,6 +154,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # Exposure components derived from "common" components are all simple.
         result.setWcs(self._cell_coadd.wcs)
         result.setFilter(FilterLabel(band=self.band))
+        result.setApCorrMap(self.ap_corr_map)
         if self.units is CoaddUnits.nJy:
             result.setPhotoCalib(PhotoCalib(1.0))
             result.metadata["BUNIT"] = "nJy"
@@ -191,10 +192,10 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
         Notes
         -----
-        These cannot be attached to an `~lsst.afw.image.Exposure` object.
+        These can be attached to an `~lsst.afw.image.Exposure` object for now.
         """
         if self._ap_corr_map is None:
-            ap_corr_map: dict[str, StitchedApertureCorrection] = {}
+            ap_corr_map = ApCorrMap()
             field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
             for field_name in field_names:
                 gc = GridContainer[float](shape=self.grid.shape)
