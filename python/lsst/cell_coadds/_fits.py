@@ -313,8 +313,10 @@ class CellCoaddFitsReader:
                 ), "Aperture correction map is not available for all cells."
                 aperture_correction_grid = self._readApCorr(aperture_correction_hdu, grid_shape)
             except KeyError:
-                logger.info("Unable to read aperture correction map from the file.")
-                aperture_correction_hdu = EMPTY_AP_CORR_MAP
+                if written_version >= version.parse("0.4"):
+                    logger.warning("Unable to read aperture correction map from the file.")
+                # Create an empty grid container regardless.
+                aperture_correction_grid = GridContainer[SingleCellCoaddApCorrMap](shape=grid_shape)
 
             coadd = MultipleCellCoadd(
                 (
