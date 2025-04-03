@@ -24,12 +24,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Protocol, Self, TypeAlias, overload
 
 import numpy as np
 from frozendict import frozendict
 
 from lsst.geom import Box2I, Point2I
+
+from ._stitched_aperture_correction import StitchedApertureCorrection
 
 
 class ImageLike(Protocol):
@@ -64,3 +67,6 @@ class ImageLike(Protocol):
 
 SingleCellCoaddApCorrMap: TypeAlias = frozendict[str, float]
 """A type alias for aperture correction maps for single cell coadds."""
+
+StitchedCoaddApCorrMap: TypeAlias = Mapping[str, StitchedApertureCorrection]
+"""A type alias for aperture correction maps for stitched coadds."""
