@@ -100,8 +100,8 @@ class CoaddApCorrMapStacker:
 
             ap_corr_name_set.add(algorithm_name)
 
-        ap_corr_name_set.discard("ext_gaap_GaapFlux_1_15x_0_5_instFlux")
-        ap_corr_name_set.discard("ext_gaap_GaapFlux_1_15x_0_5_instFluxErr")
+        ap_corr_name_set.discard("ext_gaap_GaapFlux_1_15x_0_5")
+        ap_corr_name_set.discard("ext_gaap_GaapFlux_1_15x_0_7")
 
         cls._ap_corr_names = tuple(sorted(ap_corr_name_set))
 
