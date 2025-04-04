@@ -82,7 +82,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
                     f"Cell at index {index} has outer bbox {cell.outer.bbox}, "
                     f"that does not contain {self._grid.bbox_of(index)}."
                 )
-            if not cell_bbox.contains(cell.outer.bbox):
+            if not cell_bbox.contains(cell.inner.bbox):
                 raise ValueError(
                     f"Cell at index {index} has inner bbox {cell.inner.bbox}, "
                     f"that is not contained by {self._grid.bbox_of(index)}."
