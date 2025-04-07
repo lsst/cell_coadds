@@ -79,6 +79,8 @@ class GridContainer(MutableMapping[Index2D, T]):
         return len(self._cells)
 
     def __getitem__(self, index: Index2D) -> T:
+        if index not in self._cells:
+            pass
         return self._cells[index]
 
     def __setitem__(self, index: Index2D, value: T) -> None:
