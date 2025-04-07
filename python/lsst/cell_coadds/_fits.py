@@ -475,10 +475,8 @@ def to_numpy_record(ap_corr_map: Mapping[str, float], xy: Index2D, ap_corr_names
     """
     dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_names]
     record = np.recarray((1,), dtype=dtypes)[0]
-    for algorithm_name in ap_corr_names:
-        for suffix in ("_instFlux", "_instFluxErr"):
-            field_name = algorithm_name + suffix
-            record[field_name] = ap_corr_map.get(field_name, np.nan)
+    for field_name in ap_corr_names:
+        record[field_name] = ap_corr_map.get(field_name, np.nan)
 
     record["x"] = xy.x
     record["y"] = xy.y
