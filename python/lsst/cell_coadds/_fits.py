@@ -262,7 +262,8 @@ class CellCoaddFitsReader:
             grid_cell_size = Extent2I(header["GRCELL1"], header["GRCELL2"])  # Inner size of a single cell.
             grid_shape = Extent2I(header["GRSHAPE1"], header["GRSHAPE2"])
             grid_min = Point2I(header["GRMIN1"], header["GRMIN2"])
-            grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, min=grid_min)
+            grid_padding = header.get("GRPAD", 0)
+            grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, padding=grid_padding, min=grid_min)
 
             # This is the inner bounding box for the multiple cell coadd
             inner_bbox = Box2I(
@@ -611,6 +612,7 @@ def writeMultipleCellCoaddAsFits(
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
     grid_shape = multiple_cell_coadd.grid.shape
+    grid_padding = multiple_cell_coadd.grid.padding
     grid_min = multiple_cell_coadd.grid.bbox.getMin()
     grid_cards = {
         "GRCELL1": grid_cell_size.x,
@@ -619,6 +621,7 @@ def writeMultipleCellCoaddAsFits(
         "GRSHAPE2": grid_shape.y,
         "GRMIN1": grid_min.x,
         "GRMIN2": grid_min.y,
+        "GRPAD": grid_padding,
     }
     hdu.header.extend(grid_cards)
 
