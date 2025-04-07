@@ -116,10 +116,33 @@ class CoaddApCorrMapStacker:
         """If True, the inverse aperture correction is applied to the coadd."""
         return self._do_coadd_inverse_ap_corr
 
+    def _get_ap_corr_names(self, ap_corr_map: Iterable) -> Iterable[str]:
+        """Get the names of algorithms that have aperture correction values.
+
+        Parameters
+        ----------
+        ap_corr_map : `Iterable` [`str`]
+            An iterable of aperture correction maps to get names from.
+
+        Returns
+        -------
+        ap_corr_names : `tuple` [`str`, ...]
+            An iterable of algorithm names that are aperture corrected.
+        """
+        ap_corr_name_set = set()
+        for field_name in ap_corr_map:
+            algorithm_name, suffix = field_name.split("_instFlux")
+            if suffix not in ("", "Err"):
+                raise RuntimeError(f"Invalid field name {field_name} in aperture correction map.")
+
+            ap_corr_name_set.add(algorithm_name)
+
+        return tuple(sorted(ap_corr_name_set))
+
     @property
     def ap_corr_names(self) -> Iterable[str]:
         """Iterable of algorithm names that have aperture correction values."""
-        return self._ap_corr_names
+        return self._get_ap_corr_names(ap_corr_map=self._intermediate_ap_corr_map)
 
     @property
     def total_weight(self) -> float:
@@ -144,10 +167,6 @@ class CoaddApCorrMapStacker:
         ValueError
             Raised if the aperture correction value or its error is missing.
         """
-        if not self.ap_corr_names:
-            # Lazily initialize the aperture correction name set.
-            self._setup_ap_corr_names(ap_corr_map)
-
         if not self._intermediate_ap_corr_map:
             self._intermediate_ap_corr_map = dict.fromkeys(
                 [f"{algorithm_name}_instFlux" for algorithm_name in self.ap_corr_names]
@@ -158,9 +177,10 @@ class CoaddApCorrMapStacker:
         # Accumulate the aperture correction values in a temporary dict.
         # This is so that if we error out in the middle, we don't leave the
         # aperture correction map in an inconsistent state.
-        temp_ap_corr_map = dict.fromkeys(self._intermediate_ap_corr_map, 0.0)
+        temp_ap_corr_map = dict.fromkeys(ap_corr_map, 0.0)
 
-        for algorithm_name in self.ap_corr_names:
+        ap_corr_names = self._get_ap_corr_names(ap_corr_map)
+        for algorithm_name in ap_corr_names:
             # Accumulate the aperture correction values.
             ap_corr_field: BoundedField | None
             if (ap_corr_field := ap_corr_map.get(f"{algorithm_name}_instFlux")) is None:
@@ -195,8 +215,10 @@ class CoaddApCorrMapStacker:
             temp_ap_corr_map[f"{algorithm_name}_instFluxErr"] = term
 
         # Update the intermediate aperture correction map.
-        for key in self._intermediate_ap_corr_map:
-            self._intermediate_ap_corr_map[key] += temp_ap_corr_map[key]
+        for key in temp_ap_corr_map:
+            self._intermediate_ap_corr_map[key] = temp_ap_corr_map[key] + self._intermediate_ap_corr_map.get(
+                key, 0.0
+            )
 
         # Add the weight to the total weight.
         self._total_weight += weight
