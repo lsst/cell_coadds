@@ -90,6 +90,9 @@ class StitchedPsf(ImagePsf):
         """The grid on which the images are placed."""
         return self._grid
 
+    def getAveragePosition(self) -> geom.Point2D:
+        return self._grid.bbox.getCenter()
+
     # The _do* methods make use of the ImagePsf trampoline.
     def _doComputeBBox(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> geom.Box2I:
         return self._images[self._grid.index(geom.Point2I(position))].getBBox()
