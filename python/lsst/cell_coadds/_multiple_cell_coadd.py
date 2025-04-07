@@ -145,6 +145,21 @@ class MultipleCellCoadd(CommonComponentsProperties):
         return self._mask_fraction_names
 
     @property
+    def ap_corr_names(self) -> Iterable[str]:
+        """The names of all aperture correction algorithms used in any cell.
+
+        Returns
+        -------
+        ap_corr_names : `tuple` [`str`]
+            A tuple of algorithm names for aperture corrections that were
+            applied in any of the cells.
+        """
+        ap_corr_names = set()
+        for cell in self.cells.values():
+            ap_corr_names.update(cell.aperture_correction_map)
+        return tuple(sorted(ap_corr_names))
+
+    @property
     def grid(self) -> UniformGrid:
         """Object that defines the inner geometry for all cells."""
         return self._grid

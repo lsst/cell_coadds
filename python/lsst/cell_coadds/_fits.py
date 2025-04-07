@@ -469,14 +469,16 @@ class CellCoaddFitsReader:
         return gc
 
 
-def to_numpy_record(ap_corr_map: Mapping[str, float], xy: Index2D) -> np.record:
+def to_numpy_record(ap_corr_map: Mapping[str, float], xy: Index2D, ap_corr_names: Iterable[str]) -> np.record:
     """Convert the aperture correction map to a numpy record with
     appropriate data types.
     """
-    dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_map]
+    dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_names]
     record = np.recarray((1,), dtype=dtypes)[0]
-    for field_name in ap_corr_map:
-        record[field_name] = ap_corr_map[field_name]
+    for algorithm_name in ap_corr_names:
+        for suffix in ("_instFlux", "_instFluxErr"):
+            field_name = algorithm_name + suffix
+            record[field_name] = ap_corr_map.get(field_name, np.nan)
 
     record["x"] = xy.x
     record["y"] = xy.y
@@ -593,11 +595,11 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    if apcorr := multiple_cell_coadd.cells.first.aperture_correction_map:
-        dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr]
+    if ap_corr_names := multiple_cell_coadd.ap_corr_names:
+        dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_names]
         aperture_correction_recarray = np.rec.fromrecords(
             recList=[
-                to_numpy_record(cell.aperture_correction_map, cell.identifiers.cell)
+                to_numpy_record(cell.aperture_correction_map, cell.identifiers.cell, ap_corr_names)
                 for cell in multiple_cell_coadd.cells.values()
                 if cell.aperture_correction_map
             ],
