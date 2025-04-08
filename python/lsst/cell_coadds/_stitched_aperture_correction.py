@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+import numpy as np
+
 import lsst.geom as geom
 from lsst.skymap import Index2D
 
@@ -64,5 +66,4 @@ class StitchedApertureCorrection:
             idx = self.ugrid.index(eval_point)
             return self.gc[idx]
         else:
-            for xx, yy in zip(x, y, strict=True):
-                yield self.evaluate(geom.Point2I(xx, yy))
+            return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
