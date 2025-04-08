@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 import lsst.geom as geom
 from lsst.skymap import Index2D
@@ -46,7 +46,7 @@ class StitchedApertureCorrection:
         self.ugrid = ugrid
         self.gc = gc
 
-    def evaluate(self, point: geom.Point2D | geom.Point2I) -> float:
+    def evaluate(self, x: geom.Point2D | Iterable[float], y: Iterable[float] | None = None) -> float:
         """Evaluate the BoundedField at a given point on the image.
 
         Parameters
@@ -56,9 +56,13 @@ class StitchedApertureCorrection:
 
         Returns
         -------
-        value: `float`
+        value: `float`, or `numpy.ndarray`
             The value of the BoundedField at the specified point.
         """
-        eval_point = geom.Point2I(point)
-        idx = self.ugrid.index(eval_point)
-        return self.gc[idx]
+        if y is None:
+            eval_point = geom.Point2I(x)
+            idx = self.ugrid.index(eval_point)
+            return self.gc[idx]
+        else:
+            for xx, yy in zip(x, y, strict=True):
+                yield self.evaluate(geom.Point2I(xx, yy))
