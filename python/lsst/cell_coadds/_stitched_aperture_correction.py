@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Mapping
 
 import numpy as np
@@ -31,6 +32,8 @@ from lsst.skymap import Index2D
 from ._uniform_grid import UniformGrid
 
 __all__ = ("StitchedApertureCorrection",)
+
+logger = logging.getLogger(__name__)
 
 
 class StitchedApertureCorrection:
@@ -64,6 +67,11 @@ class StitchedApertureCorrection:
         if y is None:
             eval_point = geom.Point2I(x)
             idx = self.ugrid.index(eval_point)
-            return self.gc[idx]
+            try:
+                return self.gc[idx]
+            except KeyError:
+                logger.info("No aperture correction found for %s", idx)
+                return 1.0
+
         else:
             return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
