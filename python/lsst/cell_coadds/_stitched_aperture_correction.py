@@ -24,7 +24,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import lsst.geom as geom
-from lsst.meas.algorithms import CoaddBoundedField
 from lsst.skymap import Index2D
 
 from ._uniform_grid import UniformGrid
@@ -32,7 +31,7 @@ from ._uniform_grid import UniformGrid
 __all__ = ("StitchedApertureCorrection",)
 
 
-class StitchedApertureCorrection(CoaddBoundedField):
+class StitchedApertureCorrection:
     """A class that quacks like BoundedField and defined on a grid piecewise.
 
     Parameters
@@ -41,27 +40,13 @@ class StitchedApertureCorrection(CoaddBoundedField):
         The uniform grid that defines the bounding boxes for each piece.
     gc : `Mapping[Index2D, float]`
         The grid container that holds the values for each cell.
-
-    Notes
-    -----
-    This class inherits from `~lsst.afw.math.CoaddBoundedField` in order to be
-    able to attach itself to a `~lsst.afw.image.Exposure` in
-    `~lsst.afw.image.ApCorrMap`. This is an intermediary fix until we use
-    stitched cell-based coadds for all of downstream processing.
     """
 
     def __init__(self, ugrid: UniformGrid, gc: Mapping[Index2D, float]):
         self.ugrid = ugrid
         self.gc = gc
-        self.evaluate = self._evaluate
-        super().__init__(bbox=ugrid.bbox, coaddWcs=None, elements=[])
 
-    # Something appears messed up with the method resolution order.
-    # Defining this method as evaluate makes it go into the void, and the
-    # `evaluate` method on an instance of this class resolves to that the
-    # parent class. For more details, see
-    # https://rubinobs.atlassian.net/browse/DM-48774?focusedCommentId=583344.
-    def _evaluate(self, point: geom.Point2D | geom.Point2I) -> float:
+    def evaluate(self, point: geom.Point2D | geom.Point2I) -> float:
         """Evaluate the BoundedField at a given point on the image.
 
         Parameters
