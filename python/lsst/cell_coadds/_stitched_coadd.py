@@ -32,8 +32,10 @@ from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._grid_container import GridContainer
+from ._identifiers import ObservationIdentifiers
 from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_aperture_correction import StitchedApertureCorrection
+from ._stitched_coadd_inputs import StitchedCoaddInputs
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
@@ -205,3 +207,10 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             self._ap_corr_map = ap_corr_map
 
         return self._ap_corr_map
+
+    def inputs(self) -> StitchedCoaddInputs:
+        if self._inputs is None:
+            gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
+            for idx, scc in self._cell_coadd.cells.items():
+                gc[idx] = scc.inputs
+            self._inputs = StitchedCoaddInputs(self.grid, gc)
