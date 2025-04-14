@@ -209,6 +209,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
         return self._ap_corr_map
 
+    @property
     def inputs(self) -> StitchedCoaddInputs:
         if self._inputs is None:
             gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
