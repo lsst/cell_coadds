@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterable, Mapping
 
 import lsst.geom as geom
 from lsst.skymap import Index2D
@@ -50,9 +50,11 @@ class StitchedCoaddInputs:
         self.ugrid = ugrid
         self.gc = gc
 
-    def __iter__(self) -> Iterator[ObservationIdentifiers]:
+    def __iter__(self) -> Iterable[ObservationIdentifiers]:
+        inputs = []
         for idx in self.gc:
-            yield from self.gc[idx]
+            inputs += self.gc[idx]
+        return frozenset(inputs)
 
     def subsetContaining(self, x: geom.Point2D) -> Iterable[ObservationIdentifiers]:
         """Evaluate the BoundedField at a given point on the image.
