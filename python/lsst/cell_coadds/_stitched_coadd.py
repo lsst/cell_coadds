@@ -84,6 +84,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         self._cell_coadd = cell_coadd
         self._psf: StitchedPsf | None = None
         self._ap_corr_map: StitchedCoaddApCorrMap | None = None
+        self._inputs: StitchedCoaddInputs | None = None
         self._common = cell_coadd.common
 
     @property
@@ -214,3 +215,5 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             for idx, scc in self._cell_coadd.cells.items():
                 gc[idx] = scc.inputs
             self._inputs = StitchedCoaddInputs(self.grid, gc)
+
+        return self._inputs
