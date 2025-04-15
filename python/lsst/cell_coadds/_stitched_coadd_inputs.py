@@ -54,7 +54,7 @@ class StitchedCoaddInputs:
         inputs = []
         for idx in self.gc:
             inputs += self.gc[idx]
-        return frozenset(inputs)
+        yield from frozenset(inputs)
 
     def subsetContaining(self, x: geom.Point2D) -> Iterable[ObservationIdentifiers]:
         """Evaluate the BoundedField at a given point on the image.
