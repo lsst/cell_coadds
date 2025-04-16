@@ -5,7 +5,7 @@ known_first_party = ["lsst"]
 
 [tool.black]
 line-length = 110
-target-version = ["py311"]
+target-version = ["py312"]
 
 [tool.lsst_versions]
 write_to = "python/lsst/cell_coadds/version.py"
@@ -22,7 +22,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 110
-target-version = "py311"
+target-version = "py312"
 exclude = [
     "__init__.py",
 ]
