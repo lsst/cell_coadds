@@ -25,7 +25,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Protocol, Self, TypeAlias, overload
+from typing import Protocol, Self, overload
 
 import numpy as np
 from frozendict import frozendict
@@ -65,8 +65,8 @@ class ImageLike(Protocol):
         pass
 
 
-SingleCellCoaddApCorrMap: TypeAlias = frozendict[str, float]
+SingleCellCoaddApCorrMap: type = frozendict[str, float]
 """A type alias for aperture correction maps for single cell coadds."""
 
-StitchedCoaddApCorrMap: TypeAlias = Mapping[str, StitchedApertureCorrection]
+StitchedCoaddApCorrMap: type = Mapping[str, StitchedApertureCorrection]
 """A type alias for aperture correction maps for stitched coadds."""
