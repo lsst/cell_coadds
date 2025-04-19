@@ -26,7 +26,7 @@ __all__ = ("MultipleCellCoadd",)
 from collections.abc import Iterable, Set
 from typing import TYPE_CHECKING
 
-from lsst.geom import Box2I
+from lsst.geom import Box2I, Extent2I
 
 from ._common_components import CommonComponents, CommonComponentsProperties
 from ._exploded_coadd import ExplodedCoadd
@@ -68,7 +68,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
     ):
         self._grid = grid
         self._outer_cell_size = outer_cell_size
-        self._psf_image_size = psf_image_size - 4
+        self._psf_image_size = Extent2I(psf_image_size.x - 4, psf_image_size.y - 4)
         self._common = common
         cells_builder = GridContainer[SingleCellCoadd](self._grid.shape)
         self._mask_fraction_names: set[str] = set()
