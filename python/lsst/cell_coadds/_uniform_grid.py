@@ -188,7 +188,7 @@ class UniformGrid:
     def __repr__(self) -> str:
         return (
             f"UniformGrid(cell_size={repr(self.cell_size)}, shape={self.shape}, "
-            f"min={repr(self.bbox.getMin())})"
+            f"min={repr(self.bbox.getMin())}, padding={self.padding})"
         )
 
     # Convenience methods
