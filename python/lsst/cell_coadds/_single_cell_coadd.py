@@ -109,7 +109,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     @property
     def psf_image(self) -> ImageF:
         """The coadded PSF image."""
-        return self._psf
+        return self._psf[self._inner_bbox.erodedBy(4)]
 
     @property
     # TODO: Remove the option of returning empty tuple in v1.0.
