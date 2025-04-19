@@ -259,10 +259,24 @@ class CellCoaddFitsReader:
                 ),
             )
 
+            outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
+            psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
+
             grid_cell_size = Extent2I(header["GRCELL1"], header["GRCELL2"])  # Inner size of a single cell.
             grid_shape = Extent2I(header["GRSHAPE1"], header["GRSHAPE2"])
             grid_min = Point2I(header["GRMIN1"], header["GRMIN2"])
-            grid_padding = header.get("GRPAD", 0)
+            grid_padding_extent = outer_cell_size - grid_cell_size
+            if grid_padding_extent.x != grid_padding_extent.y:
+                raise ValueError(
+                    "Outer cell size is not padded equally in either directions. "
+                    f"Got {outer_cell_size} and {grid_cell_size}."
+                )
+            if grid_padding_extent.x % 2 != 0:
+                raise ValueError(
+                    "Outer cell size is not padded by an even number of pixels. "
+                    f"Got {outer_cell_size} and {grid_cell_size}."
+                )
+            grid_padding = grid_padding_extent.x // 2
             grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, padding=grid_padding, min=grid_min)
 
             # This is the inner bounding box for the multiple cell coadd
@@ -270,9 +284,6 @@ class CellCoaddFitsReader:
                 Point2I(header["INBBOX11"], header["INBBOX12"]),
                 Point2I(header["INBBOX21"], header["INBBOX22"]),
             )
-
-            outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
-            psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
             # Attempt to get inputs for each cell.
             inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
@@ -612,7 +623,6 @@ def writeMultipleCellCoaddAsFits(
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
     grid_shape = multiple_cell_coadd.grid.shape
-    grid_padding = multiple_cell_coadd.grid.padding
     grid_min = multiple_cell_coadd.grid.bbox.getMin()
     grid_cards = {
         "GRCELL1": grid_cell_size.x,
@@ -621,7 +631,6 @@ def writeMultipleCellCoaddAsFits(
         "GRSHAPE2": grid_shape.y,
         "GRMIN1": grid_min.x,
         "GRMIN2": grid_min.y,
-        "GRPAD": grid_padding,
     }
     hdu.header.extend(grid_cards)
 
