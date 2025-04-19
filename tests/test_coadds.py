@@ -231,7 +231,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         grid_bbox = geom.Box2I(
             geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
-        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny))
+        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny), padding=cls.border_size)
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
