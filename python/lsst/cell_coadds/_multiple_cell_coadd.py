@@ -68,7 +68,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
     ):
         self._grid = grid
         self._outer_cell_size = outer_cell_size
-        self._psf_image_size = Extent2I(psf_image_size.x - 4, psf_image_size.y - 4)
+        self._psf_image_size = psf_image_size
         self._common = common
         cells_builder = GridContainer[SingleCellCoadd](self._grid.shape)
         self._mask_fraction_names: set[str] = set()
