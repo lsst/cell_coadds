@@ -76,10 +76,16 @@ class MultipleCellCoadd(CommonComponentsProperties):
         for cell in cells:
             index = cell.identifiers.cell
             cells_builder[index] = cell
-            if cell.inner.bbox != self._grid.bbox_of(index):
+            cell_bbox = self._grid.bbox_of(index)
+            if not cell.outer.bbox.contains(cell_bbox):
+                raise ValueError(
+                    f"Cell at index {index} has outer bbox {cell.outer.bbox}, "
+                    f"which does not contain {self._grid.bbox_of(index)}."
+                )
+            if not cell_bbox.contains(cell.inner.bbox):
                 raise ValueError(
                     f"Cell at index {index} has inner bbox {cell.inner.bbox}, "
-                    f"but grid expects {self._grid.bbox_of(index)}."
+                    f"which is not contained by {self._grid.bbox_of(index)}."
                 )
             if cell.outer.bbox.getDimensions() != self._outer_cell_size:
                 raise ValueError(
