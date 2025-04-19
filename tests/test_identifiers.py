@@ -39,7 +39,8 @@ class IdentifiersTestCase(unittest.TestCase):
     def test_cell_identifiers(self) -> None:
         """Test we can construct a CellIdentifiers from a DataCoordinate."""
         cellIdentifier = CellIdentifiers.from_data_id(
-            self.data_id, cell=Index2D(x=4, y=2)  # type: ignore [attr-defined]
+            self.data_id,
+            cell=Index2D(x=4, y=2),
         )
         self.assertEqual(cellIdentifier.cell, Index2D(x=4, y=2))
         self.assertEqual(cellIdentifier.tract, 9813)
