@@ -264,6 +264,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(mcc1.inner_bbox, mcc2.inner_bbox)
         self.assertEqual(mcc1.outer_bbox, mcc2.outer_bbox)
         self.assertEqual(mcc1.outer_cell_size, mcc2.outer_cell_size)
+        self.assertEqual(mcc1.grid, mcc2.grid)
         self.assertEqual(mcc1.mask_fraction_names, mcc2.mask_fraction_names)
         self.assertEqual(mcc1.n_noise_realizations, mcc2.n_noise_realizations)
         self.assertEqual(mcc1.psf_image_size, mcc2.psf_image_size)
