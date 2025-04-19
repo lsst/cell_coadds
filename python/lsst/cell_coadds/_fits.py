@@ -266,6 +266,9 @@ class CellCoaddFitsReader:
             grid_shape = Extent2I(header["GRSHAPE1"], header["GRSHAPE2"])
             grid_min = Point2I(header["GRMIN1"], header["GRMIN2"])
             grid_padding_extent = outer_cell_size - grid_cell_size
+            # In hindsight, it would have been easier to store the padding as a
+            # separate keyword in the header instead of OCELL1 and OCELL2.
+            # This can be done when the file format is bumped to 1.0.
             if grid_padding_extent.x != grid_padding_extent.y:
                 raise ValueError(
                     "Outer cell size is not padded equally in either directions. "
