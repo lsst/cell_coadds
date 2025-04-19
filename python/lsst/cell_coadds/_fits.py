@@ -210,6 +210,9 @@ class CellCoaddFitsReader:
         IncompatibleError
             Raised if the version of this module that wrote the file is
             incompatible with this module that is reading it in.
+        ValueError
+            Raised if the outer cell size is not padded equally in either
+            direction or by an even number of pixels.
         """
         with fits.open(self.filename) as hdu_list:
             header = hdu_list[1].header
