@@ -210,6 +210,9 @@ class CellCoaddFitsReader:
         IncompatibleError
             Raised if the version of this module that wrote the file is
             incompatible with this module that is reading it in.
+        ValueError
+            Raised if the outer cell size is not padded equally in either
+            direction or by an even number of pixels.
         """
         with fits.open(self.filename) as hdu_list:
             header = hdu_list[1].header
@@ -259,19 +262,34 @@ class CellCoaddFitsReader:
                 ),
             )
 
+            outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
+            psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
+
             grid_cell_size = Extent2I(header["GRCELL1"], header["GRCELL2"])  # Inner size of a single cell.
             grid_shape = Extent2I(header["GRSHAPE1"], header["GRSHAPE2"])
             grid_min = Point2I(header["GRMIN1"], header["GRMIN2"])
-            grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, min=grid_min)
+            grid_padding_extent = outer_cell_size - grid_cell_size
+            # In hindsight, it would have been easier to store the padding as a
+            # separate keyword in the header instead of OCELL1 and OCELL2.
+            # This can be done when the file format is bumped to 1.0.
+            if grid_padding_extent.x != grid_padding_extent.y:
+                raise ValueError(
+                    "Outer cell size is not padded equally in either directions. "
+                    f"Got {outer_cell_size} and {grid_cell_size}."
+                )
+            if grid_padding_extent.x % 2 != 0:
+                raise ValueError(
+                    "Outer cell size is not padded by an even number of pixels. "
+                    f"Got {outer_cell_size} and {grid_cell_size}."
+                )
+            grid_padding = grid_padding_extent.x // 2
+            grid = UniformGrid(cell_size=grid_cell_size, shape=grid_shape, padding=grid_padding, min=grid_min)
 
             # This is the inner bounding box for the multiple cell coadd
             inner_bbox = Box2I(
                 Point2I(header["INBBOX11"], header["INBBOX12"]),
                 Point2I(header["INBBOX21"], header["INBBOX22"]),
             )
-
-            outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
-            psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
             # Attempt to get inputs for each cell.
             inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
