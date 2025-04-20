@@ -221,5 +221,14 @@ class UniformGridTestCase(unittest.TestCase):
         self.assertRaises(ValueError, grid.index, Point2I(x=self.x0, y=self.y0 + self.bh + padding))
 
 
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    """Test for memory/resource leaks."""
+
+
+def setup_module(module):  # noqa: D103
+    lsst.utils.tests.init()
+
+
 if __name__ == "__main__":
+    lsst.utils.tests.init()
     unittest.main()
