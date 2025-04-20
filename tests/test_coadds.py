@@ -381,6 +381,14 @@ class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 self.assertEqual(ap_corr_map["base_PsfFlux_instFlux"], 0.8 * (cellId.y + 2))
                 self.assertEqual(ap_corr_map["base_PsfFlux_instFluxErr"], 0.02 * (cellId.x + 2))
 
+    def test_bboxes(self):
+        """Test that the cell bounding boxes agree with those of the grid."""
+        grid = self.multiple_cell_coadd.grid
+        for cell_id, cell in self.multiple_cell_coadd.cells.items():
+            with self.subTest(x=cell_id.x, y=cell_id.y):
+                self.assertEqual(cell.inner.bbox, grid.bbox_of(cell_id))
+                self.assertEqual(cell.outer.bbox, grid.bbox_with_padding(cell_id))
+
 
 class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
     """Test the construction and methods of an ExplodedCoadd instance."""
