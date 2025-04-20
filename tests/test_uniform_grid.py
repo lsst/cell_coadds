@@ -48,6 +48,7 @@ class UniformGridTestCase(unittest.TestCase):
         self.bbox = Box2I(Point2I(x=self.x0, y=self.y0), Extent2I(x=self.bw, y=self.bh))
         self.cell_size = Extent2I(x=self.cw, y=self.ch)
         self.shape = Index2D(x=self.nx, y=self.ny)
+        self.padding = 0
 
     def test_ctor_bbox_cell_size(self) -> None:
         """Test UniformGrid after construction with (bbox, cell_size)."""
@@ -68,6 +69,7 @@ class UniformGridTestCase(unittest.TestCase):
         self.assertEqual(grid.bbox, self.bbox)
         self.assertEqual(grid.cell_size, self.cell_size)
         self.assertEqual(grid.shape, self.shape)
+        self.assertEqual(grid.padding, self.padding)
         self.assertIsInstance(grid.shape, Index2D)
         self.assertEqual(grid.bbox_of(Index2D(x=3, y=4)), Box2I(Point2I(x=10, y=10), self.cell_size))
         index = grid.index(Point2I(x=11, y=9))
