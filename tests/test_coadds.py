@@ -121,7 +121,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         # The test points are chosen to cover various corner cases assuming
         # inner_size = (17, 15) and border_size = 5. If that is changed, the
         # test points should be updated to not fall outside the coadd and still
-        # cover the description in the inline comments.
+        # cover the description in the inline comments. This is checked below.
         test_points = (
             geom.Point2D(cls.x0 + 5, cls.y0 + 4),  # inner point in lower left
             geom.Point2D(cls.x0 + 6, cls.y0 + 24),  # inner point in upper left
@@ -232,6 +232,11 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
         grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny), padding=cls.border_size)
+
+        for test_point, test_index in cls.test_positions:
+            assert test_index == grid.index(
+                geom.Point2I(test_point)
+            ), f"Test point {test_point} is not in cell {test_index}."
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
