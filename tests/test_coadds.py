@@ -510,6 +510,17 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                     self.multiple_cell_coadd.cells[cellId].aperture_correction_map[field_name],
                 )
 
+    def test_inputs(self):
+        """Test that the inputs are populated correctly on stitching."""
+        inputs = self.stitched_coadd.ccds
+        for position, cellId in self.test_positions:
+            with self.subTest(x=cellId.x, y=cellId.y):
+                self.assertEqual(
+                    inputs.subsetContaining(position),
+                    self.multiple_cell_coadd.cells[cellId].inputs,
+                )
+        self.assertEqual(len(self.stitched_coadd.visits), 1)
+
     def test_borders(self):
         """Test that the borders are populated correctly on stitching."""
         mi = self.stitched_coadd.asMaskedImage()
