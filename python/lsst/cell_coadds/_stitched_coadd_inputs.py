@@ -49,15 +49,22 @@ class StitchedCoaddInputs:
     def __init__(self, ugrid: UniformGrid, gc: Mapping[Index2D, float]):
         self.ugrid = ugrid
         self.gc = gc
+        self._inputs = None
 
     def __iter__(self) -> Iterable[ObservationIdentifiers]:
-        inputs = []
-        for idx in self.gc:
-            inputs += self.gc[idx]
-        yield from frozenset(sorted(inputs))
+        """Iterate over the unique set of `ObservationIdentifiers`
+        corresponding to the visits that overlap the full bounding box.
+        """
+        if not self._inputs:
+            inputs = []
+            for idx in self.gc:
+                inputs += self.gc[idx]
+            self._inputs = frozenset(sorted(inputs))
+        yield from self._inputs
 
-    def subsetContaining(self, x: geom.Point2D) -> Iterable[ObservationIdentifiers]:
-        """Evaluate the BoundedField at a given point on the image.
+    def subsetContaining(self, point: geom.Point2D) -> Iterable[ObservationIdentifiers]:
+        """Obtain the set of `ObservationIdentifiers` corresponding to the
+        visits at a given point on the image.
 
         Parameters
         ----------
@@ -66,10 +73,10 @@ class StitchedCoaddInputs:
 
         Returns
         -------
-        value: `float`, or `numpy.ndarray`
-            The value of the BoundedField at the specified point.
+        value: `~collections.abc.Iterable[ObservationIdentifiers]`
+            The set of visits overlapping a given point on the image.
         """
-        eval_point = geom.Point2I(x)
+        eval_point = geom.Point2I(point)
         idx = self.ugrid.index(eval_point)
         try:
             return self.gc[idx]
