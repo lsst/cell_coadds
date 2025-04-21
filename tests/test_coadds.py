@@ -138,7 +138,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             geom.Point2D(cls.x0 + 0, cls.y0 + 0),  # inner point in lower left
         )
         # A tuple of (point, cell_index) pairs.
-        cls.test_positions = (
+        cls.test_positions = [
             (
                 point,
                 Index2D(
@@ -147,7 +147,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                 ),
             )
             for point in test_points
-        )
+        ]
 
         schema = lsst.meas.base.tests.TestDataset.makeMinimalSchema()
 
