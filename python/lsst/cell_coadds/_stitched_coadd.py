@@ -23,6 +23,7 @@ from __future__ import annotations
 
 __all__ = ("StitchedCoadd",)
 
+import dataclasses
 from collections.abc import Iterator, Set
 from functools import partial
 from typing import TYPE_CHECKING
@@ -32,8 +33,10 @@ from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
 from ._grid_container import GridContainer
+from ._identifiers import ObservationIdentifiers
 from ._image_planes import ImagePlanes, ViewImagePlanes
 from ._stitched_aperture_correction import StitchedApertureCorrection
+from ._stitched_exposure_catalog import StitchedExposureCatalog
 from ._stitched_image_planes import StitchedImagePlanes
 from ._stitched_psf import StitchedPsf
 from ._uniform_grid import UniformGrid
@@ -82,6 +85,8 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         self._cell_coadd = cell_coadd
         self._psf: StitchedPsf | None = None
         self._ap_corr_map: StitchedCoaddApCorrMap | None = None
+        self._ccds: StitchedExposureCatalog | None = None
+        self._visits: StitchedExposureCatalog | None = None
         self._common = cell_coadd.common
 
     @property
@@ -205,3 +210,34 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             self._ap_corr_map = ap_corr_map
 
         return self._ap_corr_map
+
+    @property
+    def ccds(self) -> StitchedExposureCatalog:
+        """An ExposureCatalog-like object that contains the information about
+        the ``ObservationIdentifiers`` at any point on the coadd. It can also
+        be used as an iterable to iterate over the unique (visit, detector)
+        combinations.
+        """
+        if self._ccds is None:
+            gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
+            for idx, scc in self._cell_coadd.cells.items():
+                gc[idx] = scc.inputs
+            self._ccds = StitchedExposureCatalog(self.grid, gc)
+
+        return self._ccds
+
+    @property
+    def visits(self) -> StitchedExposureCatalog:
+        """An ExposureCatalog-like object that contains the information about
+        the ``ObservationIdentifiers`` at any point on the coadd. It can also
+        be used as an iterable to iterate over the unique visits.
+        """
+        if self._visits is None:
+            gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
+            for idx, scc in self._cell_coadd.cells.items():
+                gc[idx] = tuple(
+                    sorted({dataclasses.replace(ccd_input, detector=-1) for ccd_input in scc.inputs})
+                )
+            self._visits = StitchedExposureCatalog(self.grid, gc)
+
+        return self._visits
