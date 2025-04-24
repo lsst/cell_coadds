@@ -25,6 +25,7 @@ import copy
 import pickle
 import unittest
 
+import lsst.utils.tests
 from lsst.cell_coadds import GridContainer, UniformGrid
 from lsst.geom import Box2I, Extent2I, Point2I
 from lsst.skymap import Index2D
@@ -208,5 +209,14 @@ class GridContainerTestCase(unittest.TestCase):
         self._check(pickled_container)
 
 
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    """Test for memory/resource leaks."""
+
+
+def setup_module(module):  # noqa: D103
+    lsst.utils.tests.init()
+
+
 if __name__ == "__main__":
+    lsst.utils.tests.init()
     unittest.main()

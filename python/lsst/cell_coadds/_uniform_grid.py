@@ -183,12 +183,16 @@ class UniformGrid:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, UniformGrid):
             return False
-        return self._bbox == other._bbox and self._cell_size == other._cell_size
+        return (
+            self._bbox == other._bbox
+            and self._cell_size == other._cell_size
+            and self._padding == other._padding
+        )
 
     def __repr__(self) -> str:
         return (
             f"UniformGrid(cell_size={repr(self.cell_size)}, shape={self.shape}, "
-            f"min={repr(self.bbox.getMin())})"
+            f"min={repr(self.bbox.getMin())}, padding={self.padding})"
         )
 
     # Convenience methods

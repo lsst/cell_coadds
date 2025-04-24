@@ -21,6 +21,7 @@
 
 import unittest
 
+import lsst.utils.tests
 from lsst.cell_coadds import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from lsst.cell_coadds.test_utils import generate_data_id
 from lsst.skymap import Index2D
@@ -38,7 +39,8 @@ class IdentifiersTestCase(unittest.TestCase):
     def test_cell_identifiers(self) -> None:
         """Test we can construct a CellIdentifiers from a DataCoordinate."""
         cellIdentifier = CellIdentifiers.from_data_id(
-            self.data_id, cell=Index2D(x=4, y=2)  # type: ignore [attr-defined]
+            self.data_id,
+            cell=Index2D(x=4, y=2),
         )
         self.assertEqual(cellIdentifier.cell, Index2D(x=4, y=2))
         self.assertEqual(cellIdentifier.tract, 9813)
@@ -83,5 +85,14 @@ class IdentifiersTestCase(unittest.TestCase):
             PatchIdentifiers.from_data_id(self.data_id, cell=Index2D(x=4, y=2))  # type: ignore
 
 
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    """Test for memory/resource leaks."""
+
+
+def setup_module(module):  # noqa: D103
+    lsst.utils.tests.init()
+
+
 if __name__ == "__main__":
+    lsst.utils.tests.init()
     unittest.main()

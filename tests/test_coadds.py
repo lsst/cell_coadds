@@ -121,7 +121,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         # The test points are chosen to cover various corner cases assuming
         # inner_size = (17, 15) and border_size = 5. If that is changed, the
         # test points should be updated to not fall outside the coadd and still
-        # cover the description in the inline comments.
+        # cover the description in the inline comments. This is checked below.
         test_points = (
             geom.Point2D(cls.x0 + 5, cls.y0 + 4),  # inner point in lower left
             geom.Point2D(cls.x0 + 6, cls.y0 + 24),  # inner point in upper left
@@ -231,7 +231,12 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         grid_bbox = geom.Box2I(
             geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
         )
-        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny))
+        grid = UniformGrid.from_bbox_shape(grid_bbox, Index2D(x=cls.nx, y=cls.ny), padding=cls.border_size)
+
+        for test_point, test_index in cls.test_positions:
+            assert test_index == grid.index(
+                geom.Point2I(test_point)
+            ), f"Test point {test_point} is not in cell {test_index}."
 
         cls.multiple_cell_coadd = MultipleCellCoadd(
             single_cell_coadds,
@@ -264,6 +269,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         self.assertEqual(mcc1.inner_bbox, mcc2.inner_bbox)
         self.assertEqual(mcc1.outer_bbox, mcc2.outer_bbox)
         self.assertEqual(mcc1.outer_cell_size, mcc2.outer_cell_size)
+        self.assertEqual(mcc1.grid, mcc2.grid)
         self.assertEqual(mcc1.mask_fraction_names, mcc2.mask_fraction_names)
         self.assertEqual(mcc1.n_noise_realizations, mcc2.n_noise_realizations)
         self.assertEqual(mcc1.psf_image_size, mcc2.psf_image_size)
@@ -369,7 +375,7 @@ class ExplodedCoaddTestCase(BaseMultipleCellCoaddTestCase):
         """Test the asMaskedImage method for an ExplodedCoadd object."""
         masked_image = self.exploded_coadd.asMaskedImage()
         masked_image.setXY0(self.multiple_cell_coadd.outer_bbox.getMin())
-        base_bbox = self.multiple_cell_coadd.grid.bbox_of(Index2D(0, 0)).dilatedBy(self.border_size)
+        base_bbox = self.multiple_cell_coadd.cells.first.outer.bbox
         for cell_x, cell_y in product(range(self.nx), range(self.ny)):
             bbox = base_bbox.shiftedBy(geom.Extent2I(cell_x * self.outer_size_x, cell_y * self.outer_size_y))
             with self.subTest(cell_x=cell_x, cell_y=cell_y):
