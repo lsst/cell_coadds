@@ -77,7 +77,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         inputs: Iterable[ObservationIdentifiers],
         common: CommonComponents,
         identifiers: CellIdentifiers,
-        aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
+        # aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
     ):
         assert outer.bbox.contains(
             inner_bbox
@@ -92,7 +92,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         # TODO: Remove support for inputs as None when bumping to v1.0 .
         self._inputs = tuple(sorted(set(inputs))) if inputs else ()
         self._identifiers = identifiers
-        self._aperture_correction_map = aperture_correction_map
+        # self._aperture_correction_map = aperture_correction_map
 
     @property
     def inner(self) -> ImagePlanes:
@@ -136,8 +136,8 @@ class SingleCellCoadd(CommonComponentsProperties):
         # Docstring inherited.
         return self._common
 
-    @property
-    def aperture_correction_map(self) -> SingleCellCoaddApCorrMap:
+    # @property
+    # def aperture_correction_map(self) -> SingleCellCoaddApCorrMap:
         """Mapping of algorithm name to aperture correction values.
 
         Returns
@@ -145,10 +145,10 @@ class SingleCellCoadd(CommonComponentsProperties):
         aperture_correction_map : `frozendict` [`str`, float]
             Mapping of algorithm name to aperture correction values.
         """
-        return self._aperture_correction_map
+        # return self._aperture_correction_map
 
-    @property
-    def aperture_corrected_algorithms(self) -> Set[str]:
+    # @property
+    # def aperture_corrected_algorithms(self) -> Set[str]:
         """An iterable of algorithm names that have aperture correction values.
 
         Returns
@@ -156,10 +156,10 @@ class SingleCellCoadd(CommonComponentsProperties):
         aperture_corrected_algorithms : `tuple` [`str`, ...]
             List of algorithms that have aperture correction values.
         """
-        if self._aperture_correction_map:
-            return self._aperture_correction_map.keys()
+        # if self._aperture_correction_map:
+            # return self._aperture_correction_map.keys()
 
-        return set()
+        # return set()
 
     def make_view(self, image: ImageLike, bbox: Box2I | None = None) -> ImageLike:
         """Make a view of an image, optionally within a given bounding box.

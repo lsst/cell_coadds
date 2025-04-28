@@ -81,7 +81,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         self._bbox = bbox
         self._cell_coadd = cell_coadd
         self._psf: StitchedPsf | None = None
-        self._ap_corr_map: StitchedCoaddApCorrMap | None = None
+        # self._ap_corr_map: StitchedCoaddApCorrMap | None = None
         self._common = cell_coadd.common
 
     @property
@@ -180,8 +180,8 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
         return result
 
-    @property
-    def ap_corr_map(self) -> StitchedCoaddApCorrMap:
+    # @property
+    # def ap_corr_map(self) -> StitchedCoaddApCorrMap:
         """Stitch the aperture correction maps from the cell coadd.
 
         This converts the aperture correction maps from each cell into a single
@@ -193,15 +193,15 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         -----
         These cannot be attached to an `~lsst.afw.image.Exposure` object.
         """
-        if self._ap_corr_map is None:
-            ap_corr_map: dict[str, StitchedApertureCorrection] = {}
-            field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
-            for field_name in field_names:
-                gc = GridContainer[float](shape=self.grid.shape)
-                for scc in self._cell_coadd.cells.values():
-                    gc[scc.identifiers.cell] = scc.aperture_correction_map[field_name]
-                ap_corr_map[field_name] = StitchedApertureCorrection(self.grid, gc)
+        # if self._ap_corr_map is None:
+            # ap_corr_map: dict[str, StitchedApertureCorrection] = {}
+            # field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
+            # for field_name in field_names:
+                # gc = GridContainer[float](shape=self.grid.shape)
+                # for scc in self._cell_coadd.cells.values():
+                    # gc[scc.identifiers.cell] = scc.aperture_correction_map[field_name]
+                # ap_corr_map[field_name] = StitchedApertureCorrection(self.grid, gc)
 
-            self._ap_corr_map = ap_corr_map
+            # self._ap_corr_map = ap_corr_map
 
-        return self._ap_corr_map
+        # return self._ap_corr_map
