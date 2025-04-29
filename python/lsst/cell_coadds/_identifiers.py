@@ -167,6 +167,14 @@ class ObservationIdentifiers(BaseIdentifiers):
     """Unique identifier for the detector.
     """
 
+    @property
+    def ccd(self) -> int:
+        """Alias for the detector.
+
+        This is provided for compatibility with the older API.
+        """
+        return self.detector
+
     @classmethod
     def from_data_id(cls, data_id: DataCoordinate, *, backup_detector: int = -1) -> ObservationIdentifiers:
         """Construct from a data ID.
