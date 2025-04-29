@@ -50,7 +50,9 @@ class StitchedApertureCorrection:
         self.ugrid = ugrid
         self.gc = gc
 
-    def evaluate(self, x: geom.Point2D | Iterable[float], y: Iterable[float] | None = None) -> float | np.ndarray:
+    def evaluate(
+        self, x: geom.Point2D | Iterable[float], y: Iterable[float] | None = None
+    ) -> float | np.ndarray:
         """Evaluate the BoundedField at a given point on the image.
 
         Parameters
