@@ -29,14 +29,37 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import Self, cast
+from typing import Any, Self, cast
 
 from lsst.daf.butler import DataCoordinate, DimensionRecord
 from lsst.skymap import Index2D
 
 
+class BaseIdentifiers:
+    """Base class for identifiers. This acts like a mixin."""
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an attribute by name.
+
+        Parameters
+        ----------
+        key : `str`
+            Name of the attribute to get.
+
+        Returns
+        -------
+        value : `int`, `float`, `str`, `Index2D` or `None`
+            Value of the attribute.
+        """
+        return getattr(self, key)
+
+    @classmethod
+    def from_data_id(cls, *args, **kwargs) -> Self:
+        raise NotImplementedError("Subclasses must implement from_data_id method")
+
+
 @dataclass(frozen=True)
-class PatchIdentifiers:
+class PatchIdentifiers(BaseIdentifiers):
     """Struct of identifiers for a coadd patch."""
 
     skymap: str
@@ -78,20 +101,6 @@ class PatchIdentifiers:
             band=cast(str, data_id.get("band")),
         )
 
-    def __getitem__(self, key) -> int | float | str:
-        """Get an identifier by name.
-
-        Parameters
-        ----------
-        key : `str`
-            Name of the identifier to get.
-
-        Returns
-        -------
-        value : `int`, `float` or `str`
-            Value of the identifier.
-        """
-        return getattr(self, key)
 
 @dataclass(frozen=True)
 class CellIdentifiers(PatchIdentifiers):
@@ -130,7 +139,7 @@ class CellIdentifiers(PatchIdentifiers):
 
 
 @dataclass(frozen=True)
-class ObservationIdentifiers:
+class ObservationIdentifiers(BaseIdentifiers):
     """Struct of identifiers for an observation that contributed to a coadd
     cell.
     """
@@ -193,18 +202,3 @@ class ObservationIdentifiers:
 
     def __lt__(self, other: Self, /) -> bool:
         return (self.visit, self.detector) < (other.visit, other.detector)
-
-    def __getitem__(self, key: str) -> int | str:
-        """Get an identifier by name.
-
-        Parameters
-        ----------
-        key : `str`
-            Name of the identifier to get.
-
-        Returns
-        -------
-        value : `int` or `str`
-            Value of the identifier.
-        """
-        return getattr(self, key)
