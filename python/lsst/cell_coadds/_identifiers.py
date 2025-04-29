@@ -206,3 +206,18 @@ class ObservationIdentifiers(BaseIdentifiers):
 
     def __lt__(self, other: Self, /) -> bool:
         return (self.visit, self.detector) < (other.visit, other.detector)
+
+    def __getitem__(self, key: str) -> int | str:
+        """Get an identifier by name.
+
+        Parameters
+        ----------
+        key : `str`
+            Name of the identifier to get.
+
+        Returns
+        -------
+        value : `int` or `str`
+            Value of the identifier.
+        """
+        return getattr(self, key)
