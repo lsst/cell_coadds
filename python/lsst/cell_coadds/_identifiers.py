@@ -29,14 +29,33 @@ __all__ = (
 
 
 from dataclasses import dataclass
-from typing import Self, cast
+from typing import Any, Self, cast
 
 from lsst.daf.butler import DataCoordinate, DimensionRecord
 from lsst.skymap import Index2D
 
 
+class BaseIdentifiers:
+    """Base class for identifiers. This acts like a mixin."""
+
+    def __getitem__(self, key: str) -> Any:
+        """Get an attribute by name.
+
+        Parameters
+        ----------
+        key : `str`
+            Name of the attribute to get.
+
+        Returns
+        -------
+        value : `int`, `float`, `str`, `~lsst.skymap.Index2D` or `None`
+            Value of the attribute.
+        """
+        return getattr(self, key)
+
+
 @dataclass(frozen=True)
-class PatchIdentifiers:
+class PatchIdentifiers(BaseIdentifiers):
     """Struct of identifiers for a coadd patch."""
 
     skymap: str
@@ -116,7 +135,7 @@ class CellIdentifiers(PatchIdentifiers):
 
 
 @dataclass(frozen=True)
-class ObservationIdentifiers:
+class ObservationIdentifiers(BaseIdentifiers):
     """Struct of identifiers for an observation that contributed to a coadd
     cell.
     """
