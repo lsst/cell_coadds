@@ -270,6 +270,19 @@ class TestCoaddApCorrMapStacker(lsst.utils.tests.TestCase):
                     atol=1e-8,
                 )
 
+        # Evaluate aperture corrections at several points.
+        evaluate_at_x = np.linspace(self.bbox.getMinX(), self.bbox.getMaxX(), 5)
+        evaluate_at_y = np.linspace(self.bbox.getMinY(), self.bbox.getMaxY(), 5)
+        for algorithm_name in stacker.ap_corr_names:
+            field_name = f"{algorithm_name}_instFlux"
+            reference_value = initial_ap_corr_map[field_name].evaluate(geom.Point2D(self.evaluation_point))
+            aperture_correction_values = initial_ap_corr_map[field_name].evaluate(
+                evaluate_at_x,
+                evaluate_at_y,
+            )
+            with self.subTest(field_name=field_name):
+                np.testing.assert_array_equal(aperture_correction_values, reference_value)
+
 
 class TestCoaddApCorrMapMemoryTestCase(lsst.utils.tests.MemoryTestCase):
     """Test the CoaddApCorrMapStacker for memory leaks."""
