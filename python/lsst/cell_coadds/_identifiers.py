@@ -173,7 +173,7 @@ class ObservationIdentifiers(BaseIdentifiers):
 
     @property
     def ccd(self) -> int:
-        """Alias for the detector ID.
+        """Alias for the detector.
 
         This is provided for compatibility with the older API.
         """
