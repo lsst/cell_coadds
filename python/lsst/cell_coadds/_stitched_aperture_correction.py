@@ -21,7 +21,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import logging
+from collections.abc import Iterable, Mapping
+from typing import overload
+
+import numpy as np
 
 import lsst.geom as geom
 from lsst.skymap import Index2D
@@ -29,6 +33,8 @@ from lsst.skymap import Index2D
 from ._uniform_grid import UniformGrid
 
 __all__ = ("StitchedApertureCorrection",)
+
+logger = logging.getLogger(__name__)
 
 
 class StitchedApertureCorrection:
@@ -46,19 +52,38 @@ class StitchedApertureCorrection:
         self.ugrid = ugrid
         self.gc = gc
 
-    def evaluate(self, point: geom.Point2D | geom.Point2I) -> float:
+    @overload
+    def evaluate(self, x: geom.Point2D | geom.Point2I, y: None) -> float: ...  # noqa: E704
+
+    @overload
+    def evaluate(self, x: Iterable[float], y: Iterable[float]) -> np.ndarray: ...  # noqa: E704
+
+    def evaluate(self, x, y=None):  # type: ignore
         """Evaluate the BoundedField at a given point on the image.
 
         Parameters
         ----------
-        point : `~lsst.geom.Point2D` or `~lsst.geom.Point2I`
-            The point at which to evaluate the BoundedField.
+        x : `~lsst.geom.Point2D` or `~lsst.geom.Point2I`, or `Iterable[float]`
+            The point at which to evaluate the BoundedField, or an iterable of
+            x-coordinates.
+        y : `Iterable[float]`, optional
+            The y-coordinates of the points at which to evaluate the aperture
+            correction.
+            If `None`, `x` is assumed to be a single point.
 
         Returns
         -------
-        value: `float`
+        value: `float`, or `numpy.ndarray`
             The value of the BoundedField at the specified point.
         """
-        eval_point = geom.Point2I(point)
-        idx = self.ugrid.index(eval_point)
-        return self.gc[idx]
+        if y is None:
+            eval_point = geom.Point2I(x)
+            idx = self.ugrid.index(eval_point)
+            try:
+                return self.gc[idx]
+            except KeyError:
+                logger.info("No aperture correction found for %s", idx)
+                return 1.0
+
+        else:
+            return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
