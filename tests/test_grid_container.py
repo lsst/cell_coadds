@@ -205,6 +205,7 @@ class GridContainerTestCase(unittest.TestCase):
         self.assertEqual(pickled_container.offset, grid_container.offset)
         self.assertEqual(pickled_container.first, grid_container.first)
         self.assertEqual(pickled_container.last, grid_container.last)
+        self.assertEqual(pickled_container.arbitrary, grid_container.arbitrary)
         self.assertListEqual(list(pickled_container.__iter__()), list(grid_container.__iter__()))
         self._check(pickled_container)
 
