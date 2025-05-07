@@ -200,7 +200,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         """
         if self._ap_corr_map is None:
             ap_corr_map: dict[str, StitchedApertureCorrection] = {}
-            field_names = self._cell_coadd.cells.first.aperture_corrected_algorithms
+            field_names = self._cell_coadd.cells.arbitrary.aperture_corrected_algorithms
             for field_name in field_names:
                 gc = GridContainer[float](shape=self.grid.shape)
                 for scc in self._cell_coadd.cells.values():
