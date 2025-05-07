@@ -106,7 +106,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
 
     def _iter_cell_planes(self) -> Iterator[ImagePlanes]:
         # Docstring inherited.
-        x_max, y_max = self._cell_coadd.cells.last.identifiers.cell
+        x_max, y_max = self.grid.index(self.bbox.getMax())
 
         for cell in self._cell_coadd.cells.values():
             bbox = cell.inner.bbox
