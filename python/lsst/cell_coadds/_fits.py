@@ -610,7 +610,7 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    if apcorr := multiple_cell_coadd.cells.first.aperture_correction_map:
+    if apcorr := multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr]
         aperture_correction_recarray = np.rec.fromrecords(
             recList=[
