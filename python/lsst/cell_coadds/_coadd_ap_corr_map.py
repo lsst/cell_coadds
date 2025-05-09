@@ -159,9 +159,9 @@ class CoaddApCorrMapStacker:
             # Accumulate the aperture correction values.
             ap_corr_field: BoundedField | None
             if (ap_corr_field := ap_corr_map.get(f"{algorithm_name}_instFlux")) is None:
-                raise ValueError(f"Missing {algorithm_name} aperture correction map.")
-
-            ap_corr_value = ap_corr_field.evaluate(self.evaluation_point)
+                ap_corr_value = np.nan
+            else:
+                ap_corr_value = ap_corr_field.evaluate(self.evaluation_point)
 
             # Calculate the term to accumulate depending on the boolean.
             if self.do_coadd_inverse_ap_corr:
@@ -177,9 +177,9 @@ class CoaddApCorrMapStacker:
             # Accumulate the aperture correction error values.
             ap_corr_err_field: BoundedField | None
             if (ap_corr_err_field := ap_corr_map.get(f"{algorithm_name}_instFluxErr")) is None:
-                raise ValueError(f"Missing {algorithm_name} aperture correction error map.")
-
-            ap_corr_err_value = ap_corr_err_field.evaluate(self.evaluation_point)
+                ap_corr_err_value = np.nan
+            else:
+                ap_corr_err_value = ap_corr_err_field.evaluate(self.evaluation_point)
 
             # Calculate the term to accumulate depending on the boolean.
             if self.do_coadd_inverse_ap_corr:
