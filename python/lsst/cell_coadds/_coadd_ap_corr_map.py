@@ -64,10 +64,6 @@ class CoaddApCorrMapStacker:
     is therefore not expected at the time of initialization.
     """
 
-    _ap_corr_names: Iterable[str] = ()
-    """An iterable of algorithm names that have aperture correction values."""
-    # This is set when the first time the add method is called on any instance.
-
     def __init__(self, evaluation_point: Point2D, do_coadd_inverse_ap_corr: bool = True) -> None:
         # Initialize frozen attributes.
         self._evaluation_point = evaluation_point
@@ -76,9 +72,12 @@ class CoaddApCorrMapStacker:
         # Initialize mutable attributes.
         self._total_weight = 0.0
         self._intermediate_ap_corr_map: dict[str, float] = {}
+        self._ap_corr_names: Iterable[str] = ()
+        # An iterable of algorithm names that have aperture correction values.
+        # This is set when the first time the add method is called on any
+        # instance.
 
-    @classmethod
-    def _setup_ap_corr_names(cls, ap_corr_map: ApCorrMap) -> None:
+    def _setup_ap_corr_names(self, ap_corr_map: ApCorrMap) -> None:
         """Set up the aperture correction name set.
 
         Parameters
@@ -100,7 +99,7 @@ class CoaddApCorrMapStacker:
 
             ap_corr_name_set.add(algorithm_name)
 
-        cls._ap_corr_names = tuple(sorted(ap_corr_name_set))
+        self._ap_corr_names = tuple(sorted(ap_corr_name_set))
 
     @property
     def evaluation_point(self) -> Point2D:

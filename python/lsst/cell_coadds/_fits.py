@@ -493,7 +493,7 @@ def to_numpy_record(ap_corr_map: Mapping[str, float], xy: Index2D) -> np.record:
     dtypes = [("x", int), ("y", int)] + [(key, float) for key in ap_corr_map]
     record = np.recarray((1,), dtype=dtypes)[0]
     for field_name in ap_corr_map:
-        record[field_name] = ap_corr_map[field_name]
+        record[field_name] = ap_corr_map.get(field_name, np.nan)
 
     record["x"] = xy.x
     record["y"] = xy.y
@@ -610,8 +610,11 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    if apcorr := multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
-        dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr]
+    if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
+        apcorr_fields: set[str] = set()
+        for cell in multiple_cell_coadd.cells.values():
+            apcorr_fields.update(cell.aperture_correction_map)
+        dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr_fields]
         aperture_correction_recarray = np.rec.fromrecords(
             recList=[
                 to_numpy_record(cell.aperture_correction_map, cell.identifiers.cell)
