@@ -625,7 +625,7 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
-    if apcorr := multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
+    if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         apcorr_fields = set()
         for cell in multiple_cell_coadd.cells.values():
             apcorr_fields.update(cell.aperture_correction_map)
