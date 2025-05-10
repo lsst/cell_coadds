@@ -73,8 +73,10 @@ class CoaddApCorrMapStacker:
         self._total_weight = 0.0
         self._intermediate_ap_corr_map: dict[str, float] = {}
         self._ap_corr_names: Iterable[str] = ()
-        """An iterable of algorithm names that have aperture correction values."""
-        # This is set when the first time the add method is called on any instance.
+        """An iterable of algorithm names that have aperture correction values.
+        """
+        # This is set when the first time the add method is called on any
+        # instance.
 
     def _setup_ap_corr_names(self, ap_corr_map: ApCorrMap) -> None:
         """Set up the aperture correction name set.
