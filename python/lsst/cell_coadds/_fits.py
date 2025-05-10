@@ -92,8 +92,8 @@ from typing import Any
 import numpy as np
 from astropy.io import fits
 from frozendict import frozendict
-from packaging import version
 from numpy.typing import DTypeLike
+from packaging import version
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
