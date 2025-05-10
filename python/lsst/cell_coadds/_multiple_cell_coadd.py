@@ -164,7 +164,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
         """The rectangular region fully covered by all cell outer bounding
         boxes.
         """
-        return Box2I(self.cells.first.outer.bbox.getMin(), self.cells.last.outer.bbox.getMax())
+        return self.grid.bbox_with_padding
 
     @property
     def inner_bbox(self) -> Box2I:
