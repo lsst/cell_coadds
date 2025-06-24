@@ -55,6 +55,7 @@ class StitchedPsf(ImagePsf):
         super().__init__()
         self._images = images
         self._grid = grid
+        self._averagePosition = None
 
     @staticmethod
     def _validate_args(images: GridContainer[ImageD], grid: UniformGrid) -> None:
@@ -89,6 +90,25 @@ class StitchedPsf(ImagePsf):
     def grid(self) -> UniformGrid:
         """The grid on which the images are placed."""
         return self._grid
+
+    def getAveragePosition(self) -> geom.Point2D:
+        """Get a position where PSF can be evaluated on a patch.
+
+        This defaults to the center of the patch bounding box, unless there are
+        no inputs there. In that case, it switches to find an arbitrary cell,
+        typically at a corner that has inputs and returns the center position
+        of the cell.
+        """
+        if self._averagePosition is None:
+            center = self._grid.bbox.getCenter()
+            if self.grid.index(geom.Point2I(center)) not in self._images:
+                arbitrary_index = next(iter(self._images))
+                bbox = self._grid.bbox_of(arbitrary_index)
+                center = bbox.getCenter()
+
+            self._averagePosition = center
+
+        return self._averagePosition
 
     # The _do* methods make use of the ImagePsf trampoline.
     def _doComputeBBox(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> geom.Box2I:

@@ -147,6 +147,24 @@ class GridContainer(MutableMapping[Index2D, T]):
         """The cell at the upper right corner of the container."""
         return self._cells[Index2D(x=self.offset.x + self.shape.x - 1, y=self.offset.y + self.shape.y - 1)]
 
+    @property
+    def arbitrary(self) -> T:
+        """An arbitrary cell from the container.
+
+        It is typically the first cell, but in the case where it might not be
+        available, it is a well-behaved cell.
+
+        Raises
+        ------
+        RuntimeError:
+            Raised if the grid container is empty.
+        """
+        if not self._cells:
+            raise RuntimeError("GridContainer is empty.")
+
+        cell = next(iter(self._cells.values()))
+        return cell
+
     def subset_overlapping(self, grid: UniformGrid, bbox: geom.Box2I) -> GridContainer:
         """Return a new GridContainer with cells that overlap a bounding box.
 
