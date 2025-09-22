@@ -93,6 +93,7 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
         cls.outer_size_y = cls.inner_size_y + 2 * cls.border_size
         # The origin should not be at (0, 0) for robust testing.
         cls.x0, cls.y0 = 5, 2
+        cls.n_noise_realizations = 2
 
         patch_outer_bbox = geom.Box2I(
             geom.Point2I(cls.x0, cls.y0), geom.Extent2I(cls.nx * cls.inner_size_x, cls.ny * cls.inner_size_y)
@@ -190,11 +191,41 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                     ).astype(np.float32),
                     xy0=outer_bbox.getMin(),
                 )
+                noise_realizations = [
+                    ImageF(
+                        np.random.normal(
+                            0.0,
+                            1.0,
+                            (
+                                cls.ny * cls.inner_size_y + 2 * cls.border_size,
+                                cls.nx * cls.inner_size_x + 2 * cls.border_size,
+                            ),
+                        ).astype(np.float32)
+                        * variance.array,
+                        xy0=outer_bbox.getMin(),
+                    )
+                    for _ in range(cls.n_noise_realizations)
+                ]
+                mask_fraction = ImageF(
+                    np.random.uniform(
+                        0.0,
+                        1.0,
+                        (
+                            cls.ny * cls.inner_size_y + 2 * cls.border_size,
+                            cls.nx * cls.inner_size_x + 2 * cls.border_size,
+                        ),
+                    ).astype(np.float32),
+                    xy0=outer_bbox.getMin(),
+                )
                 exposure, _ = dataset.realize(variance.getArray() ** 0.5, schema, randomSeed=123456789)
                 cls.exposures[identifiers.cell] = exposure
                 exposure = exposure[outer_bbox]
                 image_plane = OwnedImagePlanes(
-                    image=exposure.image, variance=exposure.variance, mask=exposure.mask
+                    image=exposure.image,
+                    variance=exposure.variance,
+                    mask=exposure.mask,
+                    noise_realizations=noise_realizations,
+                    mask_fractions=mask_fraction,
                 )
                 aperture_correction_map = frozendict(
                     base_GaussianFlux_instFlux=0.9 * (x + 1),
@@ -282,6 +313,16 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             self.assertImagesEqual(mcc1.cells[idx].outer.image, mcc2.cells[idx].outer.image)
             self.assertMasksEqual(mcc1.cells[idx].outer.mask, mcc2.cells[idx].outer.mask)
             self.assertImagesEqual(mcc1.cells[idx].outer.variance, mcc2.cells[idx].outer.variance)
+            self.assertImagesEqual(mcc1.cells[idx].outer.mask_fractions, mcc2.cells[idx].outer.mask_fractions)
+            self.assertEqual(
+                len(mcc1.cells[idx].outer.noise_realizations), len(mcc2.cells[idx].outer.noise_realizations)
+            )
+            for noise_id in range(len(mcc1.cells[idx].outer.noise_realizations)):
+                with self.subTest(noise_id):
+                    self.assertImagesEqual(
+                        mcc1.cells[idx].outer.noise_realizations[noise_id],
+                        mcc2.cells[idx].outer.noise_realizations[noise_id],
+                    )
             self.assertImagesEqual(mcc1.cells[idx].psf_image, mcc2.cells[idx].psf_image)
             self.assertEqual(mcc1.cells[idx].inputs, mcc2.cells[idx].inputs)
 
