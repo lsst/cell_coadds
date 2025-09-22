@@ -625,6 +625,33 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
+    columns = [cell_id, image, mask, variance, psf]
+    maskfrac_array = [
+        cell.outer.mask_fractions.array
+        for cell in multiple_cell_coadd.cells.values()
+        if cell.outer.mask_fractions
+    ]
+    if maskfrac_array:
+        maskfrac = fits.Column(
+            name="maskfrac",
+            format=f"{maskfrac_array[0].size}E",
+            dim=f"({maskfrac_array[0].shape[1]}, {maskfrac_array[0].shape[0]})",
+            array=maskfrac_array,
+        )
+        columns.append(maskfrac)
+
+    n_noise_realizations = multiple_cell_coadd.n_noise_realizations
+    for n in range(n_noise_realizations):
+        noise_array = [cell.outer.noise_realizations[n].array for cell in multiple_cell_coadd.cells.values()]
+        columns.append(
+            fits.Column(
+                name=f"noise_{n:02}",
+                format=f"{noise_array[0].size}E",
+                dim=f"({noise_array[0].shape[1]}, {noise_array[0].shape[0]})",
+                array=noise_array,
+            )
+        )
+
     if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         apcorr_fields: set[str] = set()
         for cell in multiple_cell_coadd.cells.values():
@@ -642,7 +669,7 @@ def writeMultipleCellCoaddAsFits(
     else:
         aperture_correction_hdu = None
 
-    col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
+    col_defs = fits.ColDefs(columns)
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
@@ -694,6 +721,7 @@ def writeMultipleCellCoaddAsFits(
     hdu.header["TRACT"] = multiple_cell_coadd.common.identifiers.tract
     hdu.header["PATCH_X"] = multiple_cell_coadd.common.identifiers.patch.x
     hdu.header["PATCH_Y"] = multiple_cell_coadd.common.identifiers.patch.y
+    hdu.header["NNOISE"] = n_noise_realizations
 
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
