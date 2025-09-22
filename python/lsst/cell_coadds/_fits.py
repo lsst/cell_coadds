@@ -411,6 +411,8 @@ class CellCoaddFitsReader:
         """
         buffer = (outer_cell_size - inner_cell_size) // 2
 
+        n_noise_realizations = header.get("NNOISE", 0)
+
         psf = ImageD(
             array=data["psf"].astype(np.float64),
             xy0=(-(psf_image_size // 2)).asPoint(),  # integer division and negation do not commute.
@@ -420,6 +422,12 @@ class CellCoaddFitsReader:
             inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
         )
         mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
+        try:
+            maskfrac = data["maskfrac"]
+            mask_fractions = ImageF(maskfrac.astype(np.float32), xy0=xy0)
+        except KeyError:
+            mask_fractions = None
+
         image_planes = OwnedImagePlanes(
             image=ImageF(
                 data["image"].astype(np.float32),
@@ -427,8 +435,10 @@ class CellCoaddFitsReader:
             ),
             mask=mask,
             variance=ImageF(data["variance"].astype(np.float32), xy0=xy0),
-            noise_realizations=[],
-            mask_fractions=None,
+            noise_realizations=[
+                ImageF(data[f"noise_{n:02}"].astype(np.float32), xy0=xy0) for n in range(n_noise_realizations)
+            ],
+            mask_fractions=mask_fractions,
         )
 
         identifiers = CellIdentifiers(
