@@ -112,7 +112,7 @@ from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.4"
+FILE_FORMAT_VERSION = "0.5"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -343,7 +343,9 @@ class CellCoaddFitsReader:
                         data=data[row_id],
                         header=header,
                         common=common,
-                        inputs=inputs[Index2D(data[row_id]["cell_id"][0], data[row_id]["cell_id"][1])],
+                        inputs=inputs[
+                            Index2D(int(data[row_id]["cell_id"][0]), int(data[row_id]["cell_id"][1]))
+                        ],
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
@@ -409,6 +411,8 @@ class CellCoaddFitsReader:
         """
         buffer = (outer_cell_size - inner_cell_size) // 2
 
+        n_noise_realizations = header.get("NNOISE", 0)
+
         psf = ImageD(
             array=data["psf"].astype(np.float64),
             xy0=(-(psf_image_size // 2)).asPoint(),  # integer division and negation do not commute.
@@ -418,6 +422,12 @@ class CellCoaddFitsReader:
             inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
         )
         mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
+        try:
+            maskfrac = data["maskfrac"]
+            mask_fractions = ImageF(maskfrac.astype(np.float32), xy0=xy0)
+        except KeyError:
+            mask_fractions = None
+
         image_planes = OwnedImagePlanes(
             image=ImageF(
                 data["image"].astype(np.float32),
@@ -425,8 +435,10 @@ class CellCoaddFitsReader:
             ),
             mask=mask,
             variance=ImageF(data["variance"].astype(np.float32), xy0=xy0),
-            noise_realizations=[],
-            mask_fractions=None,
+            noise_realizations=[
+                ImageF(data[f"noise_{n:02}"].astype(np.float32), xy0=xy0) for n in range(n_noise_realizations)
+            ],
+            mask_fractions=mask_fractions,
         )
 
         identifiers = CellIdentifiers(
@@ -625,6 +637,33 @@ def writeMultipleCellCoaddAsFits(
         array=[cell.psf_image.array for cell in multiple_cell_coadd.cells.values()],
     )
 
+    columns = [cell_id, image, mask, variance, psf]
+    maskfrac_array = [
+        cell.outer.mask_fractions.array
+        for cell in multiple_cell_coadd.cells.values()
+        if cell.outer.mask_fractions
+    ]
+    if maskfrac_array:
+        maskfrac = fits.Column(
+            name="maskfrac",
+            format=f"{maskfrac_array[0].size}E",
+            dim=f"({maskfrac_array[0].shape[1]}, {maskfrac_array[0].shape[0]})",
+            array=maskfrac_array,
+        )
+        columns.append(maskfrac)
+
+    n_noise_realizations = multiple_cell_coadd.n_noise_realizations
+    for n in range(n_noise_realizations):
+        noise_array = [cell.outer.noise_realizations[n].array for cell in multiple_cell_coadd.cells.values()]
+        columns.append(
+            fits.Column(
+                name=f"noise_{n:02}",
+                format=f"{noise_array[0].size}E",
+                dim=f"({noise_array[0].shape[1]}, {noise_array[0].shape[0]})",
+                array=noise_array,
+            )
+        )
+
     if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         apcorr_fields: set[str] = set()
         for cell in multiple_cell_coadd.cells.values():
@@ -642,7 +681,7 @@ def writeMultipleCellCoaddAsFits(
     else:
         aperture_correction_hdu = None
 
-    col_defs = fits.ColDefs([cell_id, image, mask, variance, psf])
+    col_defs = fits.ColDefs(columns)
     hdu = fits.BinTableHDU.from_columns(col_defs)
 
     grid_cell_size = multiple_cell_coadd.grid.cell_size
@@ -694,6 +733,7 @@ def writeMultipleCellCoaddAsFits(
     hdu.header["TRACT"] = multiple_cell_coadd.common.identifiers.tract
     hdu.header["PATCH_X"] = multiple_cell_coadd.common.identifiers.patch.x
     hdu.header["PATCH_Y"] = multiple_cell_coadd.common.identifiers.patch.y
+    hdu.header["NNOISE"] = n_noise_realizations
 
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
