@@ -126,6 +126,23 @@ class SingleCellCoadd(CommonComponentsProperties):
             self._inputs = {}
         self._identifiers = identifiers
         self._aperture_correction_map = aperture_correction_map
+        self.set_cell_edges()
+
+    def set_cell_edges(self, *, edge_width=1, edge_mask_name="CELL_EDGE",):
+        """Set a mask bit indicating the inner cell edges.
+
+        Parameters
+        ----------
+        edge_width : `int`, optional
+            The width of the edge region to flag, in pixels.
+        edge_mask_name : `str`, optional
+            The name of the mask plane to add for the edge region.
+        """
+        self._inner.mask.addMaskPlane(edge_mask_name)
+        self._inner.mask.array[:, :edge_width] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:, -edge_width:] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:edge_width, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[-edge_width:, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
 
     def _set_cell_edges(
         self,
