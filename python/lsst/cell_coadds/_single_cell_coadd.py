@@ -47,7 +47,6 @@ if TYPE_CHECKING:
 @dataclass
 class CoaddInputs:
     """Container for inputs to the coaddition process."""
-
     overlaps_center: bool
     """Whether a single (detector, visit) observation overlaps the center """
     """of the cell."""
