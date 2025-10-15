@@ -869,6 +869,9 @@ def writeMultipleCellCoaddAsFits(
     }
     hdu.header.extend(inner_bbox_cards)
 
+    # Add in mask bit definitions in the header.
+    cell_hdu.header.extend(afwImage.Mask.getMaskPlaneDict())
+
     wcs = multiple_cell_coadd.common.wcs
     wcs_cards = wcs.getFitsMetadata().toDict()
     primary_hdu = fits.PrimaryHDU()
