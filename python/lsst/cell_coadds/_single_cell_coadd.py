@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 @dataclass
 class CoaddInputs:
     """Container for inputs to the coaddition process."""
+
     overlaps_center: bool
     """Whether a single (detector, visit) observation overlaps the center """
     """of the cell."""
@@ -127,7 +128,12 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._aperture_correction_map = aperture_correction_map
         self.set_cell_edges()
 
-    def set_cell_edges(self, *, edge_width=1, edge_mask_name="CELL_EDGE",):
+    def set_cell_edges(
+        self,
+        *,
+        edge_width=1,
+        edge_mask_name="CELL_EDGE",
+    ):
         """Set a mask bit indicating the inner cell edges.
 
         Parameters
