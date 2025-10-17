@@ -108,11 +108,12 @@ from ._common_components import CoaddUnits, CommonComponents
 from ._grid_container import GridContainer
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
-from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
+from ._multiple_cell_coadd import MultipleCellCoadd
+from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.5"
+FILE_FORMAT_VERSION = "0.6"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -563,11 +564,25 @@ def writeMultipleCellCoaddAsFits(
     cell_records: list[Any] = []
     instrument_set = set()
     for cell_id, single_cell_coadd in multiple_cell_coadd.cells.items():
-        for observation_id in single_cell_coadd.inputs:
+        for observation_id, coadd_input in single_cell_coadd.inputs.items():
             visit_records.append(
                 (observation_id.visit, observation_id.physical_filter, observation_id.day_obs)
             )
-            cell_records.append((cell_id.x, cell_id.y, observation_id.visit, observation_id.detector))
+            cell_records.append(
+                (
+                    cell_id.x,
+                    cell_id.y,
+                    observation_id.visit,
+                    observation_id.detector,
+                    coadd_input.overlaps_center,
+                    coadd_input.overlap_fraction,
+                    coadd_input.weight,
+                    coadd_input.psf_shape.getIxx(),
+                    coadd_input.psf_shape.getIyy(),
+                    coadd_input.psf_shape.getIxy(),
+                    coadd_input.psf_shape_flag,
+                )
+            )
             instrument_set.add(observation_id.instrument)
 
     assert len(instrument_set) == 1, "All cells must have the same instrument."
@@ -590,6 +605,13 @@ def writeMultipleCellCoaddAsFits(
             "cell_y",
             "visit",
             "detector",
+            "overlaps_center",
+            "overlap_fraction",
+            "weight",
+            "psf_shape_ixx",
+            "psf_shape_iyy",
+            "psf_shape_ixy",
+            "psf_shape_flag",
         ),
     )
 
