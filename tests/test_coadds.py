@@ -35,6 +35,7 @@ from lsst.afw.image import ExposureF, ImageF
 from lsst.cell_coadds import (
     CellCoaddFitsReader,
     CellIdentifiers,
+    CoaddInputs,
     CoaddUnits,
     CommonComponents,
     ExplodedCoadd,
@@ -244,15 +245,24 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs=(
+                        inputs={
                             ObservationIdentifiers(
                                 instrument="dummy",
                                 physical_filter="dummy-I",
                                 visit=12345,
                                 detector=67,
                                 day_obs=20000101,
-                            ),
-                        ),
+                            ): CoaddInputs(
+                                True,
+                                1.0,
+                                1.0,
+                                Quadrupole(
+                                    cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
+                                    cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
+                                ),
+                                False,
+                            )
+                        },
                         common=common,
                         identifiers=identifiers,
                         aperture_correction_map=aperture_correction_map,
@@ -564,7 +574,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
             with self.subTest(x=cellId.x, y=cellId.y):
                 self.assertEqual(
                     inputs.subsetContaining(position),
-                    self.multiple_cell_coadd.cells[cellId].inputs,
+                    tuple(self.multiple_cell_coadd.cells[cellId].inputs.keys()),
                 )
         self.assertEqual(len(self.stitched_coadd.visits), 1)
 

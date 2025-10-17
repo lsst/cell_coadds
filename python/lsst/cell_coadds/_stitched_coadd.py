@@ -234,7 +234,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         if self._ccds is None:
             gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
             for idx, scc in self._cell_coadd.cells.items():
-                gc[idx] = scc.inputs
+                gc[idx] = tuple(scc.inputs.keys())
             self._ccds = StitchedExposureCatalog(self.grid, gc)
 
         return self._ccds

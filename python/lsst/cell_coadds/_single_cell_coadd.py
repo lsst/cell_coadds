@@ -26,7 +26,7 @@ __all__ = (
     "SingleCellCoadd",
 )
 
-from collections.abc import Iterable, Set
+from collections.abc import Mapping, Set
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -78,7 +78,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     inner_bbox : `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
         with but adjacent to all other cell inner regions.
-    inputs : `Iterable` [`ObservationIdentifiers`]
+    inputs : `Mapping` [`ObservationIdentifiers`, `CoaddInputs`]
         Identifiers of observations that contributed to this cell.
     common : `CommonComponents`
         Image attributes common to all cells in a patch.
@@ -100,7 +100,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         *,
         psf: ImageD,
         inner_bbox: Box2I,
-        inputs: Iterable[ObservationIdentifiers],
+        inputs: Mapping[ObservationIdentifiers, CoaddInputs],
         common: CommonComponents,
         identifiers: CellIdentifiers,
         aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
@@ -113,10 +113,17 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inner_bbox = inner_bbox
         self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self.make_view)
         self._common = common
-        # Remove any duplicate elements in the input, sorted them and make
-        # them an immutable sequence.
+        # Remove any duplicate elements in the input, sort them and pack them
+        # as a dictionary.
         # TODO: Remove support for inputs as None when bumping to v1.0 .
-        self._inputs = tuple(sorted(set(inputs))) if inputs else ()
+        self._inputs: Mapping[ObservationIdentifiers, CoaddInputs]
+        if inputs:
+            self._inputs = dict.fromkeys(
+                sorted(set(inputs)), CoaddInputs(False, 0.0, 0.0, Quadrupole(), True)
+            )
+            self._inputs.update(inputs)
+        else:
+            self._inputs = {}
         self._identifiers = identifiers
         self._aperture_correction_map = aperture_correction_map
 
@@ -160,7 +167,7 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     @property
     # TODO: Remove the option of returning empty tuple in v1.0.
-    def inputs(self) -> tuple[ObservationIdentifiers, ...] | tuple[()]:
+    def inputs(self) -> Mapping[ObservationIdentifiers, CoaddInputs]:
         """Identifiers for the input images that contributed to this cell,
         sorted by their `visit` attribute first, and then by `detector`.
         """
