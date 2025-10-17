@@ -327,9 +327,8 @@ class CellCoaddFitsReader:
 
             try:
                 aperture_correction_hdu = hdu_list[hdu_list.index_of("APCORR")].data
-                assert len(aperture_correction_hdu) == 0 or len(aperture_correction_hdu) == len(
-                    data
-                ), "Aperture correction map is not available for all cells."
+                if len(aperture_correction_hdu) == 0 or len(aperture_correction_hdu) == len(data):
+                    logger.warning("Aperture correction map is not available for all cells.")
                 aperture_correction_grid = self._readApCorr(aperture_correction_hdu, grid_shape)
             except KeyError:
                 if written_version >= version.parse("0.4"):
@@ -667,7 +666,8 @@ def writeMultipleCellCoaddAsFits(
     if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         apcorr_fields: set[str] = set()
         for cell in multiple_cell_coadd.cells.values():
-            apcorr_fields.update(cell.aperture_correction_map)
+            if cell.aperture_correction_map:
+                apcorr_fields.update(cell.aperture_correction_map)
         dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr_fields]
         aperture_correction_recarray = np.rec.fromrecords(
             recList=[
