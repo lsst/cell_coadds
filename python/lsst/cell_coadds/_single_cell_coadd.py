@@ -21,11 +21,16 @@
 
 from __future__ import annotations
 
-__all__ = ("SingleCellCoadd",)
+__all__ = (
+    "CoaddInputs",
+    "SingleCellCoadd",
+)
 
 from collections.abc import Iterable, Set
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from lsst.afw.geom import Quadrupole
 from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
 
@@ -37,6 +42,27 @@ from .typing_helpers import ImageLike, SingleCellCoaddApCorrMap
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers
     from ._image_planes import ImagePlanes, OwnedImagePlanes
+
+
+@dataclass
+class CoaddInputs:
+    """Container for inputs to the coaddition process."""
+
+    overlaps_center: bool
+    """Whether a single (detector, visit) observation overlaps the center """
+    """of the cell."""
+
+    overlap_fraction: float
+    """Fraction of the cell that is covered by the overlap region."""
+
+    weight: float
+    """Weight to be used for this input."""
+
+    psf_shape: Quadrupole
+    """Second order moments of the PSF."""
+
+    psf_shape_flag: bool
+    """Flag indicating whether the PSF shape measurement was successful."""
 
 
 class SingleCellCoadd(CommonComponentsProperties):
