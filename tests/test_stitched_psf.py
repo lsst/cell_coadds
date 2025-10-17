@@ -27,7 +27,7 @@ import numpy as np
 import lsst.geom as geom
 import lsst.meas.base.tests
 import lsst.utils.tests
-from lsst.afw.detection import GaussianPsf
+from lsst.afw.detection import GaussianPsf, InvalidPsfError
 from lsst.afw.image import ImageD
 from lsst.cell_coadds import GridContainer, StitchedPsf, UniformGrid
 from lsst.meas.algorithms import SingleGaussianPsf
@@ -241,6 +241,23 @@ class StitchedPsfTestCase(lsst.utils.tests.TestCase):
             self.psf.computeKernelImage(self.psf.getAveragePosition()),
         )
         self.assertEqual(psf, self.psf)
+
+    def test_invalid_psf_error_no_inputs(self):
+        """Test that InvalidPsfError is raised when no inputs exist."""
+        stitched_psf = self.psf
+
+        # Test positions that are outside the grid coverage
+        # The grid covers indices (0,0), (0,1), (1,0), (1,1), (2,0), (2,1)
+        # Test position that maps to a non-existent grid cell
+        invalid_position = geom.Point2D(-10, -10)  # Far outside the grid
+        err_msg = "No inputs exists at position."
+        # Test that computeBBox raises InvalidPsfError
+        with self.assertRaises(InvalidPsfError, msg=err_msg):
+            stitched_psf.computeBBox(invalid_position)
+
+        # Test that computeKernelImage raises InvalidPsfError
+        with self.assertRaises(InvalidPsfError, msg=err_msg):
+            stitched_psf.computeKernelImage(invalid_position)
 
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
