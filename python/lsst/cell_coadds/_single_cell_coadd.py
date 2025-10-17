@@ -94,6 +94,27 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._identifiers = identifiers
         self._aperture_correction_map = aperture_correction_map
 
+    def _set_cell_edges(
+        self,
+        *,
+        edge_width: int = 1,
+        edge_mask_name: str = "CELL_EDGE",
+    ) -> None:
+        """Set a mask bit indicating the inner cell edges.
+
+        Parameters
+        ----------
+        edge_width : `int`, optional
+            The width of the edge region to flag, in pixels.
+        edge_mask_name : `str`, optional
+            The name of the mask plane to add for the edge region.
+        """
+        self._inner.mask.addMaskPlane(edge_mask_name)
+        self._inner.mask.array[:, :edge_width] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:, -edge_width:] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:edge_width, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[-edge_width:, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+
     @property
     def inner(self) -> ImagePlanes:
         """Image planes within the inner region of this cell that is disjoint
