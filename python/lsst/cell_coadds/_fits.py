@@ -85,7 +85,7 @@ __all__ = (
 
 import logging
 import os
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -294,7 +294,14 @@ class CellCoaddFitsReader:
             )
 
             # Attempt to get inputs for each cell.
-            inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
+            inputs = GridContainer[dict[ObservationIdentifiers, CoaddInputs]](shape=grid.shape)
+            coadd_input = CoaddInputs(  # default version for written_version <= 0.5.
+                overlaps_center=True,
+                overlap_fraction=1.0,
+                weight=0.0,
+                psf_shape=afwGeom.Quadrupole(),
+                psf_shape_flag=True,
+            )
             if written_version >= version.parse("0.3"):
                 visit_dict = {
                     row["visit"]: VisitRecord(
@@ -315,10 +322,23 @@ class CellCoaddFitsReader:
                         day_obs=visit_dict[visit].day_obs,
                         physical_filter=visit_dict[visit].physical_filter,
                     )
+                    if written_version >= version.parse("0.6"):
+                        coadd_input = CoaddInputs(
+                            overlaps_center=link_row["overlaps_center"],
+                            overlap_fraction=link_row["overlap_fraction"],
+                            weight=link_row["weight"],
+                            psf_shape=afwGeom.Quadrupole(
+                                ixx=link_row["psf_shape_ixx"],
+                                iyy=link_row["psf_shape_iyy"],
+                                ixy=link_row["psf_shape_ixy"],
+                            ),
+                            psf_shape_flag=link_row["psf_shape_flag"],
+                        )
+
                     if cell_id in inputs:
-                        inputs[cell_id] += [obs_id]
+                        inputs[cell_id][obs_id] = coadd_input
                     else:
-                        inputs[cell_id] = [obs_id]
+                        inputs[cell_id] = {obs_id: coadd_input}
             else:
                 logger.info(
                     "Cell inputs are available for VERSION=0.3 or later. The file provided has ",
@@ -374,7 +394,7 @@ class CellCoaddFitsReader:
         common: CommonComponents,
         header: Mapping[str, Any],
         *,
-        inputs: Iterable[ObservationIdentifiers],
+        inputs: Mapping[ObservationIdentifiers, CoaddInputs],
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
@@ -391,9 +411,9 @@ class CellCoaddFitsReader:
             The common components of the coadd.
         header : `Mapping`
             The header of the FITS file as a dictionary.
-        inputs : `Iterable` [`ObservationIdentifiers`]
-            Any iterable of ObservationIdentifiers instances that contributed
-            to this cell.
+        inputs : `Mapping` [`ObservationIdentifiers`, `CoaddInputs`]
+            A mapping of ObservationIdentifiers that contributed to this cell
+            to their corresponding CoaddInputs.
         outer_cell_size : `Extent2I`
             The size of the outer cell.
         psf_image_size : `Extent2I`
