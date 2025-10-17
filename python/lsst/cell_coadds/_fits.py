@@ -91,6 +91,7 @@ from typing import Any
 
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 from frozendict import frozendict
 from numpy.typing import DTypeLike
 from packaging import version
@@ -312,6 +313,21 @@ class CellCoaddFitsReader:
                     for row in hdu_list[hdu_list.index_of("VISIT")].data
                 }
                 link_table = hdu_list[hdu_list.index_of("CELL")].data
+
+                if written_version >= version.parse("0.6"):
+                    mask_definitions = hdu_list[hdu_list.index_of("MASKDEF")].data
+                    mask_plane_dict = {}
+                    for mask_name, mask_value in mask_definitions:
+                        afwImage.Mask.addMaskPlane(mask_name)
+                        mask_plane_dict[mask_name] = mask_value
+                else:
+                    logger.warning(
+                        "Mask definitions can be incorrect since this was written with "
+                        "FILE_FORMAT_VERSION %s < 0.6",
+                        header["VERSION"],
+                    )
+                    mask_plane_dict = None
+
                 for link_row in link_table:
                     cell_id = Index2D(link_row["cell_x"], link_row["cell_y"])
                     visit = link_row["visit"]
@@ -369,6 +385,7 @@ class CellCoaddFitsReader:
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
+                        mask_plane_dict=mask_plane_dict,
                         aperture_correction_map=aperture_correction_grid.get(
                             Index2D(
                                 data[row_id]["cell_id"][0].tolist(),
@@ -398,6 +415,7 @@ class CellCoaddFitsReader:
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
+        mask_plane_dict: Mapping[str, int] | None,
         aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
     ) -> SingleCellCoadd:
         """Read a coadd from a FITS file.
@@ -420,6 +438,8 @@ class CellCoaddFitsReader:
             The size of the PSF image.
         inner_cell_size : `Extent2I`
             The size of the inner cell.
+        mask_plane_dict: `Mapping[str, int]` | None
+            A mapping defining the mask planes to their bit value.
         aperture_correction_map : `Mapping` [`str`, `float`], optional
             Mapping of algorithm name to aperture correction value.
             If None, no aperture correction is applied.
@@ -441,7 +461,20 @@ class CellCoaddFitsReader:
             inner_cell_size.x * data["cell_id"][0] - buffer.x + header["GRMIN1"],
             inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
         )
-        mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
+
+        # Parse the mask array carefully, accounting for a change in
+        # the definitions.
+        mask = afwImage.Mask(
+            bbox=Box2I(corner=xy0, dimensions=Extent2I(outer_cell_size.x, outer_cell_size.y)),
+            initialValue=0,
+        )
+        mask_array = data["mask"].astype(np.int32)
+        if mask_plane_dict is not None:
+            for mask_name, bit_value in mask_plane_dict.items():
+                mask.array[(mask_array & 2**bit_value) > 0] |= afwImage.Mask.getPlaneBitMask(mask_name)
+        else:
+            mask.array[:, :] = mask
+
         try:
             maskfrac = data["maskfrac"]
             mask_fractions = ImageF(maskfrac.astype(np.float32), xy0=xy0)
@@ -661,6 +694,11 @@ def writeMultipleCellCoaddAsFits(
         dim=f"({mask_array[0].shape[1]}, {mask_array[0].shape[0]})",
         array=mask_array,
     )
+    # Add in mask bit definitions as its own table.
+    mask_definition_table = Table(names=("MASK_NAME", "BIT_VALUE"), dtype=(str, np.uint32))
+    for name, value in multiple_cell_coadd.cells.arbitrary.outer.mask.getMaskPlaneDict().items():
+        mask_definition_table.add_row((name, value))
+    mask_definition_hdu = fits.BinTableHDU.from_columns(mask_definition_table.as_array(), name="MASKDEF")
 
     variance_array = [cell.outer.variance.array for cell in multiple_cell_coadd.cells.values()]
     variance = fits.Column(
@@ -780,7 +818,7 @@ def writeMultipleCellCoaddAsFits(
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
 
-    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu])
+    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu, mask_definition_hdu])
     if aperture_correction_hdu:
         hdu_list.append(aperture_correction_hdu)
 
