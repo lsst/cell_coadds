@@ -364,7 +364,7 @@ class CellCoaddFitsReader:
 
             try:
                 aperture_correction_hdu = hdu_list[hdu_list.index_of("APCORR")].data
-                if len(aperture_correction_hdu) == 0 or len(aperture_correction_hdu) == len(data):
+                if len(aperture_correction_hdu) < len(data):
                     logger.warning("Aperture correction map is not available for all cells.")
                 aperture_correction_grid = self._readApCorr(aperture_correction_hdu, grid_shape)
             except KeyError:
