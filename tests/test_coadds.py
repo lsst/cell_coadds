@@ -30,7 +30,7 @@ import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
 import lsst.meas.base.tests
 import lsst.utils.tests
-from lsst.afw.geom import Quadrupole
+from lsst.afw.geom import Polygon, Quadrupole
 from lsst.afw.image import ExposureF, ImageF
 from lsst.cell_coadds import (
     CellCoaddFitsReader,
@@ -73,6 +73,15 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             wcs=test_utils.generate_wcs(),
             band=data_id["band"],
             identifiers=PatchIdentifiers.from_data_id(data_id),
+            visit_polygons={  # This is arbitrary, just to check it if it goes through FITS persistence.
+                ObservationIdentifiers(
+                    instrument="dummy",
+                    physical_filter="dummy-I",
+                    visit=12345,
+                    detector=67,
+                    day_obs=20000101,
+                ): Polygon([geom.Point2D(0, 0), geom.Point2D(1, 0), geom.Point2D(1, 1), geom.Point2D(0, 1)])
+            },
         )
 
         cls.nx, cls.ny = 3, 2

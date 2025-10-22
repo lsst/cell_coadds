@@ -100,7 +100,7 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 from lsst.afw.image import ImageD, ImageF
 from lsst.daf.base import PropertySet
-from lsst.geom import Box2I, Extent2I, Point2I
+from lsst.geom import Box2I, Extent2I, Point2D, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
 
@@ -253,18 +253,6 @@ class CellCoaddFitsReader:
                 logger.info("Attemping to set pixel units from TUNIT1.")
                 coadd_units = header.get("TUNIT1", CoaddUnits.legacy.name)
 
-            common = CommonComponents(
-                units=CoaddUnits(coadd_units),
-                wcs=wcs,
-                band=header["FILTER"],
-                identifiers=PatchIdentifiers(
-                    skymap=header["SKYMAP"],
-                    tract=header["TRACT"],
-                    patch=Index2D(x=header["PATCH_X"], y=header["PATCH_Y"]),
-                    band=header["FILTER"],
-                ),
-            )
-
             outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
             psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
@@ -328,6 +316,22 @@ class CellCoaddFitsReader:
                     )
                     mask_plane_dict = None
 
+                if written_version >= version.parse("0.6"):
+                    visit_summary_hdu = hdu_list[hdu_list.index_of("VISIT_SUMMARY")]
+                    visit_polygons = {}
+                    for row in visit_summary_hdu.data:
+                        visit = int(row["visit"])
+                        obs_id = ObservationIdentifiers(
+                            instrument=header["INSTRUME"],
+                            visit=visit,
+                            detector=row["detector"],
+                            day_obs=visit_dict[visit].day_obs,
+                            physical_filter=visit_dict[visit].physical_filter,
+                        )
+                        visit_polygons[obs_id] = afwGeom.Polygon(
+                            [Point2D(vertex) for vertex in row["polygon_vertices"]]
+                        )
+
                 for link_row in link_table:
                     cell_id = Index2D(link_row["cell_x"], link_row["cell_y"])
                     visit = link_row["visit"]
@@ -372,6 +376,19 @@ class CellCoaddFitsReader:
                     logger.warning("Unable to read aperture correction map from the file.")
                 # Create an empty grid container regardless.
                 aperture_correction_grid = GridContainer[SingleCellCoaddApCorrMap](shape=grid_shape)
+
+            common = CommonComponents(
+                units=CoaddUnits(coadd_units),
+                wcs=wcs,
+                band=header["FILTER"],
+                identifiers=PatchIdentifiers(
+                    skymap=header["SKYMAP"],
+                    tract=header["TRACT"],
+                    patch=Index2D(x=header["PATCH_X"], y=header["PATCH_Y"]),
+                    band=header["FILTER"],
+                ),
+                visit_polygons=visit_polygons,
+            )
 
             coadd = MultipleCellCoadd(
                 (
@@ -641,6 +658,32 @@ def writeMultipleCellCoaddAsFits(
     assert len(instrument_set) == 1, "All cells must have the same instrument."
     instrument = instrument_set.pop()
 
+    # Create visit_summary equivalent table
+    visit_column = fits.Column(
+        name="visit",
+        format="K",
+        array=[obs_id.visit for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
+    detector_column = fits.Column(
+        name="detector",
+        format="I",
+        array=[obs_id.detector for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
+    polygon_vertices_array = []
+    for poly in multiple_cell_coadd.common.visit_polygons.values():
+        vertices = poly.getVertices() + poly.getVertices()
+        vertices = vertices[:6]
+        polygon_vertices_array.append(np.array(vertices))
+    polygon_column = fits.Column(
+        name="polygon_vertices",
+        format="12E",
+        dim="(2,6)",
+        array=polygon_vertices_array,
+    )
+    visit_summary_hdu = fits.BinTableHDU.from_columns(
+        [visit_column, detector_column, polygon_column], name="VISIT_SUMMARY"
+    )
+
     visit_recarray = np.rec.fromrecords(
         recList=sorted(set(visit_records), key=lambda x: x[0]),  # Sort by visit.
         formats=None,  # formats has specified to please mypy. See numpy#26376.
@@ -818,7 +861,7 @@ def writeMultipleCellCoaddAsFits(
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
 
-    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu, mask_definition_hdu])
+    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu, mask_definition_hdu, visit_summary_hdu])
     if aperture_correction_hdu:
         hdu_list.append(aperture_correction_hdu)
 

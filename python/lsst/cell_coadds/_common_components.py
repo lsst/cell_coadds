@@ -25,13 +25,14 @@ __all__ = ("CoaddUnits", "CommonComponents", "CommonComponentsProperties")
 
 import enum
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from lsst.afw.geom import SkyWcs  # pragma: no cover
+    from lsst.afw.geom import Polygon2D, SkyWcs  # pragma: no cover
 
-    from ._identifiers import PatchIdentifiers  # pragma: no cover
+    from ._identifiers import ObservationIdentifiers, PatchIdentifiers  # pragma: no cover
 
 
 class CoaddUnits(enum.Enum):
@@ -83,6 +84,10 @@ class CommonComponents:
 
     identifiers: PatchIdentifiers
     """Struct of unique identifiers for this coadd's patch."""
+
+    visit_polygons: Mapping[ObservationIdentifiers, Polygon2D] = field(default_factory=dict)
+    """Mapping each (visit, detector) observation to a polygon within the
+    patch bounding box."""
 
 
 class CommonComponentsProperties(ABC):
