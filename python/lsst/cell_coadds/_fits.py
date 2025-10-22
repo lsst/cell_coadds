@@ -822,6 +822,6 @@ def writeMultipleCellCoaddAsFits(
     if aperture_correction_hdu:
         hdu_list.append(aperture_correction_hdu)
 
-    hdu_list.writeto(filename, overwrite=overwrite)
+    hdu_list.writeto(filename, overwrite=overwrite, checksum=True)
 
     return hdu_list
