@@ -274,7 +274,7 @@ class MultipleCellCoadd(CommonComponentsProperties):
 
         Notes
         -----
-        This method exists for compatability with the rest of the codebase.
+        This method exists for compatibility with the rest of the codebase.
         The presence of this method allows for persistence via
         `lsst.obs.base.formatters.FitsGenericFormatter`.
         Whenever possible, use `write_fits` instead, since this method may be
