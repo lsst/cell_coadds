@@ -21,11 +21,16 @@
 
 from __future__ import annotations
 
-__all__ = ("SingleCellCoadd",)
+__all__ = (
+    "CoaddInputs",
+    "SingleCellCoadd",
+)
 
-from collections.abc import Iterable, Set
+from collections.abc import Mapping, Set
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from lsst.afw.geom import Quadrupole
 from lsst.afw.image import ImageD, ImageF
 from lsst.geom import Box2I
 
@@ -37,6 +42,27 @@ from .typing_helpers import ImageLike, SingleCellCoaddApCorrMap
 if TYPE_CHECKING:
     from ._identifiers import CellIdentifiers, ObservationIdentifiers
     from ._image_planes import ImagePlanes, OwnedImagePlanes
+
+
+@dataclass
+class CoaddInputs:
+    """Container for inputs to the coaddition process."""
+
+    overlaps_center: bool
+    """Whether a single (detector, visit) observation overlaps the center """
+    """of the cell."""
+
+    overlap_fraction: float
+    """Fraction of the cell that is covered by the overlap region."""
+
+    weight: float
+    """Weight to be used for this input."""
+
+    psf_shape: Quadrupole
+    """Second order moments of the PSF."""
+
+    psf_shape_flag: bool
+    """Flag indicating whether the PSF shape measurement was successful."""
 
 
 class SingleCellCoadd(CommonComponentsProperties):
@@ -52,7 +78,7 @@ class SingleCellCoadd(CommonComponentsProperties):
     inner_bbox : `Box2I`
         The bounding box of the inner region of this cell; must be disjoint
         with but adjacent to all other cell inner regions.
-    inputs : `Iterable` [`ObservationIdentifiers`]
+    inputs : `Mapping` [`ObservationIdentifiers`, `CoaddInputs`]
         Identifiers of observations that contributed to this cell.
     common : `CommonComponents`
         Image attributes common to all cells in a patch.
@@ -74,7 +100,7 @@ class SingleCellCoadd(CommonComponentsProperties):
         *,
         psf: ImageD,
         inner_bbox: Box2I,
-        inputs: Iterable[ObservationIdentifiers],
+        inputs: Mapping[ObservationIdentifiers, CoaddInputs],
         common: CommonComponents,
         identifiers: CellIdentifiers,
         aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
@@ -87,12 +113,40 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inner_bbox = inner_bbox
         self._inner = ViewImagePlanes(outer, bbox=inner_bbox, make_view=self.make_view)
         self._common = common
-        # Remove any duplicate elements in the input, sorted them and make
-        # them an immutable sequence.
+        # Remove any duplicate elements in the input, sort them and pack them
+        # as a dictionary.
         # TODO: Remove support for inputs as None when bumping to v1.0 .
-        self._inputs = tuple(sorted(set(inputs))) if inputs else ()
+        self._inputs: Mapping[ObservationIdentifiers, CoaddInputs]
+        if inputs:
+            self._inputs = dict.fromkeys(
+                sorted(set(inputs)), CoaddInputs(False, 0.0, 0.0, Quadrupole(), True)
+            )
+            self._inputs.update(inputs)
+        else:
+            self._inputs = {}
         self._identifiers = identifiers
         self._aperture_correction_map = aperture_correction_map
+
+    def _set_cell_edges(
+        self,
+        *,
+        edge_width: int = 1,
+        edge_mask_name: str = "CELL_EDGE",
+    ) -> None:
+        """Set a mask bit indicating the inner cell edges.
+
+        Parameters
+        ----------
+        edge_width : `int`, optional
+            The width of the edge region to flag, in pixels.
+        edge_mask_name : `str`, optional
+            The name of the mask plane to add for the edge region.
+        """
+        self._inner.mask.addMaskPlane(edge_mask_name)
+        self._inner.mask.array[:, :edge_width] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:, -edge_width:] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[:edge_width, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
+        self._inner.mask.array[-edge_width:, :] |= self._inner.mask.getPlaneBitMask(edge_mask_name)
 
     @property
     def inner(self) -> ImagePlanes:
@@ -113,7 +167,7 @@ class SingleCellCoadd(CommonComponentsProperties):
 
     @property
     # TODO: Remove the option of returning empty tuple in v1.0.
-    def inputs(self) -> tuple[ObservationIdentifiers, ...] | tuple[()]:
+    def inputs(self) -> Mapping[ObservationIdentifiers, CoaddInputs]:
         """Identifiers for the input images that contributed to this cell,
         sorted by their `visit` attribute first, and then by `detector`.
         """

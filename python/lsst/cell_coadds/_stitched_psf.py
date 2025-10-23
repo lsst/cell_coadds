@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 
 import lsst.geom as geom
+from lsst.afw.detection import InvalidPsfError
 from lsst.afw.image import ImageD
 from lsst.afw.typehandling import StorableHelperFactory
 from lsst.meas.algorithms import ImagePsf
@@ -112,10 +113,16 @@ class StitchedPsf(ImagePsf):
 
     # The _do* methods make use of the ImagePsf trampoline.
     def _doComputeBBox(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> geom.Box2I:
-        return self._images[self._grid.index(geom.Point2I(position))].getBBox()
+        try:
+            return self._images[self._grid.index(geom.Point2I(position))].getBBox()
+        except (KeyError, ValueError):
+            raise InvalidPsfError("No inputs exists at position.") from None
 
     def _doComputeKernelImage(self, position: geom.Point2D | geom.Point2I, color: Color = None) -> ImageD:
-        return self._images[self._grid.index(geom.Point2I(position))]
+        try:
+            return self._images[self._grid.index(geom.Point2I(position))]
+        except (KeyError, ValueError):
+            raise InvalidPsfError("No inputs exists at position.") from None
 
     def clone(self) -> StitchedPsf:
         """Return a deep copy of this object."""

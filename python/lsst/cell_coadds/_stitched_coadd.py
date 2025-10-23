@@ -153,6 +153,19 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         # Docstring inherited.
         return self._cell_coadd.common
 
+    def set_cell_edges(self, *, edge_width: int = 1, edge_mask_name: str = "CELL_EDGE") -> None:
+        """Set a mask bit indicating the inner cell edges.
+
+        Parameters
+        ----------
+        edge_width : `int`, optional
+            The width of the edge region to flag, in pixels.
+        edge_mask_name : `str`, optional
+            The name of the mask plane to add for the edge region.
+        """
+        for cell in self._cell_coadd.cells.values():
+            cell._set_cell_edges(edge_width=edge_width, edge_mask_name=edge_mask_name)
+
     def asExposure(self) -> ExposureF:
         """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
         result = ExposureF(self.asMaskedImage())
@@ -221,7 +234,7 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         if self._ccds is None:
             gc = GridContainer[tuple[ObservationIdentifiers, ...]](shape=self.grid.shape)
             for idx, scc in self._cell_coadd.cells.items():
-                gc[idx] = scc.inputs
+                gc[idx] = tuple(scc.inputs.keys())
             self._ccds = StitchedExposureCatalog(self.grid, gc)
 
         return self._ccds

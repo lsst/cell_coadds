@@ -30,11 +30,12 @@ import lsst.cell_coadds.test_utils as test_utils
 import lsst.geom as geom
 import lsst.meas.base.tests
 import lsst.utils.tests
-from lsst.afw.geom import Quadrupole
+from lsst.afw.geom import Polygon, Quadrupole
 from lsst.afw.image import ExposureF, ImageF
 from lsst.cell_coadds import (
     CellCoaddFitsReader,
     CellIdentifiers,
+    CoaddInputs,
     CoaddUnits,
     CommonComponents,
     ExplodedCoadd,
@@ -72,6 +73,15 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
             wcs=test_utils.generate_wcs(),
             band=data_id["band"],
             identifiers=PatchIdentifiers.from_data_id(data_id),
+            visit_polygons={  # This is arbitrary, just to check it if it goes through FITS persistence.
+                ObservationIdentifiers(
+                    instrument="dummy",
+                    physical_filter="dummy-I",
+                    visit=12345,
+                    detector=67,
+                    day_obs=20000101,
+                ): Polygon([geom.Point2D(0, 0), geom.Point2D(1, 0), geom.Point2D(1, 1), geom.Point2D(0, 1)])
+            },
         )
 
         cls.nx, cls.ny = 3, 2
@@ -244,15 +254,24 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                             geom.Point2I(cls.x0 + x * cls.inner_size_x, cls.y0 + y * cls.inner_size_y),
                             geom.Extent2I(cls.inner_size_x, cls.inner_size_y),
                         ),
-                        inputs=(
+                        inputs={
                             ObservationIdentifiers(
                                 instrument="dummy",
                                 physical_filter="dummy-I",
                                 visit=12345,
                                 detector=67,
                                 day_obs=20000101,
-                            ),
-                        ),
+                            ): CoaddInputs(
+                                True,
+                                1.0,
+                                1.0,
+                                Quadrupole(
+                                    cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
+                                    cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
+                                ),
+                                False,
+                            )
+                        },
                         common=common,
                         identifiers=identifiers,
                         aperture_correction_map=aperture_correction_map,
@@ -564,7 +583,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
             with self.subTest(x=cellId.x, y=cellId.y):
                 self.assertEqual(
                     inputs.subsetContaining(position),
-                    self.multiple_cell_coadd.cells[cellId].inputs,
+                    tuple(self.multiple_cell_coadd.cells[cellId].inputs.keys()),
                 )
         self.assertEqual(len(self.stitched_coadd.visits), 1)
 

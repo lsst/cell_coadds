@@ -85,12 +85,13 @@ __all__ = (
 
 import logging
 import os
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 from frozendict import frozendict
 from numpy.typing import DTypeLike
 from packaging import version
@@ -99,7 +100,7 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 from lsst.afw.image import ImageD, ImageF
 from lsst.daf.base import PropertySet
-from lsst.geom import Box2I, Extent2I, Point2I
+from lsst.geom import Box2I, Extent2I, Point2D, Point2I
 from lsst.obs.base.formatters.fitsGeneric import FitsGenericFormatter
 from lsst.skymap import Index2D
 
@@ -108,11 +109,12 @@ from ._common_components import CoaddUnits, CommonComponents
 from ._grid_container import GridContainer
 from ._identifiers import CellIdentifiers, ObservationIdentifiers, PatchIdentifiers
 from ._image_planes import OwnedImagePlanes
-from ._multiple_cell_coadd import MultipleCellCoadd, SingleCellCoadd
+from ._multiple_cell_coadd import MultipleCellCoadd
+from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.5"
+FILE_FORMAT_VERSION = "0.6"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -251,18 +253,6 @@ class CellCoaddFitsReader:
                 logger.info("Attemping to set pixel units from TUNIT1.")
                 coadd_units = header.get("TUNIT1", CoaddUnits.legacy.name)
 
-            common = CommonComponents(
-                units=CoaddUnits(coadd_units),
-                wcs=wcs,
-                band=header["FILTER"],
-                identifiers=PatchIdentifiers(
-                    skymap=header["SKYMAP"],
-                    tract=header["TRACT"],
-                    patch=Index2D(x=header["PATCH_X"], y=header["PATCH_Y"]),
-                    band=header["FILTER"],
-                ),
-            )
-
             outer_cell_size = Extent2I(header["OCELL1"], header["OCELL2"])
             psf_image_size = Extent2I(header["PSFSIZE1"], header["PSFSIZE2"])
 
@@ -293,7 +283,14 @@ class CellCoaddFitsReader:
             )
 
             # Attempt to get inputs for each cell.
-            inputs = GridContainer[list[ObservationIdentifiers]](shape=grid.shape)
+            inputs = GridContainer[dict[ObservationIdentifiers, CoaddInputs]](shape=grid.shape)
+            coadd_input = CoaddInputs(  # default version for written_version <= 0.5.
+                overlaps_center=True,
+                overlap_fraction=1.0,
+                weight=0.0,
+                psf_shape=afwGeom.Quadrupole(),
+                psf_shape_flag=True,
+            )
             if written_version >= version.parse("0.3"):
                 visit_dict = {
                     row["visit"]: VisitRecord(
@@ -304,6 +301,37 @@ class CellCoaddFitsReader:
                     for row in hdu_list[hdu_list.index_of("VISIT")].data
                 }
                 link_table = hdu_list[hdu_list.index_of("CELL")].data
+
+                if written_version >= version.parse("0.6"):
+                    mask_definitions = hdu_list[hdu_list.index_of("MASKDEF")].data
+                    mask_plane_dict = {}
+                    for mask_name, mask_value in mask_definitions:
+                        afwImage.Mask.addMaskPlane(mask_name)
+                        mask_plane_dict[mask_name] = mask_value
+                else:
+                    logger.warning(
+                        "Mask definitions can be incorrect since this was written with "
+                        "FILE_FORMAT_VERSION %s < 0.6",
+                        header["VERSION"],
+                    )
+                    mask_plane_dict = None
+
+                if written_version >= version.parse("0.6"):
+                    visit_summary_hdu = hdu_list[hdu_list.index_of("VISIT_SUMMARY")]
+                    visit_polygons = {}
+                    for row in visit_summary_hdu.data:
+                        visit = int(row["visit"])
+                        obs_id = ObservationIdentifiers(
+                            instrument=header["INSTRUME"],
+                            visit=visit,
+                            detector=row["detector"],
+                            day_obs=visit_dict[visit].day_obs,
+                            physical_filter=visit_dict[visit].physical_filter,
+                        )
+                        visit_polygons[obs_id] = afwGeom.Polygon(
+                            [Point2D(vertex) for vertex in row["polygon_vertices"]]
+                        )
+
                 for link_row in link_table:
                     cell_id = Index2D(link_row["cell_x"], link_row["cell_y"])
                     visit = link_row["visit"]
@@ -314,10 +342,23 @@ class CellCoaddFitsReader:
                         day_obs=visit_dict[visit].day_obs,
                         physical_filter=visit_dict[visit].physical_filter,
                     )
+                    if written_version >= version.parse("0.6"):
+                        coadd_input = CoaddInputs(
+                            overlaps_center=link_row["overlaps_center"],
+                            overlap_fraction=link_row["overlap_fraction"],
+                            weight=link_row["weight"],
+                            psf_shape=afwGeom.Quadrupole(
+                                ixx=link_row["psf_shape_ixx"],
+                                iyy=link_row["psf_shape_iyy"],
+                                ixy=link_row["psf_shape_ixy"],
+                            ),
+                            psf_shape_flag=link_row["psf_shape_flag"],
+                        )
+
                     if cell_id in inputs:
-                        inputs[cell_id] += [obs_id]
+                        inputs[cell_id][obs_id] = coadd_input
                     else:
-                        inputs[cell_id] = [obs_id]
+                        inputs[cell_id] = {obs_id: coadd_input}
             else:
                 logger.info(
                     "Cell inputs are available for VERSION=0.3 or later. The file provided has ",
@@ -327,15 +368,27 @@ class CellCoaddFitsReader:
 
             try:
                 aperture_correction_hdu = hdu_list[hdu_list.index_of("APCORR")].data
-                assert len(aperture_correction_hdu) == 0 or len(aperture_correction_hdu) == len(
-                    data
-                ), "Aperture correction map is not available for all cells."
+                if len(aperture_correction_hdu) < len(data):
+                    logger.warning("Aperture correction map is not available for all cells.")
                 aperture_correction_grid = self._readApCorr(aperture_correction_hdu, grid_shape)
             except KeyError:
                 if written_version >= version.parse("0.4"):
                     logger.warning("Unable to read aperture correction map from the file.")
                 # Create an empty grid container regardless.
                 aperture_correction_grid = GridContainer[SingleCellCoaddApCorrMap](shape=grid_shape)
+
+            common = CommonComponents(
+                units=CoaddUnits(coadd_units),
+                wcs=wcs,
+                band=header["FILTER"],
+                identifiers=PatchIdentifiers(
+                    skymap=header["SKYMAP"],
+                    tract=header["TRACT"],
+                    patch=Index2D(x=header["PATCH_X"], y=header["PATCH_Y"]),
+                    band=header["FILTER"],
+                ),
+                visit_polygons=visit_polygons,
+            )
 
             coadd = MultipleCellCoadd(
                 (
@@ -349,6 +402,7 @@ class CellCoaddFitsReader:
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
+                        mask_plane_dict=mask_plane_dict,
                         aperture_correction_map=aperture_correction_grid.get(
                             Index2D(
                                 data[row_id]["cell_id"][0].tolist(),
@@ -374,10 +428,11 @@ class CellCoaddFitsReader:
         common: CommonComponents,
         header: Mapping[str, Any],
         *,
-        inputs: Iterable[ObservationIdentifiers],
+        inputs: Mapping[ObservationIdentifiers, CoaddInputs],
         outer_cell_size: Extent2I,
         inner_cell_size: Extent2I,
         psf_image_size: Extent2I,
+        mask_plane_dict: Mapping[str, int] | None,
         aperture_correction_map: SingleCellCoaddApCorrMap = EMPTY_AP_CORR_MAP,
     ) -> SingleCellCoadd:
         """Read a coadd from a FITS file.
@@ -391,15 +446,17 @@ class CellCoaddFitsReader:
             The common components of the coadd.
         header : `Mapping`
             The header of the FITS file as a dictionary.
-        inputs : `Iterable` [`ObservationIdentifiers`]
-            Any iterable of ObservationIdentifiers instances that contributed
-            to this cell.
+        inputs : `Mapping` [`ObservationIdentifiers`, `CoaddInputs`]
+            A mapping of ObservationIdentifiers that contributed to this cell
+            to their corresponding CoaddInputs.
         outer_cell_size : `Extent2I`
             The size of the outer cell.
         psf_image_size : `Extent2I`
             The size of the PSF image.
         inner_cell_size : `Extent2I`
             The size of the inner cell.
+        mask_plane_dict: `Mapping[str, int]` | None
+            A mapping defining the mask planes to their bit value.
         aperture_correction_map : `Mapping` [`str`, `float`], optional
             Mapping of algorithm name to aperture correction value.
             If None, no aperture correction is applied.
@@ -421,7 +478,20 @@ class CellCoaddFitsReader:
             inner_cell_size.x * data["cell_id"][0] - buffer.x + header["GRMIN1"],
             inner_cell_size.y * data["cell_id"][1] - buffer.y + header["GRMIN2"],
         )
-        mask = afwImage.Mask(data["mask"].astype(np.int32), xy0=xy0)
+
+        # Parse the mask array carefully, accounting for a change in
+        # the definitions.
+        mask = afwImage.Mask(
+            bbox=Box2I(corner=xy0, dimensions=Extent2I(outer_cell_size.x, outer_cell_size.y)),
+            initialValue=0,
+        )
+        mask_array = data["mask"].astype(np.int32)
+        if mask_plane_dict is not None:
+            for mask_name, bit_value in mask_plane_dict.items():
+                mask.array[(mask_array & 2**bit_value) > 0] |= afwImage.Mask.getPlaneBitMask(mask_name)
+        else:
+            mask.array[:, :] = mask
+
         try:
             maskfrac = data["maskfrac"]
             mask_fractions = ImageF(maskfrac.astype(np.float32), xy0=xy0)
@@ -564,15 +634,55 @@ def writeMultipleCellCoaddAsFits(
     cell_records: list[Any] = []
     instrument_set = set()
     for cell_id, single_cell_coadd in multiple_cell_coadd.cells.items():
-        for observation_id in single_cell_coadd.inputs:
+        for observation_id, coadd_input in single_cell_coadd.inputs.items():
             visit_records.append(
                 (observation_id.visit, observation_id.physical_filter, observation_id.day_obs)
             )
-            cell_records.append((cell_id.x, cell_id.y, observation_id.visit, observation_id.detector))
+            cell_records.append(
+                (
+                    cell_id.x,
+                    cell_id.y,
+                    observation_id.visit,
+                    observation_id.detector,
+                    coadd_input.overlaps_center,
+                    coadd_input.overlap_fraction,
+                    coadd_input.weight,
+                    coadd_input.psf_shape.getIxx(),
+                    coadd_input.psf_shape.getIyy(),
+                    coadd_input.psf_shape.getIxy(),
+                    coadd_input.psf_shape_flag,
+                )
+            )
             instrument_set.add(observation_id.instrument)
 
     assert len(instrument_set) == 1, "All cells must have the same instrument."
     instrument = instrument_set.pop()
+
+    # Create visit_summary equivalent table
+    visit_column = fits.Column(
+        name="visit",
+        format="K",
+        array=[obs_id.visit for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
+    detector_column = fits.Column(
+        name="detector",
+        format="I",
+        array=[obs_id.detector for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
+    polygon_vertices_array = []
+    for poly in multiple_cell_coadd.common.visit_polygons.values():
+        vertices = poly.getVertices() + poly.getVertices()
+        vertices = vertices[:6]
+        polygon_vertices_array.append(np.array(vertices))
+    polygon_column = fits.Column(
+        name="polygon_vertices",
+        format="12E",
+        dim="(2,6)",
+        array=polygon_vertices_array,
+    )
+    visit_summary_hdu = fits.BinTableHDU.from_columns(
+        [visit_column, detector_column, polygon_column], name="VISIT_SUMMARY"
+    )
 
     visit_recarray = np.rec.fromrecords(
         recList=sorted(set(visit_records), key=lambda x: x[0]),  # Sort by visit.
@@ -591,6 +701,13 @@ def writeMultipleCellCoaddAsFits(
             "cell_y",
             "visit",
             "detector",
+            "overlaps_center",
+            "overlap_fraction",
+            "weight",
+            "psf_shape_ixx",
+            "psf_shape_iyy",
+            "psf_shape_ixy",
+            "psf_shape_flag",
         ),
     )
 
@@ -620,6 +737,11 @@ def writeMultipleCellCoaddAsFits(
         dim=f"({mask_array[0].shape[1]}, {mask_array[0].shape[0]})",
         array=mask_array,
     )
+    # Add in mask bit definitions as its own table.
+    mask_definition_table = Table(names=("MASK_NAME", "BIT_VALUE"), dtype=(str, np.uint32))
+    for name, value in multiple_cell_coadd.cells.arbitrary.outer.mask.getMaskPlaneDict().items():
+        mask_definition_table.add_row((name, value))
+    mask_definition_hdu = fits.BinTableHDU.from_columns(mask_definition_table.as_array(), name="MASKDEF")
 
     variance_array = [cell.outer.variance.array for cell in multiple_cell_coadd.cells.values()]
     variance = fits.Column(
@@ -667,7 +789,8 @@ def writeMultipleCellCoaddAsFits(
     if multiple_cell_coadd.cells.arbitrary.aperture_correction_map:
         apcorr_fields: set[str] = set()
         for cell in multiple_cell_coadd.cells.values():
-            apcorr_fields.update(cell.aperture_correction_map)
+            if cell.aperture_correction_map:
+                apcorr_fields.update(cell.aperture_correction_map)
         dtypes = [("x", int), ("y", int)] + [(key, float) for key in apcorr_fields]
         aperture_correction_recarray = np.rec.fromrecords(
             recList=[
@@ -738,10 +861,10 @@ def writeMultipleCellCoaddAsFits(
     if metadata is not None:
         hdu.header.extend(metadata.toDict())
 
-    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu])
+    hdu_list = fits.HDUList([primary_hdu, hdu, cell_hdu, visit_hdu, mask_definition_hdu, visit_summary_hdu])
     if aperture_correction_hdu:
         hdu_list.append(aperture_correction_hdu)
 
-    hdu_list.writeto(filename, overwrite=overwrite)
+    hdu_list.writeto(filename, overwrite=overwrite, checksum=True)
 
     return hdu_list
