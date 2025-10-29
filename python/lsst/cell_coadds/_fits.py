@@ -669,8 +669,18 @@ def writeMultipleCellCoaddAsFits(
         format="I",
         array=[obs_id.detector for obs_id in multiple_cell_coadd.common.visit_polygons],
     )
+    number_of_vertices = []
     polygon_vertices_array = []
-    for poly in multiple_cell_coadd.common.visit_polygons.values():
+    for obs_id, poly in multiple_cell_coadd.common.visit_polygons.items():
+        if num_vertices := len(poly.getVertices()) > 6:
+            logger.warning(
+                "Visit %d, detector %d has a polygon with %d vertices; "
+                "only the first 6 will be stored in the FITS file.",
+                obs_id.visit,
+                obs_id.detector,
+                num_vertices,
+            )
+        number_of_vertices.append(num_vertices)
         vertices = poly.getVertices() + poly.getVertices()
         vertices = vertices[:6]
         polygon_vertices_array.append(np.array(vertices))
@@ -680,8 +690,14 @@ def writeMultipleCellCoaddAsFits(
         dim="(2,6)",
         array=polygon_vertices_array,
     )
+    number_of_vertices_column = fits.Column(
+        name="num_vertices",
+        format="I",
+        array=number_of_vertices,
+    )
     visit_summary_hdu = fits.BinTableHDU.from_columns(
-        [visit_column, detector_column, polygon_column], name="VISIT_SUMMARY"
+        [visit_column, detector_column, number_of_vertices_column, polygon_column],
+        name="VISIT_SUMMARY",
     )
 
     visit_recarray = np.rec.fromrecords(
