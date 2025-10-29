@@ -328,8 +328,9 @@ class CellCoaddFitsReader:
                             day_obs=visit_dict[visit].day_obs,
                             physical_filter=visit_dict[visit].physical_filter,
                         )
+                        num_vertices = row["num_vertices"] if written_version >= version.parse("0.7") else 6
                         visit_polygons[obs_id] = afwGeom.Polygon(
-                            [Point2D(vertex) for vertex in row["polygon_vertices"]]
+                            [Point2D(vertex) for vertex in row["polygon_vertices"][:num_vertices]]
                         )
 
                 for link_row in link_table:
