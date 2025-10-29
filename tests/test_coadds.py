@@ -377,6 +377,8 @@ class MultipleCellCoaddTestCase(BaseMultipleCellCoaddTestCase):
         # By transititve property of equality, mcc1 == mcc2.
 
         self.assertEqual(self.multiple_cell_coadd.band, self.multiple_cell_coadd.common.band)
+        for poly in self.multiple_cell_coadd.common.visit_polygons.values():
+            self.assertEqual(len(poly), 4)
         self.assertEqual(
             wcs.getFitsMetadata().toString(), self.multiple_cell_coadd.wcs.getFitsMetadata().toString()
         )
