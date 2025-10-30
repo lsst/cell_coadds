@@ -114,10 +114,15 @@ from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.6"
+FILE_FORMAT_VERSION = "0.7"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
+
+MAX_POLYGON_VERTICES = 6
+"""Maximum number of vertices the overlap polygon region between a per-detector
+warp and the patch bounding box can have."""
+# 3 vertices from the detector, 3 vertices from the patch bounding box.
 
 logger = logging.getLogger(__name__)
 
@@ -328,8 +333,12 @@ class CellCoaddFitsReader:
                             day_obs=visit_dict[visit].day_obs,
                             physical_filter=visit_dict[visit].physical_filter,
                         )
+                        if written_version >= version.parse("0.7"):
+                            num_vertices = row["num_vertices"]
+                        else:
+                            num_vertices = None  # li[:None] returns the entire list.
                         visit_polygons[obs_id] = afwGeom.Polygon(
-                            [Point2D(vertex) for vertex in row["polygon_vertices"]]
+                            [Point2D(vertex) for vertex in row["polygon_vertices"][:num_vertices]]
                         )
 
                 for link_row in link_table:
@@ -669,20 +678,40 @@ def writeMultipleCellCoaddAsFits(
         format="I",
         array=[obs_id.detector for obs_id in multiple_cell_coadd.common.visit_polygons],
     )
+    number_of_vertices = []
     polygon_vertices_array = []
-    for poly in multiple_cell_coadd.common.visit_polygons.values():
+    for obs_id, poly in multiple_cell_coadd.common.visit_polygons.items():
+        if num_vertices := len(poly.getVertices()) > MAX_POLYGON_VERTICES:
+            logger.warning(
+                "Visit %d, detector %d has a polygon with %d vertices. "
+                "This geometry should be impossible for two intersecting "
+                "convex quadrilaterals. Only the first %d will be stored in "
+                "the FITS file.",
+                obs_id.visit,
+                obs_id.detector,
+                num_vertices,
+                MAX_POLYGON_VERTICES,
+            )
+        number_of_vertices.append(num_vertices)
         vertices = poly.getVertices() + poly.getVertices()
-        vertices = vertices[:6]
+        vertices = vertices[:MAX_POLYGON_VERTICES]
         polygon_vertices_array.append(np.array(vertices))
     polygon_column = fits.Column(
         name="polygon_vertices",
-        format="12E",
-        dim="(2,6)",
+        format=f"{2 * MAX_POLYGON_VERTICES}E",
+        dim=f"(2,{MAX_POLYGON_VERTICES})",
         array=polygon_vertices_array,
     )
-    visit_summary_hdu = fits.BinTableHDU.from_columns(
-        [visit_column, detector_column, polygon_column], name="VISIT_SUMMARY"
+    number_of_vertices_column = fits.Column(
+        name="num_vertices",
+        format="I",
+        array=number_of_vertices,
     )
+    visit_summary_hdu = fits.BinTableHDU.from_columns(
+        [visit_column, detector_column, number_of_vertices_column, polygon_column],
+        name="VISIT_SUMMARY",
+    )
+    visit_summary_hdu.header["POLYVERT"] = MAX_POLYGON_VERTICES
 
     visit_recarray = np.rec.fromrecords(
         recList=sorted(set(visit_records), key=lambda x: x[0]),  # Sort by visit.
