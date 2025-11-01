@@ -561,9 +561,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                     geom.Extent2I(self.inner_size_x, self.inner_size_y),
                 )
                 index = Index2D(x=x, y=y)
-                self.assertImagesEqual(exposure.image[bbox], self.exposures[index].image[bbox])
-                self.assertImagesEqual(exposure.variance[bbox], self.exposures[index].variance[bbox])
-                self.assertImagesEqual(exposure.mask[bbox], self.exposures[index].mask[bbox])
+                self.assertMaskedImagesEqual(exposure[bbox], self.exposures[index][bbox])
 
         self.assertMaskedImagesEqual(self.stitched_coadd.asExposure(noise_index=None), exposure)
         for noise_index in range(self.n_noise_realizations):
@@ -635,9 +633,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
             read_exposure = ExposureF.readFits(filename)  # Test the readFits method.
 
         # Test that the image planes are identical.
-        self.assertImagesEqual(read_exposure.image, write_exposure.image)
-        self.assertImagesEqual(read_exposure.variance, write_exposure.variance)
-        self.assertImagesEqual(read_exposure.mask, write_exposure.mask)
+        self.assertMaskedImagesEqual(read_exposure, write_exposure)
 
         # Test the PSF images in the StitchedPsf.
         for index in write_exposure.psf.images.indices():
