@@ -166,9 +166,25 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         for cell in self._cell_coadd.cells.values():
             cell._set_cell_edges(edge_width=edge_width, edge_mask_name=edge_mask_name)
 
-    def asExposure(self) -> ExposureF:
-        """Return an `lsst.afw.image.Exposure` view of this piecewise image."""
-        result = ExposureF(self.asMaskedImage())
+    def asExposure(
+        self,
+        *,
+        noise_index: int | None = None,
+    ) -> ExposureF:
+        """Return an `lsst.afw.image.Exposure` view of this piecewise image.
+
+        Parameters
+        ----------
+        noise_index : `int` or `None`, optional
+            If specified, return an exposure containing the specified noise
+            realization instead of the data image.
+
+        Returns
+        -------
+        exposure : `lsst.afw.image.ExposureF`
+            The stitched exposure.
+        """
+        result = ExposureF(self.asMaskedImage(noise_index=noise_index))
         # Exposure components derived from "common" components are all simple.
         result.setWcs(self._cell_coadd.wcs)
         result.setFilter(FilterLabel(band=self.band))
