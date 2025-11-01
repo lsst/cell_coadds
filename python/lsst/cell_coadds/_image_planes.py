@@ -89,11 +89,42 @@ class ImagePlanes(ABC):
         """
         raise NotImplementedError()
 
-    def asMaskedImage(self) -> MaskedImageF:
+    def asMaskedImage(
+        self,
+        *,
+        noise_index: int | None = None,
+    ) -> MaskedImageF:
         """Return an `lsst.afw.image.MaskedImage` view of the image, mask, and
         variance planes.
+
+        Parameters
+        ----------
+        noise_index : `int` or `None`, optional
+            If `None`, return the masked image formed from the
+            main image, mask, and variance planes.  If an integer index is
+            provided, return the masked image formed from the specified noise
+            realization, along with the mask and variance planes.
+
+        Returns
+        -------
+        masked_image : `lsst.afw.image.MaskedImageF`
+            The masked image formed from the specified planes.
+
+        Raises
+        ------
+        ValueError
+            Raised if ``noise_index`` is out of range for the available noise
+            realizations.
         """
-        return MaskedImageF(self.image, self.mask, self.variance)
+        if noise_index is None:
+            return MaskedImageF(self.image, self.mask, self.variance)
+        elif 0 <= noise_index < len(self.noise_realizations):
+            return MaskedImageF(self.noise_realizations[noise_index], self.mask, self.variance)
+        else:
+            raise ValueError(
+                f"noise_index {noise_index} is out of range for "
+                f"{len(self.noise_realizations)} noise realizations"
+            )
 
 
 class OwnedImagePlanes(ImagePlanes):
