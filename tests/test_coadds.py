@@ -561,9 +561,29 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                     geom.Extent2I(self.inner_size_x, self.inner_size_y),
                 )
                 index = Index2D(x=x, y=y)
-                self.assertImagesEqual(exposure.image[bbox], self.exposures[index].image[bbox])
-                self.assertImagesEqual(exposure.variance[bbox], self.exposures[index].variance[bbox])
-                self.assertImagesEqual(exposure.mask[bbox], self.exposures[index].mask[bbox])
+                self.assertMaskedImagesEqual(exposure[bbox], self.exposures[index][bbox])
+
+        self.assertMaskedImagesEqual(self.stitched_coadd.asExposure(noise_index=None), exposure)
+        for noise_index in range(self.n_noise_realizations):
+            noise_exposure = self.stitched_coadd.asExposure(noise_index=noise_index)
+
+            self.assertImagesEqual(noise_exposure.variance, exposure.variance)
+            self.assertImagesEqual(noise_exposure.mask, exposure.mask)
+
+            for y in range(self.ny):
+                for x in range(self.nx):
+                    bbox = geom.Box2I(
+                        geom.Point2I(self.x0 + x * self.inner_size_x, self.y0 + y * self.inner_size_y),
+                        geom.Extent2I(self.inner_size_x, self.inner_size_y),
+                    )
+                    index = Index2D(x=x, y=y)
+                    self.assertImagesEqual(
+                        noise_exposure.image[bbox],
+                        self.multiple_cell_coadd.cells[index].outer.noise_realizations[noise_index][bbox],
+                    )
+
+        with self.assertRaises(ValueError):
+            self.stitched_coadd.asExposure(noise_index=self.n_noise_realizations)
 
     def test_aperture_correction(self):
         """Test the aperture correction values are what we expect."""
@@ -613,9 +633,7 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
             read_exposure = ExposureF.readFits(filename)  # Test the readFits method.
 
         # Test that the image planes are identical.
-        self.assertImagesEqual(read_exposure.image, write_exposure.image)
-        self.assertImagesEqual(read_exposure.variance, write_exposure.variance)
-        self.assertImagesEqual(read_exposure.mask, write_exposure.mask)
+        self.assertMaskedImagesEqual(read_exposure, write_exposure)
 
         # Test the PSF images in the StitchedPsf.
         for index in write_exposure.psf.images.indices():
