@@ -499,7 +499,7 @@ class CellCoaddFitsReader:
             for mask_name, bit_value in mask_plane_dict.items():
                 mask.array[(mask_array & 2**bit_value) > 0] |= afwImage.Mask.getPlaneBitMask(mask_name)
         else:
-            mask.array[:, :] = mask
+            mask.array[:, :] = mask_array
 
         try:
             maskfrac = data["maskfrac"]
