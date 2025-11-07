@@ -296,6 +296,7 @@ class CellCoaddFitsReader:
                 psf_shape=afwGeom.Quadrupole(),
                 psf_shape_flag=True,
             )
+            visit_polygons = {}
             if written_version >= version.parse("0.3"):
                 visit_dict = {
                     row["visit"]: VisitRecord(
@@ -323,7 +324,6 @@ class CellCoaddFitsReader:
 
                 if written_version >= version.parse("0.6"):
                     visit_summary_hdu = hdu_list[hdu_list.index_of("VISIT_SUMMARY")]
-                    visit_polygons = {}
                     for row in visit_summary_hdu.data:
                         visit = int(row["visit"])
                         obs_id = ObservationIdentifiers(
@@ -499,7 +499,7 @@ class CellCoaddFitsReader:
             for mask_name, bit_value in mask_plane_dict.items():
                 mask.array[(mask_array & 2**bit_value) > 0] |= afwImage.Mask.getPlaneBitMask(mask_name)
         else:
-            mask.array[:, :] = mask
+            mask.array[:, :] = mask_array
 
         try:
             maskfrac = data["maskfrac"]
