@@ -1,0 +1,3 @@
+When converting a StitchedCoadd to an afw Exposure, it contains a CoaddInputs.
+However, the records do not contain the individual bounding boxes and WCSs.
+Instead, the validPolygon is already in the coadd coordinates.
