@@ -67,22 +67,6 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
     def setUpClass(cls) -> None:
         """Set up a multiple cell coadd with 2x2 cells."""
         np.random.seed(42)
-        data_id = test_utils.generate_data_id()
-        common = CommonComponents(
-            units=CoaddUnits.nJy,  # units here are arbitrary.
-            wcs=test_utils.generate_wcs(),
-            band=data_id["band"],
-            identifiers=PatchIdentifiers.from_data_id(data_id),
-            visit_polygons={  # This is arbitrary, just to check it if it goes through FITS persistence.
-                ObservationIdentifiers(
-                    instrument="dummy",
-                    physical_filter="dummy-I",
-                    visit=12345,
-                    detector=67,
-                    day_obs=20000101,
-                ): Polygon([geom.Point2D(0, 0), geom.Point2D(1, 0), geom.Point2D(1, 1), geom.Point2D(0, 1)])
-            },
-        )
 
         cls.nx, cls.ny = 3, 2
         cls.psf_sigmas = {
@@ -164,6 +148,23 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
 
         single_cell_coadds = []
         cls.exposures = dict.fromkeys(cls.psf_sigmas.keys())
+
+        data_id = test_utils.generate_data_id()
+        common = CommonComponents(
+            units=CoaddUnits.nJy,  # units here are arbitrary.
+            wcs=test_utils.generate_wcs(),
+            band=data_id["band"],
+            identifiers=PatchIdentifiers.from_data_id(data_id),
+            visit_polygons={  # This is arbitrary, just to check it if it goes through FITS persistence.
+                ObservationIdentifiers(
+                    instrument="dummy",
+                    physical_filter="dummy-I",
+                    visit=12345,
+                    detector=67,
+                    day_obs=20000101,
+                ): Polygon(geom.Box2D(patch_outer_bbox))
+            },
+        )
 
         for x in range(cls.nx):
             for y in range(cls.ny):
