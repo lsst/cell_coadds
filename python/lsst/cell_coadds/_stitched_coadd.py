@@ -28,7 +28,10 @@ from collections.abc import Iterator, Set
 from functools import partial
 from typing import TYPE_CHECKING
 
-from lsst.afw.image import ExposureF, FilterLabel, PhotoCalib
+import numpy as np
+
+from lsst.afw.image import CoaddInputs, ExposureF, FilterLabel, PhotoCalib
+from lsst.afw.table import ExposureTable, Schema
 from lsst.geom import Box2I, Point2I
 
 from ._common_components import CoaddUnits, CommonComponents, CommonComponentsProperties
@@ -166,6 +169,46 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         for cell in self._cell_coadd.cells.values():
             cell._set_cell_edges(edge_width=edge_width, edge_mask_name=edge_mask_name)
 
+    def _make_coadd_inputs(self) -> CoaddInputs:
+        """Make a coadd inputs object for this stitched coadd.
+
+        Returns
+        -------
+        coadd_inputs : `lsst.afw.image.CoaddInputs`
+            The coadd inputs for this stitched coadd.
+        """
+        visit_schema = ExposureTable.makeMinimalSchema()
+        visit_schema.addField("visit", type=np.int64, doc="Visit ID")
+
+        ccd_schema = Schema(visit_schema)
+        ccd_schema.addField("ccd", type=np.int32, doc="Detector ID")
+        ccd_schema.addField("weight", type=np.float32, doc="Weight for this (visit, detector) in the coadd.")
+
+        coadd_inputs = CoaddInputs(visit_schema, ccd_schema)
+
+        for obs_id in self.visits:
+            visit_record = coadd_inputs.visits.addNew()
+            visit_record["visit"] = obs_id.visit
+            visit_record.setBBox(Box2I())  # Dummy bbox; not used.
+
+        # Pre-process the weights to avoid redundant lookups and matching.
+        weights: dict[ObservationIdentifiers, float] = {}
+        for cell in self._cell_coadd.cells.values():
+            for obs_id, coadd_input in cell.inputs.items():
+                weights[obs_id] = coadd_input.weight
+                if len(weights) == len(self._cell_coadd.common.visit_polygons):
+                    break
+
+        for obs_id, polygon in self._cell_coadd.common.visit_polygons.items():
+            ccd_record = coadd_inputs.ccds.addNew()
+            ccd_record["visit"] = obs_id.visit
+            ccd_record["ccd"] = obs_id.detector
+            ccd_record["weight"] = weights[obs_id]
+            ccd_record.setBBox(Box2I())  # Dummy bbox; not used.
+            ccd_record.validPolygon = polygon
+
+        return coadd_inputs
+
     def asExposure(
         self,
         *,
@@ -183,8 +226,20 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
         -------
         exposure : `lsst.afw.image.ExposureF`
             The stitched exposure.
+
+        Notes
+        -----
+        The returned exposure will have its coaddInputs set. However, its
+        internal representation is very different from those that are genuine
+        afw objects. The records in the `ccds` and `visits` tables do not
+        contain the individual bounding boxes and WCSs. Instead, the
+        validPolygon is already in the coadd coordinates. To query the subset
+        of inputs, use the `subset_containing_ccds` and
+        `subset_containing_visits` methods on the returned exposure's
+        `getInfo().getCoaddInputs()` object.
         """
         result = ExposureF(self.asMaskedImage(noise_index=noise_index))
+        result.getInfo().setCoaddInputs(self._make_coadd_inputs())
         # Exposure components derived from "common" components are all simple.
         result.setWcs(self._cell_coadd.wcs)
         result.setFilter(FilterLabel(band=self.band))
