@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping
+from collections.abc import Generator, Iterable, Mapping
 
 import lsst.geom as geom
 from lsst.skymap import Index2D
@@ -51,7 +51,7 @@ class StitchedExposureCatalog:
         self.gc = gc
         self._inputs: list[ObservationIdentifiers] = []
 
-    def __iter__(self) -> Iterable[ObservationIdentifiers]:
+    def __iter__(self) -> Generator[ObservationIdentifiers]:
         """Iterate over the unique set of `ObservationIdentifiers`
         corresponding to the visits that overlap the full bounding box.
         """
