@@ -610,6 +610,16 @@ class StitchedCoaddTestCase(BaseMultipleCellCoaddTestCase):
                 )
         self.assertEqual(len(self.stitched_coadd.visits), 1)
 
+    def test_coaddInputs(self):
+        """Test that the inputs are populated when converted to Exposure."""
+        inputs = self.stitched_coadd.asExposure().getInfo().getCoaddInputs()
+        for position, _ in self.test_positions:
+            ccds = inputs.subset_containing_ccds(position, None)
+            visits = inputs.subset_containing_visits(position, None)
+            with self.subTest(x=position.x, y=position.y):
+                self.assertEqual(len(ccds), 1)
+                self.assertEqual(len(visits), 1)
+
     def test_borders(self):
         """Test that the borders are populated correctly on stitching."""
         mi = self.stitched_coadd.asMaskedImage()
