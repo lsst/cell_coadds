@@ -114,7 +114,7 @@ from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.7"
+FILE_FORMAT_VERSION = "0.8"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
