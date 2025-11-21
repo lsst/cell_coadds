@@ -203,7 +203,12 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             ccd_record = coadd_inputs.ccds.addNew()
             ccd_record["visit"] = obs_id.visit
             ccd_record["ccd"] = obs_id.detector
-            ccd_record["weight"] = weights[obs_id]
+            # ObservationIdentifiers in the inputs is a proper subset of those
+            # denoting the visit polygons. For edgeless coadds, some
+            # identifiers may not be present in weights and we take that to
+            # mean that they were excluded from the coadds (and hence have
+            # zero weight).
+            ccd_record["weight"] = weights.get(obs_id, 0.0)
             ccd_record.setBBox(Box2I())  # Dummy bbox; not used.
             ccd_record.validPolygon = polygon
 

@@ -114,7 +114,7 @@ from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.7"
+FILE_FORMAT_VERSION = "0.8"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -298,13 +298,22 @@ class CellCoaddFitsReader:
             )
             visit_polygons = {}
             if written_version >= version.parse("0.3"):
+                if written_version >= version.parse("0.6"):
+                    visit_hdu = hdu_list[hdu_list.index_of("VISIT_SUMMARY")].data
+                else:
+                    visit_hdu = hdu_list[hdu_list.index_of("VISIT")].data
+
                 visit_dict = {
                     row["visit"]: VisitRecord(
                         visit=row["visit"],
-                        physical_filter=row["physical_filter"],
-                        day_obs=row["day_obs"],
+                        physical_filter=(
+                            row["physical_filter"]
+                            if written_version >= version.parse("0.8")
+                            else header["FILTER"]
+                        ),
+                        day_obs=row["day_obs"] if written_version >= version.parse("0.8") else 00000000,
                     )
-                    for row in hdu_list[hdu_list.index_of("VISIT")].data
+                    for row in visit_hdu
                 }
                 link_table = hdu_list[hdu_list.index_of("CELL")].data
 
@@ -678,10 +687,20 @@ def writeMultipleCellCoaddAsFits(
         format="I",
         array=[obs_id.detector for obs_id in multiple_cell_coadd.common.visit_polygons],
     )
+    physical_filter_column = fits.Column(
+        name="physical_filter",
+        format="32A",
+        array=[obs_id.physical_filter for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
+    day_obs_column = fits.Column(
+        name="day_obs",
+        format="K",
+        array=[obs_id.day_obs for obs_id in multiple_cell_coadd.common.visit_polygons],
+    )
     number_of_vertices = []
     polygon_vertices_array = []
     for obs_id, poly in multiple_cell_coadd.common.visit_polygons.items():
-        if num_vertices := len(poly.getVertices()) > MAX_POLYGON_VERTICES:
+        if (num_vertices := len(poly.getVertices())) > MAX_POLYGON_VERTICES:
             logger.warning(
                 "Visit %d, detector %d has a polygon with %d vertices. "
                 "This geometry should be impossible for two intersecting "
@@ -708,7 +727,14 @@ def writeMultipleCellCoaddAsFits(
         array=number_of_vertices,
     )
     visit_summary_hdu = fits.BinTableHDU.from_columns(
-        [visit_column, detector_column, number_of_vertices_column, polygon_column],
+        [
+            visit_column,
+            detector_column,
+            physical_filter_column,
+            day_obs_column,
+            number_of_vertices_column,
+            polygon_column,
+        ],
         name="VISIT_SUMMARY",
     )
     visit_summary_hdu.header["POLYVERT"] = MAX_POLYGON_VERTICES
