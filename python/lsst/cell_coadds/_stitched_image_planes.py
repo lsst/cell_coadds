@@ -107,7 +107,9 @@ class StitchedImagePlanes(ImagePlanes):
     def mask(self) -> Mask:
         # Docstring inherited.
         if self._mask is None:
-            self._mask = self._make_plane(Mask(self.bbox), lambda planes: planes.mask)
+            self._mask = self._make_plane(
+                Mask(self.bbox, Mask.getPlaneBitMask("NO_DATA")), lambda planes: planes.mask
+            )
         return self._mask
 
     def uncache_mask(self) -> None:
