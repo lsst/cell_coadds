@@ -28,6 +28,8 @@ from collections.abc import Callable, Iterator, Sequence, Set
 from functools import partial
 from typing import TYPE_CHECKING, TypeVar
 
+import numpy as np
+
 from lsst.afw.image import ImageF, Mask
 
 from . import typing_helpers
@@ -120,7 +122,7 @@ class StitchedImagePlanes(ImagePlanes):
     def variance(self) -> ImageLike:
         # Docstring inherited.
         if self._variance is None:
-            self._variance = self._make_plane(ImageF(self.bbox), lambda planes: planes.variance)
+            self._variance = self._make_plane(ImageF(self.bbox, np.inf), lambda planes: planes.variance)
         return self._variance
 
     def uncache_variance(self) -> None:
