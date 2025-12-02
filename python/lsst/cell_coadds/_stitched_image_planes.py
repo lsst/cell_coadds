@@ -28,6 +28,8 @@ from collections.abc import Callable, Iterator, Sequence, Set
 from functools import partial
 from typing import TYPE_CHECKING, TypeVar
 
+import numpy as np
+
 from lsst.afw.image import ImageF, Mask
 
 from . import typing_helpers
@@ -107,7 +109,9 @@ class StitchedImagePlanes(ImagePlanes):
     def mask(self) -> Mask:
         # Docstring inherited.
         if self._mask is None:
-            self._mask = self._make_plane(Mask(self.bbox), lambda planes: planes.mask)
+            self._mask = self._make_plane(
+                Mask(self.bbox, Mask.getPlaneBitMask("NO_DATA")), lambda planes: planes.mask
+            )
         return self._mask
 
     def uncache_mask(self) -> None:
@@ -118,7 +122,7 @@ class StitchedImagePlanes(ImagePlanes):
     def variance(self) -> ImageLike:
         # Docstring inherited.
         if self._variance is None:
-            self._variance = self._make_plane(ImageF(self.bbox), lambda planes: planes.variance)
+            self._variance = self._make_plane(ImageF(self.bbox, np.inf), lambda planes: planes.variance)
         return self._variance
 
     def uncache_variance(self) -> None:
