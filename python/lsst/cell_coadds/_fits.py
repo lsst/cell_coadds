@@ -700,7 +700,8 @@ def writeMultipleCellCoaddAsFits(
     number_of_vertices = []
     polygon_vertices_array = []
     for obs_id, poly in multiple_cell_coadd.common.visit_polygons.items():
-        if (num_vertices := len(poly.getVertices())) > MAX_POLYGON_VERTICES:
+        # Polygons are closed, so the first and last vertices are the same.
+        if (num_vertices := len(poly.getVertices())) > MAX_POLYGON_VERTICES + 1:
             logger.warning(
                 "Visit %d, detector %d has a polygon with %d vertices. "
                 "This geometry should be impossible for two intersecting "
