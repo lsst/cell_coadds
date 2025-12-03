@@ -799,7 +799,7 @@ def writeMultipleCellCoaddAsFits(
     mask_array = [cell.outer.mask.array for cell in multiple_cell_coadd.cells.values()]
     mask = fits.Column(
         name="mask",
-        format=f"{mask_array[0].size}I",
+        format=f"{mask_array[0].size}J",
         dim=f"({mask_array[0].shape[1]}, {mask_array[0].shape[0]})",
         array=mask_array,
     )
