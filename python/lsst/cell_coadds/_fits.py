@@ -119,10 +119,19 @@ FILE_FORMAT_VERSION = "0.8"
 the form M.m, where M is the major version, m is the minor version.
 """
 
-MAX_POLYGON_VERTICES = 6
+MAX_POLYGON_VERTICES = 8
 """Maximum number of vertices the overlap polygon region between a per-detector
 warp and the patch bounding box can have."""
-# 3 vertices from the detector, 3 vertices from the patch bounding box.
+# --------------
+# |  /      \  |
+# | /        \ |
+# |/          \|
+# |            |
+# |            |
+# |\           |
+# | \         /|
+# |  \       / |
+# --------------
 
 logger = logging.getLogger(__name__)
 
