@@ -414,9 +414,10 @@ class CellCoaddFitsReader:
                         data=data[row_id],
                         header=header,
                         common=common,
-                        inputs=inputs[
-                            Index2D(int(data[row_id]["cell_id"][0]), int(data[row_id]["cell_id"][1]))
-                        ],
+                        inputs=inputs.get(
+                            Index2D(int(data[row_id]["cell_id"][0]), int(data[row_id]["cell_id"][1])),
+                            {},
+                        ),
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
