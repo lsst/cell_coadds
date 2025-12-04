@@ -119,10 +119,19 @@ FILE_FORMAT_VERSION = "0.8"
 the form M.m, where M is the major version, m is the minor version.
 """
 
-MAX_POLYGON_VERTICES = 6
+MAX_POLYGON_VERTICES = 8
 """Maximum number of vertices the overlap polygon region between a per-detector
 warp and the patch bounding box can have."""
-# 3 vertices from the detector, 3 vertices from the patch bounding box.
+# --------------
+# |  /      \  |
+# | /        \ |
+# |/          \|
+# |            |
+# |            |
+# |\           |
+# | \         /|
+# |  \       / |
+# --------------
 
 logger = logging.getLogger(__name__)
 
@@ -414,9 +423,10 @@ class CellCoaddFitsReader:
                         data=data[row_id],
                         header=header,
                         common=common,
-                        inputs=inputs[
-                            Index2D(int(data[row_id]["cell_id"][0]), int(data[row_id]["cell_id"][1]))
-                        ],
+                        inputs=inputs.get(
+                            Index2D(int(data[row_id]["cell_id"][0]), int(data[row_id]["cell_id"][1])),
+                            {},
+                        ),
                         outer_cell_size=outer_cell_size,
                         psf_image_size=psf_image_size,
                         inner_cell_size=grid_cell_size,
@@ -700,7 +710,8 @@ def writeMultipleCellCoaddAsFits(
     number_of_vertices = []
     polygon_vertices_array = []
     for obs_id, poly in multiple_cell_coadd.common.visit_polygons.items():
-        if (num_vertices := len(poly.getVertices())) > MAX_POLYGON_VERTICES:
+        # Polygons are closed, so the first and last vertices are the same.
+        if (num_vertices := len(poly.getVertices())) > MAX_POLYGON_VERTICES + 1:
             logger.warning(
                 "Visit %d, detector %d has a polygon with %d vertices. "
                 "This geometry should be impossible for two intersecting "
@@ -788,7 +799,7 @@ def writeMultipleCellCoaddAsFits(
     mask_array = [cell.outer.mask.array for cell in multiple_cell_coadd.cells.values()]
     mask = fits.Column(
         name="mask",
-        format=f"{mask_array[0].size}I",
+        format=f"{mask_array[0].size}J",
         dim=f"({mask_array[0].shape[1]}, {mask_array[0].shape[0]})",
         array=mask_array,
     )
