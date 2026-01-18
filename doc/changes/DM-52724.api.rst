@@ -1,1 +1,0 @@
-StitchedCoadd objects have a new `set_cell_edges` method to mark the cell boundaries with a mask bit.

@@ -1,1 +1,0 @@
-Cell-based coadds are no longer assumed to be edge-free. Coadds with edges are fully supported.

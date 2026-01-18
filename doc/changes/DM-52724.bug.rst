@@ -1,1 +1,0 @@
-Save the mask bit definitions in a new MASKDEF binary table.
