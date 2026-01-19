@@ -1,1 +1,0 @@
-Removed `packed` attribute from `ObservationIdentifiers`.

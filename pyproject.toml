@@ -64,3 +64,42 @@ max-doc-length = 79
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.towncrier]
+    package = "lsst.cell_coadds"
+    package_dir = "python"
+    filename = "doc/lsst.cell_coadds/CHANGES.rst"
+    directory = "doc/changes"
+    title_format = "lsst-cell_coadds {version} ({project_date})"
+    issue_format = "`{issue} <https://rubinobs.atlassian.net/browse/{issue}>`_"
+
+
+    [[tool.towncrier.type]]
+        directory = "feature"
+        name = "New Features"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "api"
+        name = "API Changes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "bugfix"
+        name = "Bug Fixes"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "perf"
+        name = "Performance Enhancement"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "misc"
+        name = "Miscellaneous Changes of Minor Interest"
+        showcontent = true
+
+    [[tool.towncrier.type]]
+        directory = "removal"
+        name = "An API Removal or Deprecation"
+        showcontent = true

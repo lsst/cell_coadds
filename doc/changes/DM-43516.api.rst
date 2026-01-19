@@ -1,1 +1,0 @@
-Allowed `inputs` argument when constructing a `SingleCellCoadd` instance to be any iterable, not just a frozenset.

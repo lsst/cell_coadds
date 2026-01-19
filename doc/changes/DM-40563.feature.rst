@@ -1,1 +1,0 @@
-Persist information about the input visits (+detectors) to each cell in separate HDUs.
