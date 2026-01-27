@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push: null
+
+jobs:
+  commit_msg:
+    name: commit_msg
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run commit message checks
+        shell: bash -l {0}
+        run: |
+          git fetch
+          currentbranch=`git branch | grep \* | cut -d ' ' -f2`
+          for i in `git rev-list $currentbranch...origin/main`
+          do
+            echo $i
+            git cat-file commit $i | sed '1,/^$/d' > .COMMIT_EDITMSG
+            .githooks/commit-msg .COMMIT_EDITMSG
+            cat .COMMIT_EDITMSG
+            rm .COMMIT_EDITMSG
+          done

@@ -26,6 +26,16 @@ jobs:
           channel-priority: strict
           show-channel-urls: true
 
+      - name: Git LFS
+        shell: bash -l {0}
+        run: |
+            cd ..
+            pwd
+            git clone https://github.com/lsst/testdata_ci_imsim
+            ls
+            # setup -j -r testdata_ci_imsim
+            # cd -
+
       - name: Install DM stack and mypy with conda/mamba
         shell: bash -l {0}
         run: |
@@ -42,6 +52,24 @@ jobs:
         run: |
           setup -v -r .
           scons
+
+      - name: Setup other packages
+        shell: bash -l {0}
+        run: |
+            cd ..
+            setup -k -r testdata_ci_imsim
+            git clone https://github.com/lsst-dm/ci_builder
+            ## cd ci_builder
+            setup -k -r ci_builder
+
+            echo $TESTDATA_CI_IMSIM_DIR
+
+            git clone https://github.com/lsst/ci_imsim
+            # cd ci_imsim
+            setup -k -r ci_imsim
+            ci_imsim/bin/rewrite.sh
+            ci_imsim/bin/ci_imsim_run.py
+            cd -
 
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v4
