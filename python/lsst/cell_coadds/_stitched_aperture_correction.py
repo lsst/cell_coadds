@@ -82,7 +82,7 @@ class StitchedApertureCorrection:
             try:
                 return self.gc[idx]
             except KeyError:
-                logger.info("No aperture correction found for %s", idx)
+                logger.debug("No aperture correction found for %s", idx)
                 return 1.0
 
         else:
