@@ -83,7 +83,7 @@ class StitchedApertureCorrection:
                 return self.gc[idx]
             except KeyError:
                 logger.debug("No aperture correction found for %s", idx)
-                return 1.0
+                return 0.0  # The default should be switched to inf or nan when coadding inverses.
 
         else:
             return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
