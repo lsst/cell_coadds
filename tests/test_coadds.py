@@ -263,14 +263,15 @@ class BaseMultipleCellCoaddTestCase(lsst.utils.tests.TestCase):
                                 detector=67,
                                 day_obs=20000101,
                             ): CoaddInputs(
-                                True,
-                                1.0,
-                                1.0,
-                                Quadrupole(
+                                overlaps_center=True,
+                                overlap_fraction=1.0,
+                                unmasked_overlap_fraction=1.0,
+                                weight=1.0,
+                                psf_shape=Quadrupole(
                                     cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
                                     cls.psf_sigmas[Index2D(x=x, y=y)] ** 2,
                                 ),
-                                False,
+                                psf_shape_flag=False,
                             )
                         },
                         common=common,
