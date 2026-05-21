@@ -49,11 +49,15 @@ class CoaddInputs:
     """Container for inputs to the coaddition process."""
 
     overlaps_center: bool
-    """Whether a single (detector, visit) observation overlaps the center """
-    """of the cell."""
+    """Whether a single (detector, visit) observation overlaps the center
+    of the cell."""
 
     overlap_fraction: float
     """Fraction of the cell that is covered by the overlap region."""
+
+    unmasked_overlap_fraction: float
+    """Fraction of the cell covered by this detector, excluding
+    rejected pixels."""
 
     weight: float
     """Weight to be used for this input."""
