@@ -123,7 +123,15 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inputs: Mapping[ObservationIdentifiers, CoaddInputs]
         if inputs:
             self._inputs = dict.fromkeys(
-                sorted(set(inputs)), CoaddInputs(False, 0.0, 0.0, Quadrupole(), True)
+                sorted(set(inputs)),
+                CoaddInputs(
+                    overlaps_center=False,
+                    overlap_fraction=0.0,
+                    unmasked_overlap_fraction=0.0,
+                    weight=0.0,
+                    psf_shape=Quadrupole(),
+                    psf_shape_flag=True,
+                ),
             )
             self._inputs.update(inputs)
         else:
