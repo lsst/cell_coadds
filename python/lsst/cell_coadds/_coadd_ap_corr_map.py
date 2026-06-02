@@ -101,6 +101,12 @@ class CoaddApCorrMapStacker:
 
         self._ap_corr_names = tuple(sorted(ap_corr_name_set))
 
+    def reset(self) -> None:
+        """Reset to the post-initialization state."""
+        self._total_weight = 0.0
+        self._intermediate_ap_corr_map = {}
+        self._ap_corr_names = ()
+
     @property
     def evaluation_point(self) -> Point2D:
         """The point at which the aperture correction is evaluated."""
