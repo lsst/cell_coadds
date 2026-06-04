@@ -49,11 +49,15 @@ class CoaddInputs:
     """Container for inputs to the coaddition process."""
 
     overlaps_center: bool
-    """Whether a single (detector, visit) observation overlaps the center """
-    """of the cell."""
+    """Whether a single (detector, visit) observation overlaps the center
+    of the cell."""
 
     overlap_fraction: float
     """Fraction of the cell that is covered by the overlap region."""
+
+    unmasked_overlap_fraction: float
+    """Fraction of the cell covered by this detector, excluding
+    rejected pixels."""
 
     weight: float
     """Weight to be used for this input."""
@@ -119,7 +123,15 @@ class SingleCellCoadd(CommonComponentsProperties):
         self._inputs: Mapping[ObservationIdentifiers, CoaddInputs]
         if inputs:
             self._inputs = dict.fromkeys(
-                sorted(set(inputs)), CoaddInputs(False, 0.0, 0.0, Quadrupole(), True)
+                sorted(set(inputs)),
+                CoaddInputs(
+                    overlaps_center=False,
+                    overlap_fraction=0.0,
+                    unmasked_overlap_fraction=0.0,
+                    weight=0.0,
+                    psf_shape=Quadrupole(),
+                    psf_shape_flag=True,
+                ),
             )
             self._inputs.update(inputs)
         else:

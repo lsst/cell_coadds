@@ -114,7 +114,7 @@ from ._single_cell_coadd import CoaddInputs, SingleCellCoadd
 from ._uniform_grid import UniformGrid
 from .typing_helpers import SingleCellCoaddApCorrMap
 
-FILE_FORMAT_VERSION = "0.8"
+FILE_FORMAT_VERSION = "0.9"
 """Version number for the file format as persisted, presented as a string of
 the form M.m, where M is the major version, m is the minor version.
 """
@@ -301,6 +301,7 @@ class CellCoaddFitsReader:
             coadd_input = CoaddInputs(  # default version for written_version <= 0.5.
                 overlaps_center=True,
                 overlap_fraction=1.0,
+                unmasked_overlap_fraction=1.0,
                 weight=0.0,
                 psf_shape=afwGeom.Quadrupole(),
                 psf_shape_flag=True,
@@ -373,6 +374,11 @@ class CellCoaddFitsReader:
                         coadd_input = CoaddInputs(
                             overlaps_center=link_row["overlaps_center"],
                             overlap_fraction=link_row["overlap_fraction"],
+                            unmasked_overlap_fraction=(
+                                link_row["unmasked_overlap_fraction"]
+                                if written_version >= version.parse("0.9")
+                                else link_row["overlap_fraction"]
+                            ),
                             weight=link_row["weight"],
                             psf_shape=afwGeom.Quadrupole(
                                 ixx=link_row["psf_shape_ixx"],
@@ -674,6 +680,7 @@ def writeMultipleCellCoaddAsFits(
                     observation_id.detector,
                     coadd_input.overlaps_center,
                     coadd_input.overlap_fraction,
+                    coadd_input.unmasked_overlap_fraction,
                     coadd_input.weight,
                     coadd_input.psf_shape.getIxx(),
                     coadd_input.psf_shape.getIyy(),
@@ -769,6 +776,7 @@ def writeMultipleCellCoaddAsFits(
             "detector",
             "overlaps_center",
             "overlap_fraction",
+            "unmasked_overlap_fraction",
             "weight",
             "psf_shape_ixx",
             "psf_shape_iyy",
