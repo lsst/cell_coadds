@@ -86,7 +86,9 @@ class StitchedApertureCorrection:
                 return 0.0  # The default should be switched to inf or nan when coadding inverses.
 
         else:
-            return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
+            return np.array(
+                [self.evaluate(geom.Point2I(geom.Point2D(xx, yy))) for xx, yy in zip(x, y, strict=True)]
+            )
 
     def getBBox(self) -> geom.Box2I:
         """Return the bounding box of this field."""
