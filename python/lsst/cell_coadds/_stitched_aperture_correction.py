@@ -87,3 +87,10 @@ class StitchedApertureCorrection:
 
         else:
             return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
+
+    def getBBox(self) -> geom.Box2I:
+        """Return the bounding box of this field."""
+        result = geom.Box2I()
+        for index in self.gc:
+            result.include(self.ugrid.bbox_of(index))
+        return result
