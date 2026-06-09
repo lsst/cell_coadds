@@ -82,8 +82,17 @@ class StitchedApertureCorrection:
             try:
                 return self.gc[idx]
             except KeyError:
-                logger.info("No aperture correction found for %s", idx)
-                return 1.0
+                logger.debug("No aperture correction found for %s", idx)
+                return 0.0  # The default should be switched to inf or nan when coadding inverses.
 
         else:
-            return np.array([self.evaluate(geom.Point2I(xx, yy)) for xx, yy in zip(x, y, strict=True)])
+            return np.array(
+                [self.evaluate(geom.Point2I(geom.Point2D(xx, yy))) for xx, yy in zip(x, y, strict=True)]
+            )
+
+    def getBBox(self) -> geom.Box2I:
+        """Return the bounding box of this field."""
+        result = geom.Box2I()
+        for index in self.gc:
+            result.include(self.ugrid.bbox_of(index))
+        return result
