@@ -293,7 +293,8 @@ class StitchedCoadd(StitchedImagePlanes, CommonComponentsProperties):
             for field_name in field_names:
                 gc = GridContainer[float](shape=self.grid.shape)
                 for scc in self._cell_coadd.cells.values():
-                    gc[scc.identifiers.cell] = scc.aperture_correction_map[field_name]
+                    if (ap_corr_value := scc.aperture_correction_map.get(field_name, None)) is not None:
+                        gc[scc.identifiers.cell] = ap_corr_value
                 ap_corr_map[field_name] = StitchedApertureCorrection(self.grid, gc)
 
             self._ap_corr_map = ap_corr_map
